@@ -1,0 +1,53 @@
+{
+  "name": "schicksal-first-empire",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "install:ci": "bash scripts/install-ci.sh",
+    "dev": "vite",
+    "build": "vinext build",
+    "start": "vinext start",
+    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:minigames && npm run test:solitaire",
+    "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
+    "test:minigames": "node --experimental-transform-types --test tests/potion-sort-engine.test.ts tests/merge-game-engine.test.ts tests/chryser-games.test.ts",
+    "test:mafraer": "node --experimental-transform-types --test tests/mafraer-magic.test.ts tests/mafraer-observatory.test.ts",
+    "test:records": "node --experimental-transform-types --test tests/game-records.test.ts tests/game-records-api.test.mjs",
+    "test:migration": "node --experimental-transform-types --test tests/cloudflare-migration.test.mjs",
+    "cloudflare:prepare": "node scripts/cloudflare/prepare.mjs",
+    "validate:artifact": "bash scripts/validate-artifact.sh",
+    "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
+    "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate",
+    "deploy": "node scripts/cloudflare/deploy-build.mjs",
+    "db:migrate": "wrangler d1 migrations apply DB --remote --config dist/server/wrangler.json",
+    "test:deployment": "node --test tests/cloudflare-deploy.test.mjs"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "react-server-dom-webpack": "19.2.6",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "vinext": "0.0.50",
+    "vite": "8.0.13",
+    "wrangler": "4.92.0"
+  },
+  "type": "module",
+  "displayName": "Schicksal — 天命第一帝国"
+}

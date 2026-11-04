@@ -1,0 +1,26 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { LoungeSolitaire } from "../lounge-solitaire";
+import { getMiniGame } from "./mini-game-registry";
+import { MiniGameShell } from "./mini-game-shell";
+import type { EmblemBlade, MiniGameId } from "./mini-game-types";
+
+export function useMiniGameSystem() {
+  const [activeGame, setActiveGame] = useState<MiniGameId | null>(null);
+  const launchMiniGame = useCallback((id: MiniGameId) => setActiveGame(id), []);
+  const closeMiniGame = useCallback(() => setActiveGame(null), []);
+  return { activeGame, launchMiniGame, closeMiniGame };
+}
+
+export function MiniGameSystem({ gameId, citizenId, emblemBlades, onClose, loungeTitle }: {
+  gameId: MiniGameId;
+  citizenId: string;
+  emblemBlades: readonly EmblemBlade[];
+  onClose: () => void;
+  loungeTitle?: string;
+}) {
+  const registration = getMiniGame(gameId);
+  if (registration.integration === "legacy-adapter") return <LoungeSolitaire citizenId={citizenId} blades={emblemBlades} onClose={onClose} />;
+  return <MiniGameShell key={`${citizenId}:${gameId}`} citizenId={citizenId} registration={registration} emblemBlades={emblemBlades} onClose={onClose} loungeTitle={loungeTitle} />;
+}

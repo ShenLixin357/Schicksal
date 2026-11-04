@@ -1,0 +1,22 @@
+Mafraer Observatory star data
+
+Source: HYG Database v4.1 by David Nash / AstroNexus
+https://github.com/astronexus/HYG-Database
+https://codeberg.org/astronexus/hyg
+
+The files mafraer-hyg-v41.bin and mafraer-hyg-v41.json are adaptations of
+the HYG v4.1 catalogue and are licensed under Creative Commons
+Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
+License and full legal code:
+https://creativecommons.org/licenses/by-sa/4.0/
+https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Changes: selected stars through visual magnitude 9.5; omitted the Sun;
+selected fields; normalized Cartesian position and velocity by distance;
+converted to a compact float32 binary format; extracted names/designations.
+Missing B-V values receive a neutral display colour only, not an observation.
+The source digest and format are recorded in mafraer-hyg-v41.json.
+
+The application, projection and interaction code are independently written.
+No endorsement by the catalogue author is implied.
+

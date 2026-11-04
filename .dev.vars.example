@@ -1,0 +1,4 @@
+# Set this in Cloudflare Worker Settings > Variables and Secrets as a Secret.
+# JSON keys: amberina, zxy, truth, kaito, harry.
+# Values: five distinct passwords, each at least 12 characters.
+SCHICKSAL_MEMBER_PASSWORDS=

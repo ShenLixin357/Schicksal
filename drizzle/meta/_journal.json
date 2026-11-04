@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1786829493939,
+      "tag": "0000_sleepy_otto_octavius",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787001028997,
+      "tag": "0001_low_aqueduct",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787003436439,
+      "tag": "0002_familiar_amazoness",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787794797391,
+      "tag": "0003_empty_karnak",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791317571155,
+      "tag": "0004_careful_harry_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791325218128,
+      "tag": "0005_round_thaddeus_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793742609936,
+      "tag": "0006_mysterious_morlocks",
+      "breakpoints": true
+    }
+  ]
+}
