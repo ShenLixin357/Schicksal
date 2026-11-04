@@ -19,7 +19,9 @@ Connect this private GitHub repository in **Workers & Pages → Create applicati
 
 The deploy script finds and reuses the `DB` D1 database, creating it only if needed, then applies schema migrations before publishing the Worker. Photos use a private Supabase bucket named `schicksal-photos`. Configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as Worker Secrets; never commit their real values. No old account resource IDs are embedded.
 
-Add **SCHICKSAL_MEMBER_PASSWORDS** as a Worker **Secret**. Its value is a JSON object with the keys `amberina`, `zxy`, `truth`, `kaito` and `harry`, each mapped to a different password of at least 12 characters. Configure these credentials privately in Cloudflare; do not put them in Git, screenshots or chat. Login stays unavailable until the secret is configured correctly. The source contains no working fallback member password.
+Add **SCHICKSAL_MEMBER_PASSWORDS** as a Worker **Secret**. Its value is a JSON object containing the owner key `amberina`; add `zxy`, `truth`, `kaito` or `harry` only when inviting those members. Each configured account needs a different password of at least 12 characters. Configure these credentials privately in Cloudflare; do not put them in Git, screenshots or chat. The whole site stays closed until owner login is configured correctly. The source contains no working fallback member password.
+
+Every page, artwork file, client bundle, archive and private API requires a valid member session. Only a self-contained login screen and the member-login endpoint are reachable anonymously. Static assets use `run_worker_first: true` so direct asset URLs cannot bypass authentication. Responses use private/no-store caching and no-index headers. Share the site address and each invitee's credentials privately; a link by itself does not grant access.
 
 If Cloudflare asks to activate billing or a paid product, pause that step for the owner's decision. This repository does not activate a paid plan.
 

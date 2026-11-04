@@ -1850,8 +1850,12 @@ export default function Home() {
   const [phase,setPhase] = useState<Phase>("opening");
   const [citizen,setCitizen] = useState(CITIZENS[0]);
   const logoutPending = useRef(false);
+  const restoredCitizen = useRef<Citizen | null>(null);
+  const restoreController = useRef<AbortController | null>(null);
   const logoutMember = async () => {
     if (logoutPending.current) return;
+    restoreController.current?.abort();
+    restoredCitizen.current = null;
     logoutPending.current = true;
     try { await fetch("/api/member-session", { method: "DELETE" }); }
     catch { /* The local view can still return to the login form offline. */ }
@@ -1865,10 +1869,24 @@ export default function Home() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (previewCitizen) setCitizen(previewCitizen);
       setPhase("system");
+      return;
     }
+    const controller = new AbortController();
+    restoreController.current = controller;
+    void fetch("/api/member-session", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => response.ok ? await response.json() as { citizenId?: string } : null)
+      .then((session) => {
+        if (controller.signal.aborted) return;
+        const member = CITIZENS.find((item) => item.id === session?.citizenId && !item.locked);
+        if (!member) return;
+        restoredCitizen.current = member;
+        setCitizen(member);
+        setPhase((current) => current === "login" ? "welcome" : current);
+      }).catch(() => undefined);
+    return () => controller.abort();
   }, []);
-  if (phase === "opening") return <Opening done={() => setPhase("login")} />;
-  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next) => { setCitizen(next); setPhase("welcome"); }} />;
+  if (phase === "opening") return <Opening done={() => setPhase(restoredCitizen.current ? "welcome" : "login")} />;
+  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next) => { restoreController.current?.abort(); setCitizen(next); setPhase("welcome"); }} />;
   if (phase === "welcome") return <Welcome citizen={citizen} enter={() => setPhase("system")} />;
   return <System citizen={citizen} logout={() => { void logoutMember(); }} />;
 }

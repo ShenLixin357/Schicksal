@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Schicksal — 天命第一帝国",
   description: "天命第一帝国数字政府与公民系统。",
-  other: { "codex-preview": "development" },
+  robots: { index: false, follow: false },
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
 };
 

@@ -11,9 +11,7 @@
   "preview_urls": false,
   "assets": {
     "binding": "ASSETS",
-    "run_worker_first": [
-      "/api/*"
-    ]
+    "run_worker_first": true
   },
   "vars": {
     "SCHICKSAL_HOSTING": "cloudflare",

@@ -23,9 +23,11 @@ test("standalone APIs require a server session and cannot forge ChatGPT or owner
   assert.equal((await standaloneBoundary(untrusted, hosting, async () => "sealed-6")).status, 401);
 });
 
-test("standalone login remains reachable, but legacy shared or incomplete password setup fails closed", async () => {
+test("standalone login requires the owner account; other members are enabled only when configured", async () => {
   assert.ok(standalonePasswordsReady(hosting)); assert.equal(standalonePasswordsReady({}), false);
-  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ amberina: "not-all-members-configured" }) }), false);
+  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ amberina: "owner-only-test-credential" }) }), true);
+  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ zxy: "member-only-test-credential" }) }), false);
+  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ amberina: "short" }) }), false);
   assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify(Object.fromEntries(STANDALONE_MEMBER_IDS.map((id) => [id, "the-same-shared-password"]))) }), false);
   const login = request("/api/member-session", {}, "POST");
   assert.ok(await standaloneBoundary(login, hosting, async () => null) instanceof Request);
@@ -35,7 +37,8 @@ test("standalone login remains reachable, but legacy shared or incomplete passwo
 test("standalone mutations reject foreign origins and protect private image bytes", async () => {
   assert.equal((await standaloneBoundary(request("/api/committee-club", { origin: "https://unrelated.invalid" }, "POST"), hosting, async () => "amberina")).status, 403);
   assert.equal((await standaloneBoundary(request("/api/photos/image?id=sample"), hosting, async () => null)).status, 401);
-  assert.ok(await standaloneBoundary(request("/committee-room.png"), hosting, async () => null) instanceof Request);
+  assert.equal((await standaloneBoundary(request("/committee-room.png"), hosting, async () => null)).status, 401);
+  assert.ok(await standaloneBoundary(request("/committee-room.png"), hosting, async () => "amberina") instanceof Request);
 });
 
 async function emptySnapshot() {

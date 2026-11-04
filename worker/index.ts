@@ -3,6 +3,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { currentMember } from "../app/member-session";
 import { standaloneBoundary } from "../app/standalone-access";
+import { privateSiteResponse } from "../app/private-login";
 
 interface Env {
   ASSETS: Fetcher;
@@ -32,22 +33,22 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const guarded = await standaloneBoundary(request, env, currentMember);
-    if (guarded instanceof Response) return guarded;
+    if (guarded instanceof Response) return privateSiteResponse(guarded, env);
     request = guarded;
     const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
-      return handleImageOptimization(request, {
+      return privateSiteResponse(await handleImageOptimization(request, {
         fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
         transformImage: async (body, { width, format, quality }) => {
           const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
           return result.response();
         },
-      }, allowedWidths);
+      }, allowedWidths), env);
     }
 
-    return handler.fetch(request, env, ctx);
+    return privateSiteResponse(await handler.fetch(request, env, ctx), env);
   },
 };
 

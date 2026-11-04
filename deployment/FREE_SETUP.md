@@ -35,7 +35,11 @@ Cloudflare：**Workers & Pages → schicksal → Settings → Variables and Secr
 
 代码默认使用 `schicksal-photos` 桶名。配置启用了 `keep_vars`，以后从 GitHub 部署时保留控制台变量；Secrets 也由 Cloudflare 保存。
 
-成员登录还需要原迁移指南中的 `SCHICKSAL_MEMBER_PASSWORDS` Secret：包含 `amberina`、`zxy`、`truth`、`kaito`、`harry` 五个键，各对应一个不同且至少 12 字符的密码。密码由站长在 Cloudflare 私下设置。
+全站访问还需要 `SCHICKSAL_MEMBER_PASSWORDS` Secret。可以先只设置自己的账号：一个 JSON 对象，其中 `amberina` 对应自己设置的至少 12 字符密码。不要直接使用任何示例密码。
+
+邀请成员时，再向同一个 JSON 对象添加 `zxy`、`truth`、`kaito`、`harry` 中的对应账号及不同密码；没有配置密码的账号不能登录。账号和密码由站长私下分发，不需要交给助手。
+
+全站页面、背景图、脚本和档案都经过服务端登录验证。未登录时只显示一个不加载私人素材的成员入口；只转发网址无法进入。退出或登录过期后，新的页面和素材请求都会重新被拦截。不要把网址中附带密码作为邀请方式。
 
 ## 4. 部署
 

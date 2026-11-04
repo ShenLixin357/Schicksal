@@ -21,7 +21,7 @@ await cp(resolve(root, "dist/client"), resolve(output, "client"), { recursive: t
 await cp(resolve(root, "drizzle"), resolve(output, "drizzle"), { recursive: true, force: true });
 const generated = JSON.parse(await readFile(resolve(root, "dist/server/wrangler.json"), "utf8"));
 const config = { name: target.workerName || "schicksal-first-empire", account_id: target.accountId, main: "index.js", compatibility_date: generated.compatibility_date, compatibility_flags: generated.compatibility_flags, no_bundle: true, rules: generated.rules, workers_dev: true, preview_urls: false,
-  assets: { directory: "../client", binding: "ASSETS", run_worker_first: ["/api/*"] },
+  assets: { directory: "../client", binding: "ASSETS", run_worker_first: true },
   keep_vars: true,
   vars: { SCHICKSAL_HOSTING: "cloudflare", SUPABASE_STORAGE_BUCKET: "schicksal-photos" },
   d1_databases: [{ binding: "DB", database_name: target.databaseName || "schicksal-data", database_id: target.databaseId, migrations_dir: "../drizzle" }],
