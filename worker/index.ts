@@ -48,6 +48,16 @@ const worker = {
       }, allowedWidths), env);
     }
 
+    // run_worker_first protects every asset with the session boundary above.
+    // Built client chunks must then be served by ASSETS: the framework router
+    // only recognises public files, not Vite's generated JS and CSS chunks.
+    if (env.SCHICKSAL_HOSTING === "cloudflare" && env.ASSETS &&
+      ["GET", "HEAD"].includes(request.method) && !url.pathname.startsWith("/api/")) {
+      const asset = await env.ASSETS.fetch(request);
+      if (asset.status !== 404) return privateSiteResponse(asset, env);
+      await asset.body?.cancel();
+    }
+
     return privateSiteResponse(await handler.fetch(request, env, ctx), env);
   },
 };

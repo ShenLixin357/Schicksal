@@ -9,6 +9,7 @@ const passwords = Object.fromEntries(ids.map((id) => [id, crypto.randomUUID()]))
 const env = { SCHICKSAL_HOSTING: "cloudflare", SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify(passwords) };
 globalThis.__schicksalPrivateSiteEnv = env;
 let protectedCalls = [];
+let assetCalls = [];
 globalThis.__schicksalPrivateSiteHandler = {
   async fetch(request) {
     const path = new URL(request.url).pathname;
@@ -35,6 +36,11 @@ function setup() {
   for (const name of readdirSync(new URL("../drizzle", import.meta.url)).filter((name) => name.endsWith(".sql")).sort()) sqlite.exec(readFileSync(new URL(`../drizzle/${name}`, import.meta.url), "utf8"));
   env.SCHICKSAL_MEMBER_PASSWORDS = JSON.stringify(passwords);
   protectedCalls = [];
+  assetCalls = [];
+  env.ASSETS = { async fetch(request) {
+    assetCalls.push(new URL(request.url).pathname);
+    return new Response(null, { status: 404 });
+  } };
   env.DB = {
     prepare(sql) {
       const statement = sqlite.prepare(sql); let parameters = [];
@@ -78,6 +84,7 @@ test("anonymous visitors cannot reach pages, artwork, scripts, archives or image
       assert.match(response.headers.get("Content-Security-Policy"), /script-src 'nonce-/);
     }
     assert.deepEqual(protectedCalls, []);
+    assert.deepEqual(assetCalls, []);
   } finally { sqlite.close(); }
 });
 
@@ -168,5 +175,44 @@ test("the actual self-contained login form obtains a session and opens the prote
     assert.equal(destination, "/");
     assert.equal(password.value, "");
     assert.equal((await visit(destination, { cookie })).status, 200);
+  } finally { sqlite.close(); }
+});
+
+test("a signed-in browser receives stylesheet, script and artwork bytes from the asset binding", async () => {
+  const sqlite = setup();
+  const assets = new Map([
+    ["/assets/page.js", { type: "text/javascript", body: "export const loaded = true;" }],
+    ["/assets/site.css", { type: "text/css", body: readFileSync(new URL("../app/globals.css", import.meta.url)) }],
+    ["/favicon.svg", { type: "image/svg+xml", body: readFileSync(new URL("../public/favicon.svg", import.meta.url)) }],
+  ]);
+  env.ASSETS = { async fetch(request) {
+    const path = new URL(request.url).pathname;
+    assetCalls.push(path);
+    const asset = assets.get(path);
+    if (!asset) return new Response(null, { status: 404 });
+    if (request.headers.has("If-None-Match")) return new Response(null, { status: 304, headers: { ETag: '"asset-version"' } });
+    return new Response(request.method === "HEAD" ? null : asset.body, { headers: { "Content-Type": asset.type, ETag: '"asset-version"' } });
+  } };
+  try {
+    const cookie = await login();
+    for (const [path, asset] of assets) {
+      const anonymous = await visit(path);
+      assert.equal(anonymous.status, 401, path);
+      const response = await visit(path, { cookie });
+      assert.equal(response.status, 200, path);
+      assert.equal(response.headers.get("Content-Type"), asset.type, path);
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), Buffer.from(asset.body), path);
+      assert.equal(response.headers.get("Cache-Control"), "private, no-store");
+    }
+    const head = await visit("/assets/site.css", { cookie, method: "HEAD" });
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), "");
+    const unchanged = await visit("/assets/site.css", { cookie, headers: { "If-None-Match": '"asset-version"' } });
+    assert.equal(unchanged.status, 304);
+    assert.equal(await unchanged.text(), "");
+    assert.deepEqual(protectedCalls, []);
+    assert.deepEqual(await (await visit("/api/member-session", { cookie })).json(), { citizenId: "amberina" });
+    assert.ok(!assetCalls.includes("/api/member-session"));
+    assert.equal(await (await visit("/", { cookie })).text(), "private-content-sentinel");
   } finally { sqlite.close(); }
 });
