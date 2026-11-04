@@ -4,6 +4,8 @@ The complete private website, including the original eight-blade emblem, Committ
 
 ## Cloudflare setup
 
+The default deployment uses **Cloudflare Workers Free + D1 Free + Supabase Free Storage**. R2 is not provisioned. Follow the step-by-step [free setup guide](deployment/FREE_SETUP.md).
+
 Connect this private GitHub repository in **Workers & Pages → Create application → Connect GitHub**. Select:
 
 | Setting | Value |
@@ -15,7 +17,7 @@ Connect this private GitHub repository in **Workers & Pages → Create applicati
 | Deploy command | `npm run deploy` |
 | Node version | `24` |
 
-Wrangler automatically provisions the `DB` D1 database and the private `BUCKET` R2 bucket in the selected Cloudflare account. No old account resource IDs are embedded. The deploy script applies the schema migrations before publishing the Worker.
+The deploy script finds and reuses the `DB` D1 database, creating it only if needed, then applies schema migrations before publishing the Worker. Photos use a private Supabase bucket named `schicksal-photos`. Configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as Worker Secrets; never commit their real values. No old account resource IDs are embedded.
 
 Add **SCHICKSAL_MEMBER_PASSWORDS** as a Worker **Secret**. Its value is a JSON object with the keys `amberina`, `zxy`, `truth`, `kaito` and `harry`, each mapped to a different password of at least 12 characters. Configure these credentials privately in Cloudflare; do not put them in Git, screenshots or chat. Login stays unavailable until the secret is configured correctly. The source contains no working fallback member password.
 
@@ -27,7 +29,7 @@ The data backup is separate from this source repository. It contains the source 
 
 1. Verify the target D1 tables are empty, apart from login sessions and migration metadata.
 2. Import backup `data.sql` into the newly migrated `DB`; preserve all record IDs and timestamps. Do not import `schema.sql` on top of applied migrations.
-3. Upload backup `objects/family-archive/...` to the private R2 bucket with the same object key and MIME type.
+3. Upload backup `objects/family-archive/...` to the private Supabase `schicksal-photos` bucket, retaining the `family-archive/...` object key and MIME type.
 4. Compare the restored row counts and photo hashes with the backup manifest. Refresh the source snapshot before final cutover if the old site received new writes.
 
 The original export contained 313 application records and one archive photo. Login sessions and rate-limit windows were intentionally omitted. Creating the Worker alone does not finish the data migration. Keep the old website until the restored site is checked.

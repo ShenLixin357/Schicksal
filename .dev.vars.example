@@ -2,3 +2,10 @@
 # JSON keys: amberina, zxy, truth, kaito, harry.
 # Values: five distinct passwords, each at least 12 characters.
 SCHICKSAL_MEMBER_PASSWORDS=
+
+# Free photo storage. Set both values as Cloudflare Worker Secrets.
+# SUPABASE_SECRET_KEY is a server-only sb_secret_... key; never commit a real key.
+SUPABASE_URL=
+SUPABASE_SECRET_KEY=
+# Create a PRIVATE Supabase Storage bucket with this exact name.
+SUPABASE_STORAGE_BUCKET=schicksal-photos

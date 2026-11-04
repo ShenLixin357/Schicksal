@@ -7,6 +7,7 @@
     "nodejs_compat"
   ],
   "workers_dev": true,
+  "keep_vars": true,
   "preview_urls": false,
   "assets": {
     "binding": "ASSETS",
@@ -15,17 +16,13 @@
     ]
   },
   "vars": {
-    "SCHICKSAL_HOSTING": "cloudflare"
+    "SCHICKSAL_HOSTING": "cloudflare",
+    "SUPABASE_STORAGE_BUCKET": "schicksal-photos"
   },
   "d1_databases": [
     {
       "binding": "DB",
       "migrations_dir": "drizzle"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "BUCKET"
     }
   ],
   "observability": {

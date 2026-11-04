@@ -4,6 +4,7 @@ import { getDb } from "../../../db";
 import { ensurePhotoSchema } from "../../../db/photo-schema";
 import { archivePhotos } from "../../../db/schema";
 import { standaloneMember } from "../../standalone-access";
+import { getPhotoStorage, PhotoStorageError, type PhotoStorage } from "../../photo-storage";
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const ALLOWED_TYPES = new Map([
@@ -79,8 +80,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   let objectKey = "";
+  let storage: PhotoStorage | null = null;
   try {
-    if (!env.BUCKET) throw new Error("照片存储空间尚未连接，请稍后重试。");
+    storage = getPhotoStorage(env);
     const payload = await request.json() as {
       dataBase64?: unknown;
       originalName?: unknown;
@@ -134,10 +136,7 @@ export async function POST(request: Request) {
     await ensurePhotoSchema();
     const id = crypto.randomUUID();
     objectKey = `family-archive/${id}.${extension}`;
-    await env.BUCKET.put(objectKey, bytes, {
-      httpMetadata: { contentType: mimeType },
-      customMetadata: { originalName },
-    });
+    await storage.put(objectKey, bytes, mimeType, originalName);
 
     const [row] = await getDb()
       .insert(archivePhotos)
@@ -159,28 +158,29 @@ export async function POST(request: Request) {
 
     return Response.json({ photo: publicPhoto(row) }, { status: 201 });
   } catch (error) {
-    if (objectKey) await env.BUCKET?.delete(objectKey).catch(() => undefined);
+    if (objectKey) await storage?.delete(objectKey).catch(() => undefined);
     return Response.json(
       { error: error instanceof Error ? error.message : "照片上传失败，请稍后重试。" },
-      { status: 500 },
+      { status: error instanceof PhotoStorageError ? error.status : 500 },
     );
   }
 }
 
 export async function DELETE(request: Request) {
   try {
+    const storage = getPhotoStorage(env);
     await ensurePhotoSchema();
     const id = new URL(request.url).searchParams.get("id")?.trim();
     if (!id) return Response.json({ error: "缺少照片编号。" }, { status: 400 });
     const [row] = await getDb().select().from(archivePhotos).where(eq(archivePhotos.id, id)).limit(1);
     if (!row) return Response.json({ error: "找不到这张照片。" }, { status: 404 });
-    await env.BUCKET.delete(row.objectKey);
+    await storage.delete(row.objectKey);
     await getDb().delete(archivePhotos).where(eq(archivePhotos.id, id));
     return Response.json({ deleted: true });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "无法删除照片。" },
-      { status: 500 },
+      { status: error instanceof PhotoStorageError ? error.status : 500 },
     );
   }
 }
