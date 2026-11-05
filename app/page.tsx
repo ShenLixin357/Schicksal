@@ -1677,6 +1677,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
       <header className="club-room-toolbar">
         <button type="button" onClick={leave}><span aria-hidden="true">←</span> 返回帝国</button>
         <button type="button" onClick={() => setRankingsOpen(true)}>月光成绩簿 · 排行榜</button>
+        <a href="/games/fireboy-watergirl" style={{ display: "inline-flex", alignItems: "center", padding: "9px 13px", borderRadius: 8, border: "1px solid rgba(145,200,233,.6)", color: "#e7f8ff", textDecoration: "none", fontSize: 12, background: "rgba(25,67,91,.62)" }} aria-label="打开独立森林冰火人游戏选择页面">🔥❄️ 森林冰火人</a>
         <div><i /> COMMITTEE LOUNGE · {clubData.seats?.length ?? 0}/3 SEATED</div>
         <button type="button" aria-pressed={moonlight} onClick={() => { setMoonlight((value) => !value); setWhisper(moonlight ? "烛火重新亮起，壁炉又暖了起来。" : "烛火熄下，月光接管了整个房间。"); }}>{moonlight ? "点亮烛火" : "只留月光"}</button>
       </header>
