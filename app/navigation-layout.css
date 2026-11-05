@@ -21,7 +21,7 @@
 .club-main .solitaire-header { flex: 0 0 auto; grid-template-columns: auto minmax(0,1fr) auto auto; gap: clamp(8px,1.2cqw,24px); }
 .club-main .solitaire-title h1 { font-size: clamp(1rem,2cqw,1.85rem); white-space: normal; }
 .club-main .solitaire-scroll { position: relative; inset: auto; flex: 1; min-height: 0; }
-.club-main .solitaire-table { box-sizing: border-box; width: min(1120px,calc(100% - 24px)); min-width: 0; margin: 12px auto 24px; padding-left: clamp(10px,3cqw,44px); padding-right: clamp(10px,3cqw,44px); }
+.club-main .solitaire-table { box-sizing: border-box; width: min(1120px,calc(100% - 24px)); min-width: 0; min-height: calc(100% - 36px); margin: 12px auto 24px; padding-left: clamp(10px,3cqw,44px); padding-right: clamp(10px,3cqw,44px); }
 .club-main .solitaire-tableau { gap: clamp(3px,1cqw,15px); }
 .club-main .solitaire-draw-zone,.club-main .solitaire-foundations { gap: clamp(4px,1cqw,18px); }
 .club-main .solitaire-status { flex-wrap: wrap; text-align: center; }
