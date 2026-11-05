@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./navigation-layout.css";
 
 export const metadata: Metadata = {
   title: "Schicksal — 天命第一帝国",

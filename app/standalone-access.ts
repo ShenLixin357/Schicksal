@@ -16,7 +16,7 @@ export function standalonePasswordsReady(config: HostingConfig): boolean {
     const entries = Object.entries(values);
     if (entries.some(([id]) => !STANDALONE_MEMBER_IDS.includes(id as typeof STANDALONE_MEMBER_IDS[number]))) return false;
     const passwords = entries.map(([, password]) => password);
-    return passwords.every((password) => typeof password === "string" && password.length >= 12 && password.length <= 1024) && new Set(passwords).size === passwords.length;
+    return passwords.every((password) => typeof password === "string" && password.length >= 1 && password.length <= 1024);
   } catch { return false; }
 }
 

@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { CITIZENS, type Citizen } from "./citizens";
+import { MemberAccessSettings } from "./member-access-settings";
 import { startTransition, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
 import { ArticulatedFan, LaceFanDrawing } from "./club/articulated-fan";
 import { FAN_CYCLE_MS } from "./club/fan-motion";
@@ -17,7 +19,7 @@ import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-
 
 type Phase = "opening" | "login" | "welcome" | "system";
 type Section = "home" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "club";
-type Citizen = { id: string; username: string; name: string; codename: string; office: string; accent: string; markColor: string; motif: string; locked?: boolean };
+
 type ArchivePhoto = {
   id: string;
   title: string;
@@ -80,16 +82,7 @@ type ClubRoom = { id: string; vaseSelection: string; updatedByCitizenId: string;
 type LoungeSeat = { seatIndex: number; citizenId: string; seatedAt: string };
 type ClubData = { profiles?: ClubProfile[]; messages?: ClubMessage[]; room?: ClubRoom; seats?: LoungeSeat[]; error?: string };
 
-const CITIZENS: Citizen[] = [
-  { id: "amberina", username: "宇宙霸主", name: "Amberina von Schicksal", codename: "宇宙霸主", office: "President of the First Empire", accent: "#f3c969", markColor: "#f3c969", motif: "snow" },
-  { id: "zxy", username: "No.2", name: "zxy", codename: "No.2", office: "Citizen of the First Empire", accent: "#d95d52", markColor: "#f05f55", motif: "flame" },
-  { id: "truth", username: "我说 真的", name: "我说 真的", codename: "我说 真的", office: "Core Member of the Legislative Committee", accent: "#eecf58", markColor: "#ffd84f", motif: "lightning" },
-  { id: "kaito", username: "怪盗 基德", name: "怪盗 基德", codename: "怪盗 基德", office: "Citizen of the First Empire", accent: "#65cae9", markColor: "#65cae9", motif: "water" },
-  { id: "harry", username: "哈利 波特", name: "哈利 波特", codename: "哈利 波特", office: "Citizen of the First Empire", accent: "#a99ce6", markColor: "#a99ce6", motif: "wind" },
-  { id: "sealed-6", username: "Citizen No. 6", name: "Citizen No. 6", codename: "身份待补", office: "Sealed Record", accent: "#48ad83", markColor: "#48ad83", motif: "sealed", locked: true },
-  { id: "sealed-7", username: "Citizen No. 7", name: "Citizen No. 7", codename: "身份待补", office: "Sealed Record", accent: "#ef9148", markColor: "#ef9148", motif: "sealed", locked: true },
-  { id: "sealed-8", username: "Citizen No. 8", name: "Citizen No. 8", codename: "身份待补", office: "Sealed Record", accent: "#e982ad", markColor: "#e982ad", motif: "sealed", locked: true },
-];
+
 
 // The current homepage emblem is the canonical source for color order and adjacency.
 // Every 2D and 3D rendering reads this same clockwise blade specification.
@@ -1804,6 +1797,15 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
 function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [section,setSection] = useState<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  useEffect(() => {
+    try { setSidebarCollapsed(window.localStorage.getItem("schicksal:sidebar-collapsed") === "true"); } catch { /* Keep the navigation expanded when storage is unavailable. */ }
+  }, []);
+  const toggleSidebar = () => setSidebarCollapsed((current) => {
+    const next = !current;
+    try { window.localStorage.setItem("schicksal:sidebar-collapsed", String(next)); } catch { /* The toggle still works for this visit. */ }
+    return next;
+  });
   useEffect(() => {
     // Agent-only preview routing; the production hostname cannot enter this branch.
     if (window.location.hostname === "terminal.local") {
@@ -1834,13 +1836,13 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
     case "market": content = <MarketSection />; break;
     case "photos": content = <PhotoArchiveSection citizen={citizen} />; break;
     case "archives": content = <ArchivesSection />; break;
-    case "profile": content = <ProfileSection citizen={citizen} />; break;
+    case "profile": content = <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={() => setSection("home")} seatingUnlocked={loungeSeatingUnlocked} /> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
   }
   return (
-    <main className={`system ${clubOpen ? "club-system" : ""}`}>
-      <aside className="sidebar"><div className="side-brand"><Emblem compact /><Wordmark /></div><nav aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
+    <main className={`system ${clubOpen ? "club-system" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => setSection(item.id)}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
     </main>
   );
@@ -1859,7 +1861,7 @@ export default function Home() {
     logoutPending.current = true;
     try { await fetch("/api/member-session", { method: "DELETE" }); }
     catch { /* The local view can still return to the login form offline. */ }
-    finally { logoutPending.current = false; setPhase("login"); }
+    finally { logoutPending.current = false; window.location.replace("/"); }
   };
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1881,7 +1883,9 @@ export default function Home() {
         if (!member) return;
         restoredCitizen.current = member;
         setCitizen(member);
-        setPhase((current) => current === "login" ? "welcome" : current);
+        let entryCompleted = false;
+        try { entryCompleted = window.sessionStorage.getItem("schicksal:entry-complete") === "1"; window.sessionStorage.removeItem("schicksal:entry-complete"); } catch { /* Retain the normal opening when storage is unavailable. */ }
+        setPhase((current) => entryCompleted || current === "login" ? "welcome" : current);
       }).catch(() => undefined);
     return () => controller.abort();
   }, []);

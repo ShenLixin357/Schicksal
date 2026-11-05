@@ -14,8 +14,8 @@
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
     "test:minigames": "node --experimental-transform-types --test tests/potion-sort-engine.test.ts tests/merge-game-engine.test.ts tests/chryser-games.test.ts",
     "test:mafraer": "node --experimental-transform-types --test tests/mafraer-magic.test.ts tests/mafraer-observatory.test.ts",
-    "test:records": "node --experimental-transform-types --test tests/game-records.test.ts tests/game-records-api.test.mjs",
-    "test:migration": "node --experimental-transform-types --test tests/cloudflare-migration.test.mjs",
+    "test:records": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/game-records.test.ts tests/game-records-api.test.mjs",
+    "test:migration": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/cloudflare-migration.test.mjs",
     "cloudflare:prepare": "node scripts/cloudflare/prepare.mjs",
     "validate:artifact": "bash scripts/validate-artifact.sh",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
@@ -24,7 +24,7 @@
     "db:migrate": "wrangler d1 migrations apply DB --remote --config dist/server/wrangler.json",
     "test:deployment": "node --test tests/cloudflare-deploy.test.mjs",
     "test:photos": "node --experimental-transform-types --test tests/photo-storage.test.mjs",
-    "test:privacy": "node --experimental-transform-types --test tests/private-site.test.mjs"
+    "test:privacy": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/private-site.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
@@ -51,5 +51,5 @@
     "wrangler": "4.92.0"
   },
   "type": "module",
-  "displayName": "Schicksal — 天命第一帝国"
+  "displayName": "Schicksal \u2014 \u5929\u547d\u7b2c\u4e00\u5e1d\u56fd"
 }

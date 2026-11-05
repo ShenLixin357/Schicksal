@@ -27,8 +27,9 @@ test("standalone login requires the owner account; other members are enabled onl
   assert.ok(standalonePasswordsReady(hosting)); assert.equal(standalonePasswordsReady({}), false);
   assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ amberina: "owner-only-test-credential" }) }), true);
   assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ zxy: "member-only-test-credential" }) }), false);
-  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ amberina: "short" }) }), false);
-  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify(Object.fromEntries(STANDALONE_MEMBER_IDS.map((id) => [id, "the-same-shared-password"]))) }), false);
+  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ amberina: "短" }) }), true);
+  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ amberina: "" }) }), false);
+  assert.equal(standalonePasswordsReady({ SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify(Object.fromEntries(STANDALONE_MEMBER_IDS.map((id) => [id, "shared"]))) }), true);
   const login = request("/api/member-session", {}, "POST");
   assert.ok(await standaloneBoundary(login, hosting, async () => null) instanceof Request);
   assert.equal((await standaloneBoundary(login, { SCHICKSAL_HOSTING: "cloudflare" }, async () => null)).status, 503);
@@ -60,7 +61,18 @@ test("snapshot restore preserves multilingual text, quotes, newlines and null by
 
 test("snapshot generation refuses incomplete pagination, truncated cells, mismatched schemas and missing tables", async () => {
   const { root, snapshot } = await emptySnapshot();
-  for (const mutation of [(value) => { value.tables[0].model_projection.next_offset = 25; }, (value) => { value.tables[0].model_projection.truncated_values = 1; }, (value) => { value.tables[0].columns.pop(); }, (value) => { value.tables.pop(); }]) {
+  for (const mutation of [(value) => { value.tables[0].model_projection.next_offset = 25; }, (value) => { value.tables[0].model_projection.truncated_values = 1; }, (value) => { value.tables[0].columns.pop(); }, (value) => { value.tables = value.tables.filter((table) => table.table_name !== "parliament_items"); }]) {
     const broken = structuredClone(snapshot); mutation(broken); await assert.rejects(validateSnapshot(broken, root));
   }
+});
+
+test("legacy snapshots can omit credential tables and never restore account passwords", async () => {
+  const { root, snapshot } = await emptySnapshot();
+  const credentials = snapshot.tables.find((table) => table.table_name === "member_credentials");
+  credentials.rows.push({ citizen_id: "zxy", password_hash: "secret-hash-sentinel", password_salt: "secret-salt-sentinel", updated_at: 1, updated_by: "amberina" });
+  const result = await validateSnapshot(snapshot, root);
+  assert.equal(result.counts.member_credentials, 0);
+  assert.doesNotMatch(result.dataSql, /secret-hash-sentinel|secret-salt-sentinel/);
+  snapshot.tables = snapshot.tables.filter((table) => table.table_name !== "member_credentials");
+  assert.equal((await validateSnapshot(snapshot, root)).counts.member_credentials, 0);
 });

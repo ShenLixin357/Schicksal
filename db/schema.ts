@@ -1,6 +1,14 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+export const memberCredentials = sqliteTable("member_credentials", {
+  citizenId: text("citizen_id").primaryKey(),
+  passwordHash: text("password_hash").notNull(),
+  passwordSalt: text("password_salt").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull(),
+});
+
 export const memberSessions = sqliteTable("member_sessions", {
   tokenHash: text("token_hash").primaryKey(),
   citizenId: text("citizen_id").notNull(),

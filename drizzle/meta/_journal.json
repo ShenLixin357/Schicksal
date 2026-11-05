@@ -50,6 +50,13 @@
       "when": 1793742609936,
       "tag": "0006_mysterious_morlocks",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793875675457,
+      "tag": "0007_member_credentials",
+      "breakpoints": true
     }
   ]
 }

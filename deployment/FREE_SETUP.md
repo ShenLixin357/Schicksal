@@ -26,7 +26,7 @@ Supabase 免费项目可能在闲置一周后暂停，需要到控制台恢复�
 在 Supabase 的 **Connect** 对话框找到 Project URL；在 **Settings → API Keys → Secret keys** 创建或取得一个服务端密钥（`sb_secret_...`）。
 不要使用 publishable key，也不要把真实密钥贴进聊天、截图或 GitHub。
 
-Cloudflare：**Workers & Pages → schicksal → Settings → Variables and Secrets → Add**：
+Cloudflare：**Workers & Pages → schicksal → Settings → 页面上部独立的 Variables and Secrets → Add**（运行时设置，与 Builds 内同名设置分开）：
 
 | 名称 | 类型 | 值 |
 | --- | --- | --- |
@@ -35,11 +35,11 @@ Cloudflare：**Workers & Pages → schicksal → Settings → Variables and Secr
 
 代码默认使用 `schicksal-photos` 桶名。配置启用了 `keep_vars`，以后从 GitHub 部署时保留控制台变量；Secrets 也由 Cloudflare 保存。
 
-全站访问还需要 `SCHICKSAL_MEMBER_PASSWORDS` Secret。可以先只设置自己的账号：一个 JSON 对象，其中 `amberina` 对应自己设置的至少 12 字符密码。不要直接使用任何示例密码。
+全站访问还需要 `SCHICKSAL_MEMBER_PASSWORDS` Secret。可以先只设置自己的账号：一个 JSON 对象，其中 `amberina` 对应自己设置的非空密码（1–1024 字符，不再要求 12 位）。不要直接使用任何示例密码。
 
-邀请成员时，再向同一个 JSON 对象添加 `zxy`、`truth`、`kaito`、`harry` 中的对应账号及不同密码；没有配置密码的账号不能登录。账号和密码由站长私下分发，不需要交给助手。
+登录后，进入 **个人页 → 成员登录设置**，为 `zxy`、`truth`、`kaito`、`harry` 设置各自密码，再把网址和对应密码私下发给成员。也可以继续通过 Secret JSON 配置；在个人页保存的密码优先生效。密码仅以随机盐和 PBKDF2 摘要保存在 D1 中，不会在设置页面返回。修改成员密码会退出该成员已有的登录；为自己改密码后需重新登录。
 
-全站页面、背景图、脚本和档案都经过服务端登录验证。未登录时只显示一个不加载私人素材的成员入口；只转发网址无法进入。退出或登录过期后，新的页面和素材请求都会重新被拦截。不要把网址中附带密码作为邀请方式。
+全站页面、背景图、脚本和档案都经过服务端登录验证。未登录时显示原来的开场与身份选择登录页，不加载私人素材或主站脚本；只转发网址无法进入。退出或登录过期后，新的页面和素材请求都会重新被拦截。不要把网址中附带密码作为邀请方式。
 
 ## 4. 部署
 

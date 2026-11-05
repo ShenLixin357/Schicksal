@@ -11,6 +11,7 @@ const env = { SCHICKSAL_MEMBER_PASSWORDS: JSON.stringify({ amberina: testPasswor
 globalThis.__schicksalRecordsTestEnv = env;
 const hooks = registerHooks({ resolve(specifier, context, nextResolve) {
   if (specifier === "cloudflare:workers") return { url: "data:text/javascript,export const env = globalThis.__schicksalRecordsTestEnv;", shortCircuit: true };
+  if (specifier.endsWith(".css?inline")) return nextResolve(specifier, context);
   if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier)) return nextResolve(`${specifier}.ts`, context);
   return nextResolve(specifier, context);
 } });

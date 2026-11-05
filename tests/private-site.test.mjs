@@ -14,6 +14,7 @@ globalThis.__schicksalPrivateSiteHandler = {
   async fetch(request) {
     const path = new URL(request.url).pathname;
     if (path === "/api/member-session") return sessions[request.method](request);
+    if (path === "/api/member-access") return memberAccess[request.method](request);
     protectedCalls.push(path);
     return new Response("private-content-sentinel", { headers: { "Cache-Control": "public, max-age=31536000" } });
   },
@@ -23,10 +24,12 @@ const hooks = registerHooks({ resolve(specifier, context, nextResolve) {
   if (specifier === "cloudflare:workers") return { url: "data:text/javascript,export const env=globalThis.__schicksalPrivateSiteEnv;", shortCircuit: true };
   if (specifier === "vinext/server/app-router-entry") return { url: "data:text/javascript,export default globalThis.__schicksalPrivateSiteHandler;", shortCircuit: true };
   if (specifier === "vinext/server/image-optimization") return { url: "data:text/javascript,export const DEFAULT_DEVICE_SIZES=[640];export const DEFAULT_IMAGE_SIZES=[32];export const handleImageOptimization=(...args)=>globalThis.__schicksalPrivateSiteHandler.image(...args);", shortCircuit: true };
+  if (specifier.endsWith(".css?inline")) return nextResolve(specifier, context);
   if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier)) return nextResolve(`${specifier}.ts`, context);
   return nextResolve(specifier, context);
 } });
 const sessions = await import("../app/api/member-session/route.ts");
+const memberAccess = await import("../app/api/member-access/route.ts");
 const { default: worker } = await import("../worker/index.ts");
 hooks.deregister();
 after(() => { delete globalThis.__schicksalPrivateSiteEnv; delete globalThis.__schicksalPrivateSiteHandler; });
@@ -46,6 +49,7 @@ function setup() {
       const statement = sqlite.prepare(sql); let parameters = [];
       return { bind(...values) { parameters = values; return this; },
         async first() { return statement.get(...parameters) ?? null; },
+        async all() { return { results: statement.all(...parameters) }; },
         async run() { return statement.run(...parameters); },
       };
     },
@@ -77,8 +81,9 @@ test("anonymous visitors cannot reach pages, artwork, scripts, archives or image
       const response = await visit(path);
       assert.equal(response.status, 401, path);
       const html = await response.text();
-      assert.match(html, /成员账号/);
-      assert.doesNotMatch(html, /private-content-sentinel|private-image-sentinel|<img|src=|宇宙霸主|amberina/);
+      assert.match(html, /Citizen Access · 公民通道/);
+      assert.match(html, /选择身份/);
+      assert.doesNotMatch(html, /private-content-sentinel|private-image-sentinel|<img|src=|mafraer-ice-bedroom|committee-room\.png/);
       assert.match(response.headers.get("X-Robots-Tag"), /noindex/);
       assert.match(response.headers.get("Cache-Control"), /no-store/);
       assert.match(response.headers.get("Content-Security-Policy"), /script-src 'nonce-/);
@@ -163,14 +168,15 @@ test("the actual self-contained login form obtains a session and opens the prote
     let submit, cookie, destination;
     const button = { disabled: false }, status = { textContent: "" }, member = { value: "AMBERINA" }, password = { value: passwords.amberina };
     const form = { addEventListener(name, listener) { assert.equal(name, "submit"); submit = listener; }, querySelector() { return button; } };
-    const document = { getElementById(id) { return { entry: form, member, password, status }[id]; } };
+    const inert = { addEventListener() {} };
+    const document = { querySelectorAll() { return []; }, getElementById(id) { return { entry: form, member, password, status, opening: {}, login: {}, skip: inert, replay: inert, "show-password": inert }[id]; } };
     const browserFetch = async (path, options) => {
       assert.equal(options.credentials, "same-origin");
       const response = await visit(path, { method: options.method, body: options.body, headers: options.headers });
       cookie = response.headers.get("Set-Cookie")?.split(";")[0];
       return response;
     };
-    new Function("document", "fetch", "window", script)(document, browserFetch, { location: { replace(path) { destination = path; } } });
+    new Function("document", "fetch", "window", script)(document, browserFetch, { matchMedia() { return { matches: true }; }, sessionStorage: { setItem() {} }, location: { replace(path) { destination = path; } } });
     await submit.call(form, { preventDefault() {} });
     assert.equal(destination, "/");
     assert.equal(password.value, "");
@@ -214,5 +220,64 @@ test("a signed-in browser receives stylesheet, script and artwork bytes from the
     assert.deepEqual(await (await visit("/api/member-session", { cookie })).json(), { citizenId: "amberina" });
     assert.ok(!assetCalls.includes("/api/member-session"));
     assert.equal(await (await visit("/", { cookie })).text(), "private-content-sentinel");
+  } finally { sqlite.close(); }
+});
+
+test("the owner can enable another member with a short Unicode password without exposing stored credentials", async () => {
+  const sqlite = setup();
+  try {
+    env.SCHICKSAL_MEMBER_PASSWORDS = JSON.stringify({ amberina: passwords.amberina });
+    const owner = await login();
+    const initial = await (await visit("/api/member-access", { cookie: owner })).json();
+    assert.equal(initial.members.find((member) => member.id === "zxy").configured, false);
+    const short = "短✓";
+    const saved = await visit("/api/member-access", { method: "POST", cookie: owner, body: { citizenId: "zxy", password: short } });
+    assert.equal(saved.status, 200);
+    assert.deepEqual(await saved.json(), { ok: true, requiresLogin: false });
+    const stored = sqlite.prepare("SELECT * FROM member_credentials WHERE citizen_id = 'zxy'").get();
+    assert.match(stored.password_hash, /^[a-f0-9]{64}$/);
+    assert.match(stored.password_salt, /^[a-f0-9]{32}$/);
+    assert.ok(!JSON.stringify(stored).includes(short));
+    const after = await (await visit("/api/member-access", { cookie: owner })).json();
+    assert.equal(after.members.find((member) => member.id === "zxy").configured, true);
+    assert.doesNotMatch(JSON.stringify(after), /password_hash|password_salt/);
+    const entry = await visit("/api/member-session", { method: "POST", body: { citizenId: "zxy", password: short } });
+    assert.equal(entry.status, 200);
+    const member = entry.headers.get("Set-Cookie").split(";")[0];
+    assert.deepEqual(await (await visit("/api/member-session", { cookie: member })).json(), { citizenId: "zxy" });
+    assert.equal((await visit("/", { cookie: member })).status, 200);
+    assert.equal((await visit("/api/member-access", { cookie: member })).status, 403);
+    assert.equal((await visit("/api/member-access", { method: "POST", cookie: member, body: { citizenId: "amberina", password: "x" } })).status, 403);
+  } finally { sqlite.close(); }
+});
+
+test("password changes revoke existing sessions and override old deployment secrets", async () => {
+  const sqlite = setup();
+  try {
+    const owner = await login();
+    const oldMember = await login("zxy");
+    assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, body: { citizenId: "zxy", password: "1" } })).status, 200);
+    assert.equal((await visit("/", { cookie: oldMember })).status, 401);
+    assert.equal((await visit("/api/member-session", { method: "POST", body: { citizenId: "zxy", password: passwords.zxy } })).status, 401);
+    assert.equal((await visit("/api/member-session", { method: "POST", body: { citizenId: "zxy", password: "1" } })).status, 200);
+    const changedOwner = await visit("/api/member-access", { method: "POST", cookie: owner, body: { citizenId: "amberina", password: "自定" } });
+    assert.equal(changedOwner.status, 200);
+    assert.deepEqual(await changedOwner.json(), { ok: true, requiresLogin: true });
+    assert.match(changedOwner.headers.get("Set-Cookie"), /Max-Age=0/);
+    assert.equal((await visit("/", { cookie: owner })).status, 401);
+    assert.equal((await visit("/api/member-session", { method: "POST", body: { citizenId: "amberina", password: "自定" } })).status, 200);
+  } finally { sqlite.close(); }
+});
+
+test("member password administration rejects forged identities, foreign origins and invalid input", async () => {
+  const sqlite = setup();
+  try {
+    assert.equal((await visit("/api/member-access", { method: "POST", headers: { "x-schicksal-server-member": "amberina" }, body: { citizenId: "zxy", password: "x" } })).status, 401);
+    const owner = await login();
+    assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, headers: { origin: "https://unrelated.invalid" }, body: { citizenId: "zxy", password: "x" } })).status, 403);
+    for (const body of ["null", "[]", "{", { citizenId: "sealed-6", password: "x" }, { citizenId: "unknown", password: "x" }, { citizenId: "zxy", password: "" }, { citizenId: "zxy", password: "x".repeat(1025) }]) {
+      assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, body })).status, 400);
+    }
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM member_credentials").get().count, 0);
   } finally { sqlite.close(); }
 });

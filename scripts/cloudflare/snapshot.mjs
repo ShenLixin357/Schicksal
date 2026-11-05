@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { readPrivateJson } from "./input.mjs";
 
-export const OMIT_TABLES = new Set(["member_sessions", "member_login_windows"]);
+export const OMIT_TABLES = new Set(["member_sessions", "member_login_windows", "member_credentials"]);
 const identifier = (name) => { if (!/^[a-z][a-z0-9_]*$/.test(name)) throw new Error("Unexpected SQL identifier"); return `\"${name}\"`; };
 export function sqlValue(value) {
   if (value === null) return "NULL";
@@ -22,8 +22,8 @@ export async function validateSnapshot(snapshot, root) {
   assert.equal(snapshot.version, 1); assert.ok(Array.isArray(snapshot.tables));
   const database = new DatabaseSync(":memory:"); const schema = await schemaSql(root); database.exec(schema);
   const expected = database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all().map((row) => row.name).sort();
-  assert.deepEqual(snapshot.tables.map((table) => table.table_name).sort(), expected, "Every application table must be represented");
-  const statements = [], counts = {};
+  assert.deepEqual(snapshot.tables.map((table) => table.table_name).filter((name) => !OMIT_TABLES.has(name)).sort(), expected.filter((name) => !OMIT_TABLES.has(name)), "Every application table must be represented");
+  const statements = [], counts = Object.fromEntries([...OMIT_TABLES].map((name) => [name, 0]));
   for (const table of snapshot.tables) {
     const projection = table.model_projection;
     assert.ok(projection && !projection.truncated && !projection.truncated_values && !projection.omitted_rows && !projection.omitted_columns && projection.next_offset === null, `Incomplete table: ${table.table_name}`);
@@ -42,7 +42,7 @@ export async function validateSnapshot(snapshot, root) {
     assert.deepEqual(sortRows(restored), sortRows(table.rows), `Round-trip mismatch: ${table.table_name}`);
   }
   database.close();
-  const dataSql = `-- Schicksal data snapshot: ${snapshot.capturedAt}\n-- Import only into an empty migrated database. Existing records are never replaced.\n-- Login sessions and rate-limit windows are intentionally excluded.\n${statements.join("\n")}\n`;
+  const dataSql = `-- Schicksal data snapshot: ${snapshot.capturedAt}\n-- Import only into an empty migrated database. Existing records are never replaced.\n-- Login credentials, sessions and rate-limit windows are intentionally excluded.\n${statements.join("\n")}\n`;
   return { schema, dataSql, counts };
 }
 
