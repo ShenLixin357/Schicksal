@@ -1709,6 +1709,10 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
           })}
         </div>
 
+        <a className="club-ice-fire-plaque" href="/games/fireboy-watergirl" aria-label="触碰墙上的冰火双人徽章，进入森林冰火人游戏">
+          <span className="club-ice-fire-pair" aria-hidden="true"><i>🔥</i><i>❄️</i></span>
+          <small>冰与火 · 双人神殿</small>
+        </a>
         <button className="club-wall-fan" type="button" onClick={() => travelWithFan("amberina")} aria-label="拨动书架上合拢的欧洲蕾丝洋扇，进入 Mafraer 的私人 Lounge"><LaceFanDrawing openProgress={0.012} framing="closed" /></button>
         <button className="club-wordmage-globe" type="button" onClick={openWordmageLounge} disabled={globeOpening} aria-label="转动左侧书架上的地球仪，进入言灵师 Nishujiade 的私人 Lounge"><span>地球仪 · 言灵师的入口</span></button>
 
