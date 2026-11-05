@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Opt-in, pinned upstream import. Do not add this to the default build.
+// Pinned upstream import adapted for independent same-origin hosting.
 import {spawnSync} from "node:child_process";
 import {cp,mkdir,mkdtemp,readFile,rm,rename,stat,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join,dirname,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
+import {optionalPlatformProgress} from "./standalone-compat.mjs";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"../..");
 const names=["1-forest-temple","2-light-temple","3-ice-temple","4-crystal-temple","5-elements","6-fairy-tales"];
 const expected="f255e5f74f695528d431d96aa8cf5181e88557f0";
@@ -34,6 +35,10 @@ const sw=await readFile(join(staged,"sw.js"),"utf8");
 const all=parseList(sw,"ALL_GAMES"),early=parseList(sw,"GAMES_1234");
 for(const [i,name] of names.entries()){
 const game=join(staged,name);
+if(i<4){
+const script=join(game,"js/game.js");
+await writeFile(script,optionalPlatformProgress(await readFile(script,"utf8")));
+}
 for(const rel of [...all,...(i<4?early:[])]){
 const src=join(staged,"shared-assets",rel),dest=join(game,rel);
 await requireFile(src);await mkdir(dirname(dest),{recursive:true});await cp(src,dest,{force:true});
