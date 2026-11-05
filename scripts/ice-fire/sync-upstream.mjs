@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Opt-in, pinned upstream import. Do not add this to the default build.
 import {spawnSync} from "node:child_process";
-import {cp,mkdir,mkdtemp,readFile,rm,stat,writeFile} from "node:fs/promises";
+import {cp,mkdir,mkdtemp,readFile,rm,rename,stat,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join,dirname,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
@@ -26,7 +26,7 @@ if(!localSource){
  if(revision!==expected)throw Error("Upstream updated: "+revision+". Review before changing pinned commit "+expected);
 }
 const upstreamGames=join(source,"games");
-for(const name of names){await requireFile(join(upstreamGames,name,"index.html"));await requireFile(join(upstreamGames,name,"game.json"));}
+for(const name of names){await requireFile(join(upstreamGames,name,"index.html"));await requireFile(join(upstreamGames,name,"game.json"));await requireFile(join(upstreamGames,name,name==="6-fairy-tales"?"game.js":"js/game.js"));}
 await requireFile(join(upstreamGames,"lib","require.js"));
 await requireFile(join(upstreamGames,"sw.js"));
 await cp(upstreamGames,staged,{recursive:true});
@@ -46,10 +46,14 @@ await writeFile(file,clean);
 await rm(join(staged,"sw.js"));
 await rm(join(staged,"shared-assets"),{recursive:true});
 const out=join(root,"public/games");
-await mkdir(out,{recursive:true});
-for(const name of names){const target=join(out,name);await rm(target,{recursive:true,force:true});await cp(join(staged,name),target,{recursive:true});}
-await cp(join(staged,"lib"),join(out,"lib"),{recursive:true,force:true});
-await writeFile(join(out,"ice-fire-import.json"),JSON.stringify({repository:sourceUrl,revision:expected,imported:names,mode:"shared-assets-restored"},null,2));
+await writeFile(join(staged,"ice-fire-import.json"),JSON.stringify({repository:sourceUrl,revision:expected,imported:names,mode:"shared-assets-restored"},null,2));
+// Atomic swap: never leave partially imported assets if anything fails.
+const backup=join(temp,"previous-games");
+let hadOld=false;
+try{await stat(out);hadOld=true;}catch{}
+await mkdir(join(root,"public"),{recursive:true});
+if(hadOld)await rename(out,backup);
+try{await rename(staged,out);}catch(error){if(hadOld)await rename(backup,out);throw error;}
 console.log("[ice-fire] six game directories imported into public/games");
 }finally{await rm(temp,{recursive:true,force:true});}
 }
