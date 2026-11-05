@@ -8,7 +8,7 @@
   "scripts": {
     "install:ci": "bash scripts/install-ci.sh",
     "dev": "vite",
-    "build": "vinext build",
+    "build": "npm run game:import && vinext build",
     "start": "vinext start",
     "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire",
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
@@ -25,7 +25,9 @@
     "test:deployment": "node --test tests/cloudflare-deploy.test.mjs",
     "test:parliament": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/parliament-speaker-api.test.mjs",
     "test:photos": "node --experimental-transform-types --test tests/photo-storage.test.mjs",
-    "test:privacy": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/private-site.test.mjs"
+    "test:privacy": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/private-site.test.mjs",
+    "game:import": "node scripts/ice-fire/sync-upstream.mjs --import",
+    "build:with-ice-fire": "npm run build"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
@@ -52,5 +54,5 @@
     "wrangler": "4.92.0"
   },
   "type": "module",
-  "displayName": "Schicksal \u2014 \u5929\u547d\u7b2c\u4e00\u5e1d\u56fd"
+  "displayName": "Schicksal — 天命第一帝国"
 }

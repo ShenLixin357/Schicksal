@@ -1,0 +1,44 @@
+name: Ice-Fire independent game verification
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "app/games/**"
+      - "app/club/**"
+      - "app/page.tsx"
+      - "app/globals.css"
+      - "scripts/ice-fire/**"
+      - "package.json"
+      - ".github/workflows/ice-fire-check.yml"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Import pinned HTML5 game resources
+        run: npm run game:import
+      - name: Verify local game files
+        run: |
+          test -f public/games/ice-fire-import.json
+          test -f public/games/1-forest-temple/js/game.js
+          test -f public/games/6-fairy-tales/game.js
+          test ! -e public/games/sw.js
+          ! grep -R 'serviceWorker.register' public/games/*/index.html
+      - name: Install dependencies
+        run: npm ci
+      - name: Project tests
+        run: npm test
+      - name: Build website with imported game assets
+        run: npm run build
+      - name: Verify built static assets
+        run: |
+          find dist/client -name 'ice-fire-import.json' -print
+          find dist/client -name 'game.js' -print | head
+          test -f dist/client/games/1-forest-temple/js/game.js
