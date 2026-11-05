@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from "react";
-import { generateSigilBoard, getSigilHint, isSigilBoard, SIGIL_PORTS, traceSigilLight, turnSigil, type SigilBoard } from "./jade-sigil-engine";
+import { generateSigilBoard, getSigilHint, isSigilBoard, SIGIL_DIFFICULTIES, SIGIL_PORTS, traceSigilLight, turnSigil, type SigilBoard } from "./jade-sigil-engine";
 import type { MiniGameComponentProps, MiniGameController } from "./mini-game-types";
 
 type SigilSnapshot = { version: 1; board: SigilBoard; initial: SigilBoard; history: SigilBoard[] };
@@ -82,13 +82,14 @@ export const JadeSigilsGame = forwardRef<MiniGameController, MiniGameComponentPr
   return <div className="jade-sigil-game">
     <header className="jade-game-intro"><div><small>THE VERDANT CIRCUIT</small><h2>翡翠导光阵</h2><p>旋转刻盘，让左上角的余烬贯通所有纹路。</p></div><span className="jade-game-progress"><strong>{trace.lit.length}/{board.cells.length}</strong><small>刻盘已接通</small></span></header>
     <div className="jade-game-actions">
-      <div className="jade-board-size"><button type="button" className={board.size === 4 ? "active" : ""} onClick={() => newBoard(4)} disabled={paused || inputLocked}>古典 · 4×4</button><button type="button" className={board.size === 5 ? "active" : ""} onClick={() => newBoard(5)} disabled={paused || inputLocked}>秘仪 · 5×5</button></div>
+      <div className="jade-board-size" aria-label="导光阵难度">{SIGIL_DIFFICULTIES.map((difficulty) => <button key={difficulty.size} type="button" className={board.size === difficulty.size ? "active" : ""} aria-pressed={board.size === difficulty.size} onClick={() => newBoard(difficulty.size)} disabled={paused || inputLocked}>{difficulty.label}</button>)}</div>
       <button type="button" onClick={() => { setHint(getSigilHint(board)); playSound("select"); }} disabled={paused || inputLocked || trace.complete}>请余烬指路</button>
       <button type="button" onClick={() => newBoard()} disabled={paused || inputLocked}>新的封印</button>
     </div>
+    <p className="jade-difficulty-note">{SIGIL_DIFFICULTIES.find((difficulty) => difficulty.size === board.size)?.description} 各难度分别记录排行榜。</p>
     <div className={`jade-sigil-board ${trace.complete ? "sealed" : ""}`} style={{ "--sigil-size": board.size } as CSSProperties}>
       {board.cells.map((cell, index) => <button key={index} type="button" className={`jade-sigil-cell ${lit.has(index) ? "lit" : ""} ${hint?.index === index ? "hinted" : ""} ${index === 0 ? "source" : ""}`} onClick={() => turn(index)} disabled={paused || inputLocked || trace.complete} aria-label={`第 ${Math.floor(index / board.size) + 1} 行，第 ${index % board.size + 1} 列刻盘，${lit.has(index) ? "已接通" : "未接通"}，点击顺时针旋转`}>
-        <svg viewBox="0 0 100 100" aria-hidden="true"><rect className="sigil-enamel" x="5" y="5" width="90" height="90" rx="9" /><path className="sigil-engraving" d="M12 30V12H30 M70 12H88V30 M88 70V88H70 M30 88H12V70" /><g className="sigil-dial" style={{ transform: `rotate(${cell.rotation * 90}deg)` }}>
+        <svg viewBox="0 0 100 100" aria-hidden="true"><rect className="sigil-enamel" x="5" y="5" width="90" height="90" rx="9" /><path className="sigil-engraving" d="M12 30V12H30 M70 12H88V30 M88 70V88H70 M30 88H12V70" /><g className="sigil-dial" transform={`rotate(${cell.rotation * 90} 50 50)`}>
           {SIGIL_PORTS.map((port, direction) => cell.mask & port ? <path key={port} className="sigil-channel-shadow" d={PORT_LINES[direction]} /> : null)}
           {SIGIL_PORTS.map((port, direction) => cell.mask & port ? <path key={port} className="sigil-channel" d={PORT_LINES[direction]} /> : null)}
         </g><circle className="sigil-rivet" cx="50" cy="50" r="8" />{index === 0 && <path className="sigil-source" d="M49 42Q61 47 54 57Q43 64 45 52Q52 49 49 42Z" />}</svg>

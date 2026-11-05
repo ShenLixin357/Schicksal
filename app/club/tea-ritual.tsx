@@ -10,11 +10,11 @@ type TeaPhase = "resting" | "floating" | "pouring" | "served";
 const TEA_CHOREOGRAPHY = {
   ritualMs: 12600,
   resting: {
-    pot: { x: "45.2%", y: "53.6%" },
+    pot: { x: "47.5%", y: "54.8%" },
     cups: [
-      { x: "40.8%", y: "60.0%" },
-      { x: "50.1%", y: "58.9%" },
-      { x: "59.4%", y: "60.0%" },
+      { x: "42.0%", y: "59.5%" },
+      { x: "50.1%", y: "60.0%" },
+      { x: "58.2%", y: "59.5%" },
     ],
   },
   cascade: {

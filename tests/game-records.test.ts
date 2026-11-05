@@ -29,7 +29,7 @@ const bestRow = (performance: GamePerformance, citizenId: string): GameBest => (
 test("all five games have explicit board rules; unavailable and prototype names cannot select a game", () => {
   assert.equal(Object.keys(GAME_BOARDS).length, 5); assert.equal(isGameId("__proto__"), false); assert.equal(isGameId("constructor"), false);
   assert.deepEqual(GAME_BOARDS["potion-sort"].boards.map((board) => board.id), ["apprentice", "alchemist", "oracle"]);
-  assert.deepEqual(GAME_BOARDS["jade-sigils"].boards.map((board) => board.id), ["4x4", "5x5"]);
+  assert.deepEqual(GAME_BOARDS["jade-sigils"].boards.map((board) => board.id), ["4x4", "5x5", "7x7", "9x9"]);
 });
 
 test("a genuinely solved potion game is accepted, while unfinished and empty boards never rank", () => {
@@ -40,8 +40,8 @@ test("a genuinely solved potion game is accepted, while unfinished and empty boa
   assert.equal(performanceFromSnapshot("potion-sort", { ...snapshot, puzzle: { ...snapshot.puzzle, bottles: snapshot.puzzle.bottles.map(() => []) } }, 45000), null);
 });
 
-test("both actual sigil sizes produce separate, validated completion results", () => {
-  for (const size of [4, 5]) {
+test("all four sigil difficulties produce separate, validated completion results", () => {
+  for (const size of [4, 5, 7, 9]) {
     const initial = generateSigilBoard(131, size), board = { ...initial, cells: initial.cells.map((cell) => ({ ...cell, rotation: 0 })), moves: 30 };
     assert.ok(traceSigilLight(board).complete);
     assert.equal(performanceFromSnapshot("jade-sigils", { initial, board }, 60000)?.boardId, `${size}x${size}`);

@@ -18,6 +18,7 @@ import {
 } from "../../../db/schema";
 
 const CITIZEN_IDS = new Set(["amberina", "zxy", "truth", "kaito", "harry"]);
+const SPEAKER_MANAGERS = new Set(["amberina", "zxy", "truth"]);
 const STAGES = new Set(["proposal", "debate", "amendment", "voting", "resolved", "deferred"]);
 const KINDS = new Set(["proposal", "bill"]);
 const CLASSIFICATIONS = new Set(["ordinary", "constitutional", "administrative_review", "external_agreement", "youth_autonomy", "pending_review"]);
@@ -56,6 +57,23 @@ function isStageManager(request: Request, citizenId: string) {
   return Boolean(authenticatedEmail && adminEmail && authenticatedEmail === adminEmail);
 }
 
+function isSpeakerManager(request: Request, citizenId: string) {
+  if (!SPEAKER_MANAGERS.has(citizenId)) return false;
+  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return standaloneMember(request, env) === citizenId;
+  const hostname = new URL(request.url).hostname;
+  return hostname === "terminal.local" || hostname === "localhost" || Boolean(request.headers.get("oai-authenticated-user-email"));
+}
+
+async function speakerRecord(itemId: string) {
+  const db = getDb();
+  const [meetings, candidates, ballots] = await Promise.all([
+    db.select().from(parliamentMeetingSessions).where(eq(parliamentMeetingSessions.itemId, itemId)).limit(1),
+    db.select().from(parliamentSpeakerCandidates).where(eq(parliamentSpeakerCandidates.itemId, itemId)),
+    db.select().from(parliamentSpeakerVotes).where(eq(parliamentSpeakerVotes.itemId, itemId)),
+  ]);
+  return { meeting: meetings[0] ?? null, candidates, ballots };
+}
+
 function suggestedRouting(classification: string, ageBand: string, recusalRequested: boolean) {
   if (classification === "constitutional") return "dual_review";
   if (classification === "pending_review" || ageBand === "unknown") return "pending_review";
@@ -71,32 +89,34 @@ async function audit(itemId: string, actorCitizenId: string, eventType: string, 
   });
 }
 
-async function resolveSpeakerElectionIfDue(itemId: string, now: string) {
+async function resolveSpeakerElectionIfDue(itemId: string, now: string, closedBy = "system", early = false) {
   const db = getDb();
   const [meeting] = await db.select().from(parliamentMeetingSessions).where(eq(parliamentMeetingSessions.itemId, itemId)).limit(1);
-  if (!meeting || meeting.speakerStatus !== "open" || !meeting.speakerElectionDeadline || Date.parse(meeting.speakerElectionDeadline) > Date.parse(now)) return meeting ?? null;
-
-  const [candidates, ballots] = await Promise.all([
-    db.select().from(parliamentSpeakerCandidates).where(eq(parliamentSpeakerCandidates.itemId, itemId)),
-    db.select().from(parliamentSpeakerVotes).where(eq(parliamentSpeakerVotes.itemId, itemId)),
-  ]);
-  if (!candidates.length) {
-    await env.DB.prepare("UPDATE parliament_meeting_sessions SET speaker_status = 'tie_pending', tied_candidate_ids_json = '[]', updated_at = ? WHERE item_id = ? AND speaker_status = 'open'").bind(now, itemId).run();
-    return { ...meeting, speakerStatus: "tie_pending", tiedCandidateIdsJson: "[]", updatedAt: now };
+  if (!meeting || meeting.speakerStatus !== "open" || !meeting.speakerElectionDeadline || (!early && Date.parse(meeting.speakerElectionDeadline) > Date.parse(now))) return meeting ?? null;
+  // Tally and close in one statement, so a ballot arriving during closure is
+  // either included in the result or rejected by the ballot's open-state guard.
+  const closed = await env.DB.prepare(`WITH totals AS (
+      SELECT c.citizen_id, COUNT(v.id) AS votes FROM parliament_speaker_candidates c
+      LEFT JOIN parliament_speaker_votes v ON v.item_id = c.item_id AND v.candidate_citizen_id = c.citizen_id
+      WHERE c.item_id = ? GROUP BY c.citizen_id
+    ), leaders AS (SELECT citizen_id FROM totals WHERE votes = (SELECT MAX(votes) FROM totals) ORDER BY citizen_id)
+    UPDATE parliament_meeting_sessions SET
+      speaker_status = CASE WHEN (SELECT COUNT(*) FROM leaders) = 1 THEN 'elected' ELSE 'tie_pending' END,
+      speaker_citizen_id = CASE WHEN (SELECT COUNT(*) FROM leaders) = 1 THEN (SELECT citizen_id FROM leaders) ELSE '' END,
+      speaker_decided_by_citizen_id = CASE WHEN (SELECT COUNT(*) FROM leaders) = 1 THEN 'election' ELSE '' END,
+      tied_candidate_ids_json = CASE WHEN (SELECT COUNT(*) FROM leaders) = 1 THEN '[]' ELSE (SELECT json_group_array(citizen_id) FROM leaders) END,
+      speaker_election_deadline = CASE WHEN ? = 1 THEN ? ELSE speaker_election_deadline END, updated_at = ?
+    WHERE item_id = ? AND speaker_status = 'open' AND (? = 1 OR speaker_election_deadline <= ?)
+    RETURNING speaker_status, speaker_citizen_id, tied_candidate_ids_json`)
+    .bind(itemId, early ? 1 : 0, now, now, itemId, early ? 1 : 0, now)
+    .first<{ speaker_status: string; speaker_citizen_id: string; tied_candidate_ids_json: string }>();
+  if (closed) {
+    const record = await speakerRecord(itemId);
+    const description = closed.speaker_status === "elected" ? "按截止时的票数，最高票者自动当选本次会议议长。" : record.candidates.length ? "最高票平票，等待三位委员中的任意一人裁决。" : "无人参选，可重新开放选举或直接指定议长。";
+    await audit(itemId, closedBy, early ? "speaker_election_closed_early" : closed.speaker_status === "elected" ? "speaker_elected" : "speaker_tie", `${early ? "提前结束议长选举。" : "议长选举已截止。"}${description}`, { ...record, originalDeadline: meeting.speakerElectionDeadline, early }, now);
   }
-  const totals = new Map(candidates.map((candidate) => [candidate.citizenId, 0]));
-  ballots.forEach((ballot) => totals.set(ballot.candidateCitizenId, (totals.get(ballot.candidateCitizenId) ?? 0) + 1));
-  const highest = Math.max(...totals.values());
-  const leaders = [...totals.entries()].filter(([, total]) => total === highest).map(([candidateId]) => candidateId);
-  if (leaders.length === 1) {
-    const update = await env.DB.prepare("UPDATE parliament_meeting_sessions SET speaker_status = 'elected', speaker_citizen_id = ?, speaker_decided_by_citizen_id = 'election', tied_candidate_ids_json = '[]', updated_at = ? WHERE item_id = ? AND speaker_status = 'open'").bind(leaders[0], now, itemId).run();
-    if (update.meta.changes) await audit(itemId, "system", "speaker_elected", "议长选举截止，得票最高者自动获得本次会议议长权限。", { speakerCitizenId: leaders[0], votes: Object.fromEntries(totals) }, now);
-    return { ...meeting, speakerStatus: "elected", speakerCitizenId: leaders[0], speakerDecidedByCitizenId: "election", tiedCandidateIdsJson: "[]", updatedAt: now };
-  }
-  const tiedCandidateIdsJson = JSON.stringify(leaders);
-  const update = await env.DB.prepare("UPDATE parliament_meeting_sessions SET speaker_status = 'tie_pending', speaker_citizen_id = '', tied_candidate_ids_json = ?, updated_at = ? WHERE item_id = ? AND speaker_status = 'open'").bind(tiedCandidateIdsJson, now, itemId).run();
-  if (update.meta.changes) await audit(itemId, "system", "speaker_tie", "议长选举平票，等待最高领导人裁决。", { tiedCandidates: leaders, votes: Object.fromEntries(totals) }, now);
-  return { ...meeting, speakerStatus: "tie_pending", speakerCitizenId: "", tiedCandidateIdsJson, updatedAt: now };
+  const [current] = await db.select().from(parliamentMeetingSessions).where(eq(parliamentMeetingSessions.itemId, itemId)).limit(1);
+  return current ?? null;
 }
 
 async function isMeetingSpeaker(itemId: string, citizenId: string) {
@@ -147,6 +167,7 @@ async function boardPayload(request: Request, requestedItemId: string, citizenId
     session: {
       citizenId,
       stageManager: isStageManager(request, citizenId),
+      speakerManager: isSpeakerManager(request, citizenId),
       meetingSpeaker: Boolean(meeting && meeting.speakerStatus === "elected" && meeting.speakerCitizenId === citizenId),
       platformAuthenticated: Boolean(standaloneMember(request, env) || request.headers.get("oai-authenticated-user-email")),
     },
@@ -179,6 +200,7 @@ async function livePayload(request: Request, itemId: string, citizenId: string) 
     session: {
       citizenId,
       stageManager: isStageManager(request, citizenId),
+      speakerManager: isSpeakerManager(request, citizenId),
       meetingSpeaker: Boolean(meeting && meeting.speakerStatus === "elected" && meeting.speakerCitizenId === citizenId),
       platformAuthenticated: Boolean(standaloneMember(request, env) || request.headers.get("oai-authenticated-user-email")),
     },
@@ -265,12 +287,15 @@ export async function POST(request: Request) {
       await db.update(parliamentItems).set({ classification, routing, proposerAgeBand, deadline, recusalRequested: recusalRequested ? 1 : 0, updatedAt: now }).where(eq(parliamentItems.id, itemId));
       await audit(itemId, citizenId, "classified", `确认议案分类与程序路线：${reason}`, { classification, routing, proposerAgeBand, recusalRequested, deadline }, now);
     } else if (action === "configure_speaker_election") {
-      if (!isStageManager(request, citizenId)) return Response.json({ error: "只有最高领导人账号可以设置议长选举期限。" }, { status: 403 });
-      const speakerElectionDeadline = cleanText(payload.speakerElectionDeadline, 80);
-      if (!itemId || !speakerElectionDeadline || !Number.isFinite(Date.parse(speakerElectionDeadline))) return Response.json({ error: "请选择有效的议长选举截止时间。" }, { status: 400 });
+      if (!isSpeakerManager(request, citizenId)) return Response.json({ error: "只有宇宙霸主、No.2 和我说真的可以管理议长选举。" }, { status: 403 });
+      const deadlineInput = cleanText(payload.speakerElectionDeadline, 80);
+      if (!itemId || !deadlineInput || !Number.isFinite(Date.parse(deadlineInput))) return Response.json({ error: "请选择有效的议长选举截止时间。" }, { status: 400 });
+      const speakerElectionDeadline = new Date(deadlineInput).toISOString();
       if (Date.parse(speakerElectionDeadline) <= Date.parse(now)) return Response.json({ error: "议长选举截止时间必须晚于现在。" }, { status: 400 });
       const [existing] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
       if (!existing || !["debate", "amendment"].includes(existing.stage)) return Response.json({ error: "议长选举只能在辩论或修正阶段开启。" }, { status: 409 });
+      const previous = await speakerRecord(itemId);
+      if (previous.meeting && previous.meeting.speakerStatus !== "not_configured") return Response.json({ error: "请先撤销本次选举或议长权限，再重新开放选举。" }, { status: 409 });
       await env.DB.batch([
         env.DB.prepare("DELETE FROM parliament_speaker_votes WHERE item_id = ?").bind(itemId),
         env.DB.prepare("DELETE FROM parliament_speaker_candidates WHERE item_id = ?").bind(itemId),
@@ -282,13 +307,46 @@ export async function POST(request: Request) {
           ON CONFLICT(item_id) DO UPDATE SET speaker_election_deadline = excluded.speaker_election_deadline, speaker_status = 'open', speaker_citizen_id = '', speaker_decided_by_citizen_id = '', tied_candidate_ids_json = '[]', current_floor_citizen_id = '', debate_started_at = '', seats_locked = 0, updated_at = excluded.updated_at`)
           .bind(itemId, speakerElectionDeadline, now),
       ]);
-      await audit(itemId, citizenId, "speaker_election_opened", "本次会议议长选举已开放，票数与投票者实时公开。", { speakerElectionDeadline }, now);
+      await audit(itemId, citizenId, "speaker_election_opened", "本次会议议长选举已开放，票数与投票者实时公开。", { speakerElectionDeadline, previous }, now);
+    } else if (["close_speaker_election", "revoke_speaker_election", "assign_speaker"].includes(action)) {
+      if (!isSpeakerManager(request, citizenId)) return Response.json({ error: "只有宇宙霸主、No.2 和我说真的可以管理本次议长。" }, { status: 403 });
+      const [item] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
+      if (!item) return Response.json({ error: "找不到这项议案。" }, { status: 404 });
+      if (!["proposal", "deferred", "debate", "amendment"].includes(item.stage)) return Response.json({ error: "表决中或已结案的议案不能更换议长；请先由最高领导人重开辩论。" }, { status: 409 });
+      const previous = await speakerRecord(itemId);
+      if (action === "close_speaker_election") {
+        if (previous.meeting?.speakerStatus !== "open") return Response.json({ error: "本次议长选举已经关闭或尚未开放。" }, { status: 409 });
+        await resolveSpeakerElectionIfDue(itemId, now, citizenId, true);
+      } else if (action === "revoke_speaker_election") {
+        if (!previous.meeting || previous.meeting.speakerStatus === "not_configured") return Response.json({ error: "本次没有可撤销的选举或议长权限。" }, { status: 409 });
+        await env.DB.batch([
+          env.DB.prepare(`UPDATE parliament_meeting_sessions SET speaker_election_deadline = '', speaker_status = 'not_configured', speaker_citizen_id = '', speaker_decided_by_citizen_id = '', tied_candidate_ids_json = '[]', current_floor_citizen_id = '', debate_started_at = '', seats_locked = 0, updated_at = ? WHERE item_id = ?`).bind(now, itemId),
+          env.DB.prepare("UPDATE parliament_floor_requests SET status = 'rejected', decided_at = ?, decided_by_citizen_id = ? WHERE item_id = ? AND status = 'pending'").bind(now, citizenId, itemId),
+        ]);
+        await audit(itemId, citizenId, "speaker_election_revoked", "本次议长选举及议长权限已撤销。正式发言、原始选票和撤销前的结果保留在程序记录中。", { previous }, now);
+      } else {
+        const candidateCitizenId = cleanText(payload.candidateCitizenId, 40);
+        if (!CITIZEN_IDS.has(candidateCitizenId)) return Response.json({ error: "请选择一位有效公民担任本次会议议长。" }, { status: 400 });
+        const startNow = truthy(payload.startDebateNow);
+        await env.DB.batch([
+          env.DB.prepare(`INSERT INTO parliament_meeting_sessions (item_id, speaker_election_deadline, speaker_status, speaker_citizen_id, speaker_decided_by_citizen_id, tied_candidate_ids_json, current_floor_citizen_id, debate_started_at, seats_locked, updated_at)
+            VALUES (?, '', 'elected', ?, ?, '[]', '', ?, ?, ?)
+            ON CONFLICT(item_id) DO UPDATE SET speaker_election_deadline = '', speaker_status = 'elected', speaker_citizen_id = excluded.speaker_citizen_id, speaker_decided_by_citizen_id = excluded.speaker_decided_by_citizen_id, tied_candidate_ids_json = '[]', current_floor_citizen_id = '', debate_started_at = excluded.debate_started_at, seats_locked = excluded.seats_locked, updated_at = excluded.updated_at`)
+            .bind(itemId, candidateCitizenId, citizenId, startNow ? now : "", startNow ? 1 : 0, now),
+          env.DB.prepare("DELETE FROM parliament_seats WHERE item_id = ? AND citizen_id = ?").bind(itemId, candidateCitizenId),
+          env.DB.prepare("UPDATE parliament_floor_requests SET status = 'rejected', decided_at = ?, decided_by_citizen_id = ? WHERE item_id = ? AND status = 'pending'").bind(now, citizenId, itemId),
+          env.DB.prepare("UPDATE parliament_items SET stage = 'debate', outcome = 'pending', stage_reason = '委员直接指定本次会议议长，进入辩论。', updated_at = ? WHERE id = ?").bind(now, itemId),
+        ]);
+        await audit(itemId, citizenId, "speaker_appointed", `委员直接指定本次会议议长，${startNow ? "立即开始辩论，锁定现有席位" : "进入议场，等待成员就座后宣布开会"}。`, { candidateCitizenId, startDebateNow: startNow, previous, previousStage: item.stage }, now);
+      }
     } else if (action === "stand_for_speaker") {
       if (!itemId) return Response.json({ error: "找不到本次会议。" }, { status: 400 });
       const [meeting] = await db.select().from(parliamentMeetingSessions).where(eq(parliamentMeetingSessions.itemId, itemId)).limit(1);
       if (!meeting || meeting.speakerStatus !== "open" || Date.parse(meeting.speakerElectionDeadline) <= Date.parse(now)) return Response.json({ error: "议长候选登记已经关闭。" }, { status: 409 });
-      await env.DB.prepare(`INSERT OR IGNORE INTO parliament_speaker_candidates (id, item_id, citizen_id, created_at) VALUES (?, ?, ?, ?)`)
-        .bind(`${itemId}:${citizenId}`, itemId, citizenId, now).run();
+      const inserted = await env.DB.prepare(`INSERT OR IGNORE INTO parliament_speaker_candidates (id, item_id, citizen_id, created_at)
+        SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM parliament_meeting_sessions WHERE item_id = ? AND speaker_status = 'open' AND speaker_election_deadline > ?)`)
+        .bind(`${itemId}:${citizenId}`, itemId, citizenId, now, itemId, now).run();
+      if (!inserted.meta.changes) return Response.json({ error: "选举已关闭，或你已经登记参选。" }, { status: 409 });
       await audit(itemId, citizenId, "speaker_candidacy", `${citizenId} 登记为本次会议议长候选人。`, {}, now);
     } else if (action === "cast_speaker_vote") {
       const candidateCitizenId = cleanText(payload.candidateCitizenId, 40);
@@ -297,20 +355,23 @@ export async function POST(request: Request) {
       if (!meeting || meeting.speakerStatus !== "open" || Date.parse(meeting.speakerElectionDeadline) <= Date.parse(now)) return Response.json({ error: "议长选举已经截止。" }, { status: 409 });
       const [candidate] = await db.select().from(parliamentSpeakerCandidates).where(eq(parliamentSpeakerCandidates.id, `${itemId}:${candidateCitizenId}`)).limit(1);
       if (!candidate) return Response.json({ error: "这位公民尚未登记参选本次会议议长。" }, { status: 409 });
-      await env.DB.prepare(`INSERT INTO parliament_speaker_votes (id, item_id, voter_citizen_id, candidate_citizen_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+      const voted = await env.DB.prepare(`INSERT INTO parliament_speaker_votes (id, item_id, voter_citizen_id, candidate_citizen_id, created_at, updated_at)
+        SELECT ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM parliament_meeting_sessions WHERE item_id = ? AND speaker_status = 'open' AND speaker_election_deadline > ?)
         ON CONFLICT(item_id, voter_citizen_id) DO UPDATE SET candidate_citizen_id = excluded.candidate_citizen_id, updated_at = excluded.updated_at`)
-        .bind(`${itemId}:${citizenId}`, itemId, citizenId, candidateCitizenId, now, now).run();
+        .bind(`${itemId}:${citizenId}`, itemId, citizenId, candidateCitizenId, now, now, itemId, now).run();
+      if (!voted.meta.changes) return Response.json({ error: "议长选举已经截止。" }, { status: 409 });
       await audit(itemId, citizenId, "speaker_vote_cast", `${citizenId} 公开投出本次会议议长选票。`, { candidateCitizenId }, now);
     } else if (action === "resolve_speaker_tie") {
-      if (!isStageManager(request, citizenId)) return Response.json({ error: "议长选举平票只能由最高领导人裁决。" }, { status: 403 });
+      if (!isSpeakerManager(request, citizenId)) return Response.json({ error: "议长选举平票只能由宇宙霸主、No.2 或我说真的裁决。" }, { status: 403 });
+      const [item] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
+      if (!item || !["debate", "amendment"].includes(item.stage)) return Response.json({ error: "只能在辩论或修正阶段裁决议长选举。" }, { status: 409 });
       const candidateCitizenId = cleanText(payload.candidateCitizenId, 40);
       const [meeting] = await db.select().from(parliamentMeetingSessions).where(eq(parliamentMeetingSessions.itemId, itemId)).limit(1);
       let tiedCandidates: string[] = [];
       try { tiedCandidates = meeting ? JSON.parse(meeting.tiedCandidateIdsJson) as string[] : []; } catch { tiedCandidates = []; }
       if (!meeting || meeting.speakerStatus !== "tie_pending" || !tiedCandidates.includes(candidateCitizenId)) return Response.json({ error: "只能在平票候选人中作出裁决。" }, { status: 409 });
       await db.update(parliamentMeetingSessions).set({ speakerStatus: "elected", speakerCitizenId: candidateCitizenId, speakerDecidedByCitizenId: citizenId, tiedCandidateIdsJson: "[]", updatedAt: now }).where(eq(parliamentMeetingSessions.itemId, itemId));
-      await audit(itemId, citizenId, "speaker_tie_resolved", "最高领导人完成议长选举平票裁决。", { candidateCitizenId }, now);
+      await audit(itemId, citizenId, "speaker_tie_resolved", "委员完成议长选举平票裁决。", { candidateCitizenId }, now);
     } else if (action === "choose_seat") {
       const side = cleanText(payload.side, 20);
       const seatIndex = Number(payload.seatIndex);

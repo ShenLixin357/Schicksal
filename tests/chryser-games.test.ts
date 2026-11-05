@@ -4,7 +4,7 @@ import { generateSigilBoard, getSigilHint, isSigilBoard, rotateSigilMask, traceS
 import { checkEchoInput, completeEchoRound, createEcho, extendEcho, isEchoState } from "../app/club/minigames/ember-echo-engine.ts";
 
 test("every generated sigil board has a fully connected, leak-free solution", () => {
-  for (const size of [4, 5]) {
+  for (const size of [4, 5, 7, 9]) {
     for (let seed = 1; seed <= 24; seed += 1) {
       const board = generateSigilBoard(seed * 7387, size);
       assert.equal(isSigilBoard(board), true);
@@ -17,15 +17,25 @@ test("every generated sigil board has a fully connected, leak-free solution", ()
 });
 
 test("sigil hints make finite progress even after player deviations", () => {
-  for (let seed = 0; seed < 16; seed += 1) {
-    let board = generateSigilBoard(seed * 13331, 5);
+  for (const size of [5, 7, 9]) for (let seed = 0; seed < 16; seed += 1) {
+    let board = generateSigilBoard(seed * 13331, size);
     for (const index of [9, 1, 14, 3, 9]) board = turnSigil(board, index);
-    for (let attempt = 0; attempt < 100 && !traceSigilLight(board).complete; attempt += 1) {
+    for (let attempt = 0; attempt < size * size * 4 && !traceSigilLight(board).complete; attempt += 1) {
       const hint = getSigilHint(board);
       assert.ok(hint, "unfinished board has a corrective hint");
       board = turnSigil(board, hint.index);
     }
     assert.equal(traceSigilLight(board).complete, true);
+  }
+});
+
+test("advanced sigils use branching trees and scramble every non-symmetric tile", () => {
+  for (const size of [7, 9]) for (let seed = 1; seed <= 24; seed++) {
+    const board = generateSigilBoard(seed * 811, size);
+    const degree = (mask: number) => [1, 2, 4, 8].filter((port) => mask & port).length;
+    assert.ok(board.cells.filter((cell) => degree(cell.mask) >= 3).length >= 5);
+    for (const cell of board.cells) if (cell.mask !== 15) assert.notEqual(rotateSigilMask(cell.mask, cell.rotation), cell.mask);
+    assert.equal(board.cells.reduce((sum, cell) => sum + degree(cell.mask), 0), 2 * (size * size - 1));
   }
 });
 

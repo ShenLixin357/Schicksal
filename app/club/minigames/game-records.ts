@@ -1,5 +1,5 @@
 import { isPotionComplete, isPotionPuzzle, POTION_DIFFICULTIES } from "./potion-sort-engine.ts";
-import { isSigilBoard, traceSigilLight } from "./jade-sigil-engine.ts";
+import { isSigilBoard, SIGIL_DIFFICULTIES, traceSigilLight } from "./jade-sigil-engine.ts";
 import { isEchoState } from "./ember-echo-engine.ts";
 import { MERGE_TIERS } from "./merge-game-engine.ts";
 import type { MiniGameId } from "./mini-game-types";
@@ -13,7 +13,7 @@ export const GAME_BOARDS: Record<MiniGameId, { title: string; score: boolean; bo
   solitaire: { title: "天命纸牌", score: false, boards: [{ id: "classic", label: "经典翻一张" }] },
   "potion-sort": { title: "魔药分层", score: false, boards: [{ id: "apprentice", label: "学徒" }, { id: "alchemist", label: "炼金师" }, { id: "oracle", label: "秘仪师" }] },
   "merge-game": { title: "天命遗物合成", score: true, boards: [{ id: "classic", label: "经典合成" }] },
-  "jade-sigils": { title: "翡翠导光阵", score: false, boards: [{ id: "4x4", label: "古典 · 4×4" }, { id: "5x5", label: "秘仪 · 5×5" }] },
+  "jade-sigils": { title: "翡翠导光阵", score: false, boards: SIGIL_DIFFICULTIES.map(({ size, label }) => ({ id: `${size}x${size}`, label })) },
   "ember-echo": { title: "余烬回声", score: true, boards: [{ id: "classic", label: "记忆试炼" }] },
 };
 export type GamePerformance = { gameId: MiniGameId; boardId: string; score: number; moves: number; durationMs: number; rounds: number; maxTier: number; rankPrimary: number; rankSecondary: number };

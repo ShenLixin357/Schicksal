@@ -25,6 +25,44 @@
 .club-main .solitaire-tableau { gap: clamp(3px,1cqw,15px); }
 .club-main .solitaire-draw-zone,.club-main .solitaire-foundations { gap: clamp(4px,1cqw,18px); }
 .club-main .solitaire-status { flex-wrap: wrap; text-align: center; }
+/* Game headers and scroll panes follow the actual available room height. */
+.club-main .mini-game-shell { display: flex; flex-direction: column; }
+.club-main .mini-game-header { flex: 0 0 auto; grid-template-columns: auto minmax(0,1fr) auto; gap: 14px; }
+.club-main .mini-game-title h1 { white-space: normal; }
+.club-main .mini-game-controls { grid-column: 1/-1; justify-content: flex-end; flex-wrap: wrap; }
+.club-main .mini-game-stage { flex: 1; min-height: 0; height: auto; align-items: start; justify-items: center; }
+.club-main .potion-sort-game { box-sizing: border-box; width: min(1080px,100%); min-width: 0; min-height: 0; }
+.club-main .jade-sigil-game,.club-main .ember-echo-game { box-sizing: border-box; width: min(720px,100%); min-width: 0; }
+.jade-board-size { flex-wrap: wrap; }
+.jade-difficulty-note { margin: 0; color: #aebaa0; font-size: 12px; line-height: 1.7; }
+.jade-sigil-board { box-sizing: border-box; grid-template-columns: repeat(var(--sigil-size),minmax(0,1fr)); width: min(560px,100%); }
+.jade-sigil-cell { min-width: 0; }
+.sigil-dial { transform-origin: 0 0; transform-box: view-box; }
+/* Every resting base sits inside the ellipse of the illustrated tabletop. */
+.club-room-stage .lounge-table-3d { width: 34.8%; }
+.club-room-stage .lounge-teapot { width: 8.8%; }
+.club-room-stage .potion-object { left: 40%; top: 58.5%; width: 3.5%; }
+.club-room-stage .merge-object { left: 60%; top: 58.4%; width: 3.6%; }
+.club-room-stage .club-vase-display { left: 57.2%; top: 58.5%; width: 10%; }
+.club-room-stage .club-hotspot.vase { left: 57.2%; top: 54%; }
+.club-room-stage .club-solitaire-deck { left: 37.2%; top: 59.3%; width: 2.8%; }
+.speaker-management { margin: 24px 0; padding: clamp(18px,3vw,30px); border: 1px solid var(--line-strong); background: #fbf9f2; }
+.speaker-management > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.speaker-management h3 { margin: 6px 0 18px; font: 1.5rem var(--serif); }
+.speaker-management > header > span { color: #7b705f; font-size: 11px; }
+.speaker-deadline-controls,.speaker-appointment-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.speaker-management label { display: grid; gap: 8px; color: #69768a; font-size: 12px; }
+.speaker-management input,.speaker-management select { min-width: 66px; max-width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 0; background: #fffdf8; color: var(--ink); font: inherit; font-size: 16px; }
+.speaker-management button { min-height: 42px; padding: 10px 15px; border: 1px solid #ac9063; background: #f4ecd9; color: #554023; font-size: 12px; cursor: pointer; }
+.speaker-management button:disabled { opacity: .45; cursor: default; }
+.speaker-management p:not(.eyebrow) { flex: 0 0 100%; margin: 0; color: #7b705f; font-size: 12px; line-height: 1.7; }
+.speaker-election-management-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.speaker-appointment-controls { padding-top: 22px; margin-top: 22px; border-top: 1px solid var(--line); }
+.speaker-management .speaker-start-now { display: flex; align-items: center; gap: 8px; min-height: 42px; }
+.speaker-start-now input { min-width: auto; min-height: auto; width: 17px; height: 17px; accent-color: #846532; }
+.speaker-action-confirmation { margin-top: 16px; padding: 16px; border: 1px solid #c3a77c; background: #fff7e6; }
+.speaker-action-confirmation button { margin: 12px 10px 0 0; }
+@container (max-width: 680px) { .club-main .mini-game-header { grid-template-columns: auto minmax(0,1fr); gap: 10px; padding: 12px; }.club-main .mini-game-title > i,.club-main .mini-game-title small { display: none; }.club-main .mini-game-title h1 { font-size: 1.05rem; }.club-main .mini-game-title p { font-size: 10px; }.club-main .mini-game-score { grid-column: 1/-1; grid-row: auto; justify-content: center; }.club-main .mini-game-controls { grid-row: auto; justify-content: center; overflow: visible; }.club-main .mini-game-stage { padding: 10px; } }
 .member-access-settings { margin-top: 34px; border: 1px solid var(--line); padding: clamp(22px,4vw,42px); background: #fffdf7bb; }
 .member-access-settings h2 { margin: 12px 0; font: 1.7rem var(--serif); }
 .member-access-settings header > p:last-child,.member-password-note { color: #69768a; font-size: 13px; line-height: 1.8; }

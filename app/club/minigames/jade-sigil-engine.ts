@@ -2,6 +2,13 @@
 export const SIGIL_PORTS = [1, 2, 4, 8] as const;
 const DELTAS = [[-1, 0], [0, 1], [1, 0], [0, -1]] as const;
 
+export const SIGIL_DIFFICULTIES = [
+  { size: 4, label: "古典 · 4×4", description: "16 枚刻盘，沿余烬逐步接通。" },
+  { size: 5, label: "秘仪 · 5×5", description: "25 枚刻盘，寻找完整的导光纹路。" },
+  { size: 7, label: "大师 · 7×7", description: "49 枚刻盘，多分支迷阵，所有可旋转纹路均已打乱。" },
+  { size: 9, label: "禁域 · 9×9", description: "81 枚刻盘，更密集的分支，需要同时推理多条纹路。" },
+] as const;
+
 export type SigilCell = { mask: number; rotation: number };
 export type SigilBoard = { version: 1; seed: number; size: number; cells: SigilCell[]; moves: number };
 
@@ -52,11 +59,33 @@ function randomFactory(seed: number) {
 
 /** A randomized spanning tree provides an exact valid solution before scrambling. */
 export function generateSigilBoard(seed: number, size = 4): SigilBoard {
-  const dimension = Math.max(3, Math.min(5, Math.floor(size)));
+  const dimension = Number.isFinite(size) ? Math.max(3, Math.min(9, Math.floor(size))) : 4;
   const random = randomFactory(seed);
   const masks = Array<number>(dimension * dimension).fill(0);
   const visited = new Set([0]);
   const stack = [0];
+  const frontier = [{ index: 0, next: 0, direction: 0 }];
+  if (dimension >= 7) {
+    // Randomized Prim growth produces branching puzzles instead of one long corridor.
+    const addFrontier = (index: number) => {
+      const row = Math.floor(index / dimension), column = index % dimension;
+      DELTAS.forEach(([dr, dc], direction) => {
+        const r = row + dr, c = column + dc;
+        if (r >= 0 && r < dimension && c >= 0 && c < dimension && !visited.has(r * dimension + c)) frontier.push({ index, next: r * dimension + c, direction });
+      });
+    };
+    frontier.length = 0;
+    addFrontier(0);
+    while (frontier.length) {
+      const edge = frontier.splice(Math.floor(random() * frontier.length), 1)[0];
+      if (visited.has(edge.next)) continue;
+      masks[edge.index] |= SIGIL_PORTS[edge.direction];
+      masks[edge.next] |= SIGIL_PORTS[(edge.direction + 2) % 4];
+      visited.add(edge.next);
+      addFrontier(edge.next);
+    }
+    stack.length = 0;
+  }
   while (stack.length) {
     const index = stack.at(-1)!;
     const row = Math.floor(index / dimension);
@@ -71,7 +100,10 @@ export function generateSigilBoard(seed: number, size = 4): SigilBoard {
     visited.add(next);
     stack.push(next);
   }
-  const board: SigilBoard = { version: 1, seed: seed >>> 0, size: dimension, cells: masks.map((mask) => ({ mask, rotation: Math.floor(random() * 4) })), moves: 0 };
+  const board: SigilBoard = { version: 1, seed: seed >>> 0, size: dimension, cells: masks.map((mask) => {
+    const turns = dimension >= 7 ? [1, 2, 3].filter((rotation) => rotateSigilMask(mask, rotation) !== mask) : [0, 1, 2, 3];
+    return { mask, rotation: turns.length ? turns[Math.floor(random() * turns.length)] : 0 };
+  }), moves: 0 };
   if (traceSigilLight(board).complete) board.cells[0].rotation = (board.cells[0].rotation + 1) % 4;
   return board;
 }
@@ -97,7 +129,7 @@ export function getSigilHint(board: SigilBoard) {
 export function isSigilBoard(value: unknown): value is SigilBoard {
   if (!value || typeof value !== "object") return false;
   const board = value as Partial<SigilBoard>;
-  return board.version === 1 && Number.isInteger(board.size) && board.size! >= 3 && board.size! <= 5
+  return board.version === 1 && Number.isInteger(board.size) && board.size! >= 3 && board.size! <= 9
     && typeof board.seed === "number" && Number.isInteger(board.moves) && board.moves! >= 0
     && Array.isArray(board.cells) && board.cells.length === board.size! ** 2
     && board.cells.every((cell) => Number.isInteger(cell.mask) && cell.mask > 0 && cell.mask <= 15 && Number.isInteger(cell.rotation) && cell.rotation >= 0 && cell.rotation < 4);

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { CITIZENS, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
+import { SpeakerManagement } from "./speaker-management";
 import { startTransition, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
 import { ArticulatedFan, LaceFanDrawing } from "./club/articulated-fan";
 import { FAN_CYCLE_MS } from "./club/fan-motion";
@@ -74,7 +75,7 @@ type ParliamentSpeakerVote = { id: string; itemId: string; voterCitizenId: strin
 type ParliamentSeat = { id: string; itemId: string; citizenId: string; side: "proposal" | "question"; seatIndex: number; createdAt: string; updatedAt: string };
 type ParliamentFloorRequest = { id: string; itemId: string; citizenId: string; requestType: "speech" | "give_way" | "point_order"; body: string; status: "pending" | "accepted" | "rejected"; createdAt: string; decidedAt: string; decidedByCitizenId: string };
 type ParliamentResultReaction = { id: string; itemId: string; citizenId: string; reaction: "like" | "dislike"; createdAt: string; updatedAt: string };
-type ParliamentSession = { citizenId: string; stageManager: boolean; meetingSpeaker: boolean; platformAuthenticated: boolean };
+type ParliamentSession = { citizenId: string; stageManager: boolean; speakerManager: boolean; meetingSpeaker: boolean; platformAuthenticated: boolean };
 type ParliamentBoard = { items?: ParliamentItem[]; activeItem?: ParliamentItem | null; comments?: ParliamentComment[]; votes?: ParliamentVote[]; amendments?: ParliamentAmendment[]; auditEvents?: ParliamentAuditEvent[]; meeting?: ParliamentMeeting | null; speakerCandidates?: ParliamentSpeakerCandidate[]; speakerVotes?: ParliamentSpeakerVote[]; seats?: ParliamentSeat[]; floorRequests?: ParliamentFloorRequest[]; resultReactions?: ParliamentResultReaction[]; session?: ParliamentSession; error?: string };
 type ClubProfile = { citizenId: string; maskName: string; avatar: string; updatedAt: string };
 type ClubMessage = { id: string; citizenId: string; body: string; sticker: string; createdAt: string };
@@ -564,7 +565,7 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
   const [seats, setSeats] = useState<ParliamentSeat[]>([]);
   const [floorRequests, setFloorRequests] = useState<ParliamentFloorRequest[]>([]);
   const [resultReactions, setResultReactions] = useState<ParliamentResultReaction[]>([]);
-  const [session, setSession] = useState<ParliamentSession>({ citizenId: citizen.id, stageManager: false, meetingSpeaker: false, platformAuthenticated: false });
+  const [session, setSession] = useState<ParliamentSession>({ citizenId: citizen.id, stageManager: false, speakerManager: false, meetingSpeaker: false, platformAuthenticated: false });
   const [filter, setFilter] = useState<"all" | ParliamentStage>("all");
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [casePanel, setCasePanel] = useState<"stage" | "text" | "procedure" | "history">("stage");
@@ -605,7 +606,6 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
   const [editTitle, setEditTitle] = useState("");
   const [editSummary, setEditSummary] = useState("");
   const [editBody, setEditBody] = useState("");
-  const [speakerDeadline, setSpeakerDeadline] = useState("");
   const [floorRequestBody, setFloorRequestBody] = useState("");
 
   const applyBoard = (board: ParliamentBoard) => {
@@ -683,7 +683,6 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
     setReplyTo("");
     setAmendmentOpen(false);
     setEditOpen(false);
-    setSpeakerDeadline("");
     setFloorRequestBody("");
     setCasePanel("stage");
     setLiveRecordOpen(false);
@@ -816,13 +815,6 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
     if (ok) setEditOpen(false);
   };
 
-  const configureSpeakerElection = async () => {
-    if (!activeItem || !speakerDeadline) return;
-    const parsedDeadline = new Date(speakerDeadline);
-    if (Number.isNaN(parsedDeadline.getTime())) { setStatus("请选择有效的议长选举截止时间。"); return; }
-    await sendAction({ action: "configure_speaker_election", itemId: activeItem.id, speakerElectionDeadline: parsedDeadline.toISOString() }, "议长选举已经开放；候选人、票数和投票者均实时公开。");
-  };
-
   const standForSpeaker = async () => {
     if (!activeItem) return;
     await sendAction({ action: "stand_for_speaker", itemId: activeItem.id }, "你已经登记参选本次会议议长。");
@@ -839,7 +831,7 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
 
   const resolveSpeakerTie = async (candidateCitizenId: string) => {
     if (!activeItem) return;
-    await sendAction({ action: "resolve_speaker_tie", itemId: activeItem.id, candidateCitizenId }, "最高领导人已完成议长选举平票裁决。");
+    await sendAction({ action: "resolve_speaker_tie", itemId: activeItem.id, candidateCitizenId }, "委员已完成议长选举平票裁决。");
   };
 
   const chooseSeat = async (side: "proposal" | "question", seatIndex: number) => {
@@ -990,17 +982,19 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
             {renderCommentThread()}
           </section>}
 
+          {casePanel === "stage" && session.speakerManager && ["proposal", "deferred", "debate", "amendment"].includes(activeItem.stage) && <SpeakerManagement key={activeItem.id} meeting={meeting} stage={activeItem.stage} busy={busy} onAction={(payload, success) => sendAction({ ...payload, itemId: activeItem.id }, success)} />}
+
           {casePanel === "stage" && ["debate", "amendment"].includes(activeItem.stage) && <section className={`meeting-workspace ${meeting?.speakerStatus === "elected" ? "chamber-ready" : ""} ${meeting?.debateStartedAt ? "session-live" : ""}`}>
             <header><div><p className="eyebrow">The Chamber · 实时议场</p><h3>{meeting?.debateStartedAt ? "面对面辩论正在进行" : "议长选举与议场就座"}</h3></div><span>{meeting?.debateStartedAt ? "CHAMBER LIVE" : "BEFORE DEBATE"}</span></header>
 
-            {(!meeting || meeting.speakerStatus === "not_configured") && <div className="speaker-election-empty"><p>本次议场尚未开放议长选举。提案阶段的异步评论已经保留，进入辩论后才启用面对面对抗。</p>{session.stageManager && <div><label><span>议长选举截止时间</span><input type="datetime-local" value={speakerDeadline} onChange={(event) => setSpeakerDeadline(event.target.value)} /></label><button type="button" onClick={configureSpeakerElection} disabled={busy || !speakerDeadline}>开放议长选举</button></div>}</div>}
+            {(!meeting || meeting.speakerStatus === "not_configured") && <div className="speaker-election-empty"><p>本次议场尚未开放议长选举。三位委员可以在议长管理中开放选举，或直接指定本次会议议长。原有讨论和正式发言会保留。</p></div>}
 
             {meeting?.speakerStatus === "open" && <section className="speaker-election">
               <header><div><small>SPEAKER ELECTION · 实时公开</small><strong>截止 {new Date(meeting.speakerElectionDeadline).toLocaleString("zh-CN")}</strong></div><button type="button" onClick={standForSpeaker} disabled={busy || mySpeakerCandidacy}>{mySpeakerCandidacy ? "你已参选" : "参选本次议长"}</button></header>
               <div className="speaker-candidate-grid">{speakerCandidates.length ? speakerCandidates.map((candidate) => { const candidateCitizen = citizenFor(candidate.citizenId); const candidateVotes = speakerVotes.filter((vote) => vote.candidateCitizenId === candidate.citizenId); return <article key={candidate.id} className={mySpeakerVote === candidate.citizenId ? "selected" : ""}><div>{candidateCitizen && <CitizenMark citizen={candidateCitizen} />}<span><small>CANDIDATE</small><strong>{candidateCitizen?.username ?? candidate.citizenId}</strong></span><b>{candidateVotes.length}</b></div>{renderMarks(candidateVotes.map((vote) => vote.voterCitizenId), "等待第一票")}<button type="button" onClick={() => castSpeakerVote(candidate.citizenId)} disabled={busy}>{mySpeakerVote === candidate.citizenId ? "已投给此人" : "公开投票"}</button></article>; }) : <p className="docket-empty">暂时还没有人参选本次会议议长。</p>}</div>
             </section>}
 
-            {meeting?.speakerStatus === "tie_pending" && <section className="speaker-tie"><span>议长选举平票</span><h3>等待最高领导人裁决</h3><p>原始票数与投票者保持公开，不会被裁决覆盖。</p>{session.stageManager && <div>{tiedSpeakerCandidates.length ? tiedSpeakerCandidates.map((candidateId) => <button type="button" key={candidateId} onClick={() => resolveSpeakerTie(candidateId)} disabled={busy}>裁决由 {citizenFor(candidateId)?.username ?? candidateId} 担任议长</button>) : <><input type="datetime-local" value={speakerDeadline} onChange={(event) => setSpeakerDeadline(event.target.value)} /><button type="button" onClick={configureSpeakerElection} disabled={busy || !speakerDeadline}>无人参选，重新开放选举</button></>}</div>}</section>}
+            {meeting?.speakerStatus === "tie_pending" && <section className="speaker-tie"><span>{tiedSpeakerCandidates.length ? "议长选举平票" : "本次选举无人参选"}</span><h3>{tiedSpeakerCandidates.length ? "等待委员裁决" : "等待重新开放选举或直接指定议长"}</h3><p>原始票数与投票者保持公开，不会被裁决覆盖。</p>{session.speakerManager && tiedSpeakerCandidates.length > 0 && <div>{tiedSpeakerCandidates.map((candidateId) => <button type="button" key={candidateId} onClick={() => resolveSpeakerTie(candidateId)} disabled={busy}>裁决由 {citizenFor(candidateId)?.username ?? candidateId} 担任议长</button>)}</div>}</section>}
 
             {meeting?.speakerStatus === "elected" && <>
               <div className={`schicksal-chamber ${meeting.debateStartedAt ? "live" : "seating"}`}>
