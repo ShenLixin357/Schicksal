@@ -301,3 +301,14 @@ export const committeeLoungeSeats = sqliteTable(
     index("committee_lounge_seats_seated_at_idx").on(table.seatedAt),
   ],
 );
+
+export const memberAquariumSaves = sqliteTable("member_aquarium_saves", {
+  citizenId: text("citizen_id").notNull(),
+  slotId: text("slot_id").notNull().default("main"),
+  stateJson: text("state_json").notNull(),
+  revision: integer("revision").notNull().default(1),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [
+  uniqueIndex("member_aquarium_saves_member_slot_unique").on(table.citizenId, table.slotId),
+  index("member_aquarium_saves_updated_idx").on(table.updatedAt),
+]);
