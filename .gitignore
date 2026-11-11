@@ -44,3 +44,6 @@ next-env.d.ts
 /.sites-runtime/
 /outputs/
 /work/
+
+# Generated original-game engine (built and archived by its dedicated workflow)
+/public/games/insaniquarium/engine/

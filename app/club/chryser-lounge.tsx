@@ -151,7 +151,10 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
       <button className="chryser-object chryser-decanter" type="button" onClick={() => activate("decanter")} aria-label="开启圆桌上的草木酒壶，释放魔法香雾"><span>轻触草木酒壶</span></button>
       <button className="chryser-object chryser-window" type="button" onClick={() => activate("window")} aria-pressed={memory.rain} aria-label="触碰拱窗，在夜雨与星空之间切换"><span>{memory.rain ? "让雨停下" : "唤来夜雨"}</span></button>
       <button className="chryser-object chryser-armchair" type="button" onClick={() => activate("chair")} aria-pressed={seated} aria-label={seated ? "离开翡翠扶手椅" : "坐进翡翠扶手椅"}><span>{seated ? "离开扶手椅" : "坐进丝绒里"}</span></button>
-      <a href="/games/aquarium" aria-label="打开 Lord Chryser 的透明翡翠鱼缸" title="进入翡翠深海水族馆" style={{ position: "absolute", right: "6%", bottom: "10%", zIndex: 8, width: "clamp(112px, 18%, 220px)", height: "clamp(82px, 13vw, 154px)", border: "7px solid rgba(190,236,222,.6)", borderRadius: "16px", background: "linear-gradient(180deg,rgba(27,139,157,.7),rgba(12,65,75,.78))", boxShadow: "inset 0 0 24px rgba(174,250,232,.5), 0 6px 18px #0009", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", color: "#fff4d5", textDecoration: "none", textShadow: "0 2px 5px #001", fontSize: "clamp(11px, 1.1vw, 15px)" }}><span aria-hidden="true" style={{ fontSize: "clamp(34px, 5vw, 58px)" }}>🐠🫧</span><strong>透明翡翠鱼缸</strong><small>点击进入水族馆</small></a>
+      <a className="chryser-aquarium" href="/games/aquarium" aria-label="进入透明大鱼缸，打开怪怪水族馆" title="怪怪水族馆 · Insaniquarium Deluxe">
+        <span className="chryser-aquarium-water" aria-hidden="true"><i /><i /><i /><b /><b /><b /></span>
+        <span className="chryser-aquarium-caption">怪怪水族馆 <small>INSANIQUARIUM DELUXE</small></span>
+      </a>
       <button className="chryser-music-box" type="button" onClick={() => activate("music")} aria-label="打开书桌上的翡翠音乐匣，游玩余烬回声"><Image src="/chryser-emerald-music-box.png" width={1536} height={1024} alt="古金与翡翠镶嵌的洛可可音乐匣" unoptimized /><span>打开翡翠音乐匣</span></button>
     </div>
     <footer className="chryser-whisper" aria-live="polite"><small>LORD CHRYSER’S STUDY</small><p>{whisper}</p></footer>
