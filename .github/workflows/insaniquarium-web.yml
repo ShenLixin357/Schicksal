@@ -28,12 +28,9 @@ jobs:
           bash ports/insaniquarium/build-web.sh
       - name: Test member saves, offline recovery and native filesystem
         run: npm run test:insaniquarium
-      - name: Bundle matching engine source
-        run: python ports/insaniquarium/source-bundle.py . work/insaniquarium-source work/insaniquarium-source.tar.gz
       - uses: actions/upload-artifact@v4
         with:
           name: insaniquarium-original-engine-and-source
-          path: |
-            public/games/insaniquarium
-            work/insaniquarium-source.tar.gz
+          path: public/games/insaniquarium
           retention-days: 30
+

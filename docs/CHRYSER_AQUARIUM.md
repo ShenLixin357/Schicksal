@@ -18,6 +18,7 @@ This branch replaces the earlier feed/earn/buy prototype with a standalone brows
 - Browser runtime check passed using the same binary with `noInitialRun`; no substitute game or fake gameplay was used.
 - On 2026-11-12 the supplied game ZIP imported 602 original resource files. The actual engine reached the original title, new-user dialog, main menu, tutorial and Adventure 1-1. Feeding deducted money, and the native game produced its original registry, adventure, profile and users files (421 / 896 / 232 / 22 bytes in that test).
 - Real input exposed an Emscripten 4.0.20 OpenAL crash when resetting a stopped sound with `AL_SEC_OFFSET`. The adapter now calls `alSourceRewind`, resetting the processed-buffer index before replay. The rebuilt engine passed the same menu clicks and first-level input without that error.
+- Reopened the browser game, restored all four native save files, recognized the existing player and continued Adventure 1-1 with its fish and the saved $185 balance. A separate Windows-created save and real cross-device continuation remain untested.
 - Four Fireboy/Watergirl regression tests passed.
 - Complete existing website production build passed with the generated native engine present.
 - The existing full `npm test` command passed, including member privacy, photos, parliament, minigames and the Fireboy/Watergirl import regression.
@@ -26,8 +27,8 @@ This branch replaces the earlier feed/earn/buy prototype with a standalone brows
 ## Still required before merge or deployment
 
 1. Finish the first level and check growth/coins, pets, alien attacks and the remaining game modes. Entering Adventure 1-1 is not full gameplay verification. Audio loaded without errors after the rewind fix; audible playback has not been independently confirmed.
-2. Confirm saved-game recovery after reopening, test a Windows-created save separately, then test two real devices and conflicting concurrent sessions with the real engine running. API tests alone do not establish these outcomes.
-3. Make the matching runtime and source bundle available to the Cloudflare build. The current Cloudflare `npm run build` command expects generated engine files, while the GitHub verification workflow supplies them as an artifact. A fresh Cloudflare checkout does not automatically obtain that artifact.
+2. Test a Windows-created save separately, then test two real devices and conflicting concurrent sessions with the real engine running. API tests alone do not establish these outcomes.
+3. Let the packaging workflow finish and verify its generated runtime/source commit before merging. It compiles the pinned engine, runs save/import tests and saves only the engine and matching source archive into the same private branch. It checks the branch head before pushing and does not force-push. Fresh Cloudflare checkouts then have the files required by `npm run build`; retail artwork/audio remain local imports.
 4. Verify desktop Chrome/Safari and iOS/Android touch behavior. Mouse emulation is not a complete phone input test.
 5. Build the engine with the recipe below, deploy its matching runtime AND source bundle, apply migration `0009_member_insaniquarium_saves.sql` to the correct D1 database, and validate real member sessions. Production migration has not been applied.
 
@@ -43,7 +44,7 @@ npm run test:insaniquarium
 npm run build
 ```
 
-`ports/insaniquarium/upstream.lock.json` records the exact upstream commits. The script checks out a dedicated ignored `work/` tree, normalizes the source line endings required by upstream fixups, fails on partial patches, applies browser adapters, and stages the generated engine under `public/games/insaniquarium/engine/`. Binary build products are not checked into Git. They must be generated before packaging the website.
+`ports/insaniquarium/upstream.lock.json` records the exact upstream commits. The script checks out a dedicated ignored `work/` tree, normalizes the source line endings required by upstream fixups, fails on partial patches, applies browser adapters, stages the generated engine and bundles its matching source. The packaging workflow commits verified engine/source release files to the same private branch so Cloudflare can build a fresh checkout. Edit the port sources and let the workflow refresh these files. The build rejects a runtime whose browser-adapter hash differs from the current sources.
 
 The dedicated GitHub Actions workflow publishes an engine + matching source artifact. It does not deploy or migrate production. To rebuild from its prepared source archive, extract it, activate Emscripten, and configure `ports/insaniquarium` with `-DINSANIQUARIUM_SOURCE=<absolute extracted upstream directory>`, then build with CMake/Ninja.
 

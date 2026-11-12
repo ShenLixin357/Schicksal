@@ -9,6 +9,11 @@ project, source, build = (Path(x).resolve() for x in sys.argv[1:])
 target = project / "public/games/insaniquarium/engine"
 target.mkdir(parents=True, exist_ok=True)
 manifest = json.loads((project / "ports/insaniquarium/upstream.lock.json").read_text())
+adapter_hash = hashlib.sha256()
+for adapter in sorted((project / "ports/insaniquarium").iterdir()):
+    if adapter.is_file():
+        adapter_hash.update(adapter.name.encode() + b"\0" + adapter.read_bytes() + b"\0")
+manifest["adapterSha256"] = adapter_hash.hexdigest()
 manifest["sha256"] = {}
 for name in ("insaniquarium.mjs", "insaniquarium.wasm"):
     data = (build / "engine" / name).read_bytes()

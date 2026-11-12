@@ -1,0 +1,54 @@
+name: Package original engine for Cloudflare
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feature/chryser-aquarium-cloud-save]
+    paths:
+      - "ports/insaniquarium/**"
+      - "public/games/insaniquarium/*.mjs"
+      - "public/games/insaniquarium/vendor/**"
+      - "scripts/insaniquarium/**"
+      - ".github/workflows/insaniquarium-web.yml"
+      - ".github/workflows/insaniquarium-package.yml"
+concurrency:
+  group: original-engine-package-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  native-engine:
+    uses: ./.github/workflows/insaniquarium-web.yml
+  package:
+    needs: native-engine
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: insaniquarium-original-engine-and-source
+          path: public/games/insaniquarium
+      - name: Verify matching runtime and member source archive
+        run: node scripts/insaniquarium/check-engine.mjs
+      - name: Save engine release files in the same private branch
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+          TARGET_BRANCH: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add --force public/games/insaniquarium/engine public/games/insaniquarium/source/insaniquarium-source.tar.gz
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "Package verified original engine and matching source"
+          git fetch origin "$TARGET_BRANCH" --depth=1
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_HEAD"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
