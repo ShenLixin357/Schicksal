@@ -7,15 +7,17 @@ This branch replaces the earlier feed/earn/buy prototype with a standalone brows
 - Pinned WinFish -> PopLib/SDL3 -> Emscripten 4.0.20 build, including the libopenmpt module-music decoder and OpenAL browser audio. The native port's optional auto-collect additions are disabled to retain the original controls.
 - Single-thread adapters for resource loading and background work; Asyncify yields the original loop to the browser. Windows-only screensaver/registry installation stays disabled.
 - Standalone `public/games/insaniquarium/` player embedded at `/games/aquarium`; No.2's transparent glass tank opens it.
-- Local folder import and IndexedDB resource caching. Executables and existing userdata are excluded. Retail images/audio stay on the player's device. This version requires unpacked `properties/`, `images/` and other data folders; a lone installer or packed PAK is not accepted.
+- Local ZIP or folder import and IndexedDB resource caching. The ZIP reader uses vendored fflate 0.8.2, checks resource sizes before inflation and excludes executables, desktop DRM, userdata and unsafe paths. Original `.au` sound effects are accepted. Retail images/audio stay on the player's device. A lone installer or packed PAK is not accepted.
 - Original save-file byte export/import; member-isolated D1 API `/api/insaniquarium-save`; serialized revision checks, durable pending local backups where browser storage is available, offline retry, and explicit conflict recovery.
 - Fireboy/Watergirl builds replace their own imported directories while preserving the aquarium. Staging uses the destination filesystem, avoiding EXDEV failures.
 
 ## Verified locally
 
 - C++ engine compiled and linked successfully to a roughly 10 MB WebAssembly binary and its JavaScript runtime.
-- Ten original-engine/save tests passed, including instantiation of the real binary and a byte-identical round trip through its actual MEMFS.
+- Twelve original-engine/save/import tests passed, including instantiation of the real binary, a byte-identical round trip through its actual MEMFS, stored/deflated ZIP imports and rejection of oversized or malformed archives.
 - Browser runtime check passed using the same binary with `noInitialRun`; no substitute game or fake gameplay was used.
+- On 2026-11-12 the supplied game ZIP imported 602 original resource files. The actual engine reached the original title, new-user dialog, main menu, tutorial and Adventure 1-1. Feeding deducted money, and the native game produced its original registry, adventure, profile and users files (421 / 896 / 232 / 22 bytes in that test).
+- Real input exposed an Emscripten 4.0.20 OpenAL crash when resetting a stopped sound with `AL_SEC_OFFSET`. The adapter now calls `alSourceRewind`, resetting the processed-buffer index before replay. The rebuilt engine passed the same menu clicks and first-level input without that error.
 - Four Fireboy/Watergirl regression tests passed.
 - Complete existing website production build passed with the generated native engine present.
 - The existing full `npm test` command passed, including member privacy, photos, parliament, minigames and the Fireboy/Watergirl import regression.
@@ -23,9 +25,9 @@ This branch replaces the earlier feed/earn/buy prototype with a standalone brows
 
 ## Still required before merge or deployment
 
-1. Supply retail files from a player-owned Insaniquarium Deluxe copy. No retail assets were available during development.
-2. Launch and finish the first level; verify the original sprites, hunger/growth/coins, pets, alien attacks, menus and music, then exercise the remaining game modes. Compilation is not gameplay verification.
-3. Test an actual original game save, local reload, two real devices and conflicting concurrent sessions with the real engine running. API tests do not establish native save-format compatibility.
+1. Finish the first level and check growth/coins, pets, alien attacks and the remaining game modes. Entering Adventure 1-1 is not full gameplay verification. Audio loaded without errors after the rewind fix; audible playback has not been independently confirmed.
+2. Confirm saved-game recovery after reopening, test a Windows-created save separately, then test two real devices and conflicting concurrent sessions with the real engine running. API tests alone do not establish these outcomes.
+3. Make the matching runtime and source bundle available to the Cloudflare build. The current Cloudflare `npm run build` command expects generated engine files, while the GitHub verification workflow supplies them as an artifact. A fresh Cloudflare checkout does not automatically obtain that artifact.
 4. Verify desktop Chrome/Safari and iOS/Android touch behavior. Mouse emulation is not a complete phone input test.
 5. Build the engine with the recipe below, deploy its matching runtime AND source bundle, apply migration `0009_member_insaniquarium_saves.sql` to the correct D1 database, and validate real member sessions. Production migration has not been applied.
 
@@ -48,3 +50,4 @@ The dedicated GitHub Actions workflow publishes an engine + matching source arti
 ## Source and resource distribution
 
 WinFish restored code, PopLib and third-party dependencies retain their upstream license status. PopLib/native-port modifications use AGPL-3.0. Keep attribution and supply the matching engine source to recipients of the compiled engine. The source-bundle script excludes build products and retail data. The surrounding website communicates with the separate engine through a file/save API. No redistribution permission for PopCap graphics or audio is asserted by this project.
+

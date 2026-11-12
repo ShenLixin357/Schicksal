@@ -85,10 +85,12 @@ test("original file bytes survive encoding; folder imports exclude executable an
   assert.deepEqual(decodeBytes(encodeBytes(bytes)), bytes);
   assert.equal(validateSave(state(1)), true);
   assert.equal(assetPath("Insaniquarium/properties/resources.xml"), "properties/resources.xml");
-  for (const path of ["game/Insaniquarium.exe", "game/userdata/users.dat", "game/images/exploit.js", "../images/fish.png"])
+  assert.equal(assetPath("Insaniquarium/sounds/buttonclick.au"), "sounds/buttonclick.au");
+  for (const path of ["game/Insaniquarium.exe", "game/userdata/users.dat", "game/images/exploit.js", "../images/fish.png", "game/drm/common/images/button.gif", "game/userdata/images/fish.gif"])
     assert.equal(assetPath(path), null);
   const file = path => ({ webkitRelativePath: path, size: 3, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer });
   const assets = await prepareAssets([file("game/properties/resources.xml"), file("game/images/Fish.gif"), file("game/userdata/users.dat")]);
   assert.equal(assets.length, 2);
   await assert.rejects(prepareAssets([file("game/images/fish.gif")]), /resources.xml/);
 });
+

@@ -68,6 +68,15 @@ def appbase(text):
 
 edit("poplib/PopLib/appbase.cpp", appbase)
 edit("poplib/PopLib/common.cpp", lambda t: function(t, "static std::string ComputeAppDataFolder()", '    return "/saves/";'))
+def sound_instance(text):
+    # Emscripten 4.0.20 marks every queued buffer processed after alSourceStop.
+    # Setting SEC_OFFSET at that point indexes past the queue in sourceSeek.
+    # Rewind resets the processed index and position before a sound is replayed.
+    old = 'alSourcei(mSoundSource, AL_SEC_OFFSET, 0);'
+    assert text.count(old) == 1
+    return text.replace(old, 'alSourceRewind(mSoundSource);')
+
+edit("poplib/PopLib/audio/openalsoundinstance.cpp", sound_instance)
 shutil.copyfile(here / "web-entry.cpp", root / "port/winfish/Window.cpp")
 # Upstream vendors the decoder without its generated SVN metadata header.
 metadata = root / "poplib/external/libopenmpt/build/svn_version/svn_version.h"

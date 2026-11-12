@@ -30,7 +30,7 @@
     "build:with-ice-fire": "npm run build",
     "test:ice-fire": "node --test tests/ice-fire-compat.test.mjs tests/ice-fire-import.test.mjs",
     "game:build-native": "bash ports/insaniquarium/build-web.sh",
-    "test:insaniquarium": "node --experimental-transform-types --test tests/insaniquarium-api.test.mjs tests/insaniquarium-client.test.mjs tests/insaniquarium-runtime.test.mjs"
+    "test:insaniquarium": "node --experimental-transform-types --test tests/insaniquarium-api.test.mjs tests/insaniquarium-client.test.mjs tests/insaniquarium-runtime.test.mjs tests/insaniquarium-zip.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
@@ -59,3 +59,4 @@
   "type": "module",
   "displayName": "Schicksal \u2014 \u5929\u547d\u7b2c\u4e00\u5e1d\u56fd"
 }
+

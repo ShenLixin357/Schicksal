@@ -58,8 +58,9 @@ export function assetPath(relative) {
   if (parts.some(x => x === "." || x === ".." || !x)) return null;
   const index = parts.findIndex(x => /^(data|properties|images|sounds|music|fishsongs)$/i.test(x));
   if (index < 0) return null;
+  if (parts.slice(0, index).some(x => /^(drm|userdata|saves)$/i.test(x))) return null;
   const path = parts.slice(index).join("/");
-  if (!/\.(gif|jpe?g|png|bmp|tga|wav|ogg|mp3|mo3|mod|xm|it|s3m|xml|txt|dat|fnt|ttf|ini)$/i.test(path)) return null;
+  if (!/\.(gif|jpe?g|png|bmp|tga|wav|au|ogg|mp3|mo3|mod|xm|it|s3m|xml|txt|dat|fnt|ttf|ini)$/i.test(path)) return null;
   return path;
 }
 export async function prepareAssets(fileList) {

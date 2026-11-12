@@ -1,5 +1,6 @@
 import { CloudSave } from "./cloud-save.mjs";
 import { collectSave, restoreSave, prepareAssets, installAssets, validateSave } from "./file-bridge.mjs";
+import { prepareZip } from "./zip-import.mjs";
 
 const $ = id => document.getElementById(id);
 let engine = null, cloud = null, resources = null, initialSave = null, started = false, exportRequested = false, engineReady = false;
@@ -54,20 +55,27 @@ async function boot() {
     refreshStart();
   } catch (error) { status("error", error.message); }
 }
-$("folder").addEventListener("change", async event => {
+async function loadResources(read) {
   if (started) return;
   try {
     status("loading", "正在读取原版游戏文件…");
-    resources = await prepareAssets(event.target.files);
+    resources = await read();
     try { await resourceCache(resources); $("resources").textContent = `已准备 ${resources.length} 个游戏文件，下次无需重新选择。`; }
     catch { $("resources").textContent = "本次游戏文件已准备好；浏览器未能缓存，下次需要重新选择。"; }
     status("ready", "原版素材已准备好。"); refreshStart();
   } catch (error) { status("error", error.message); }
+}
+$("folder").addEventListener("change", event => {
+  void loadResources(() => prepareAssets(event.target.files));
+});
+$("zip").addEventListener("change", event => {
+  const file = event.target.files[0];
+  if (file) void loadResources(() => prepareZip(file));
 });
 $("start").addEventListener("click", async () => {
   if (started || !resources || !cloud || cloud.conflict || cloud.locked) return;
-  started = true; refreshStart(); $("folder").disabled = true; $("import").disabled = true;
-  $("folder-label").setAttribute("aria-disabled", "true"); $("import-label").setAttribute("aria-disabled", "true");
+  started = true; refreshStart(); $("folder").disabled = true; $("zip").disabled = true; $("import").disabled = true;
+  $("folder-label").setAttribute("aria-disabled", "true"); $("zip-label").setAttribute("aria-disabled", "true"); $("import-label").setAttribute("aria-disabled", "true");
   status("loading", "正在启动怪怪水族馆…");
   try {
     const { default: createGame } = await import("./engine/insaniquarium.mjs");
