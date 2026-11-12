@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>怪怪水族馆 · No.2</title>
+  <link rel="stylesheet" href="./aquarium.css">
+</head>
+<body>
+  <main>
+    <header><div><p class="eyebrow">NO. 02 · LORD CHRYSER</p><h1>怪怪水族馆</h1><p class="subtitle">Insaniquarium Deluxe</p></div><a href="/" target="_top">返回休息室 ↗</a></header>
+    <section class="glass" aria-label="游戏准备">
+      <div class="toolbar">
+        <label class="button" id="zip-label">选择游戏 ZIP<input id="zip" type="file" accept=".zip,application/zip" hidden></label>
+        <label class="button" id="folder-label">选择游戏文件夹<input id="folder" type="file" webkitdirectory multiple hidden></label>
+        <button id="start" class="primary" disabled>开始游戏</button>
+        <button id="save" disabled>保存并同步</button>
+        <button id="export" disabled>导出存档</button>
+        <label class="button" id="import-label">导入存档<input id="import" type="file" accept="application/json,.json" hidden></label>
+        <button id="cloud" hidden>备份本机并读取云端</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">正在确认成员身份…</p>
+      <p id="resources" class="muted">首次游玩请选择原版游戏 ZIP，或解压后的游戏文件夹；图片和音乐只保存在这台设备上。</p>
+      <div id="stage">
+        <div id="welcome"><span class="waterline"></span><p class="eyebrow">YOUR LITTLE UNDERWATER WORLD</p><h2>让熟悉的水族馆<br>重新亮起来。</h2><p>原来的鱼儿、宠物与冒险，<br>从这里继续。</p></div>
+        <canvas id="canvas" width="640" height="480" tabindex="0" aria-label="怪怪水族馆游戏画面" hidden></canvas>
+      </div>
+      <p class="footnote">离开前点击「保存并同步」，等待显示已同步后，再换设备继续。</p>
+    </section>
+    <footer>你的游戏进度随天命成员身份保存。<a href="./source/README.txt" target="_blank" rel="noopener">引擎来源与源码</a></footer>
+  </main>
+  <script type="module" src="./launcher.mjs"></script>
+</body>
+</html>

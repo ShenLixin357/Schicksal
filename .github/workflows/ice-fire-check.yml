@@ -4,6 +4,12 @@ on:
   pull_request:
     paths:
       - "app/games/**"
+      - "app/api/insaniquarium-save/**"
+      - "ports/insaniquarium/**"
+      - "public/games/insaniquarium/**"
+      - "scripts/insaniquarium/**"
+      - "tests/insaniquarium-*"
+      - ".github/workflows/insaniquarium-web.yml"
       - "app/club/**"
       - "app/page.tsx"
       - "app/globals.css"
@@ -13,7 +19,10 @@ on:
 permissions:
   contents: read
 jobs:
+  native-engine:
+    uses: ./.github/workflows/insaniquarium-web.yml
   verify:
+    needs: native-engine
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -22,6 +31,10 @@ jobs:
         with:
           node-version: "24"
           cache: npm
+      - uses: actions/download-artifact@v4
+        with:
+          name: insaniquarium-original-engine-and-source
+          path: public/games/insaniquarium
       - name: Import pinned HTML5 game resources
         run: npm run game:import
       - name: Verify local game files
@@ -42,3 +55,4 @@ jobs:
           find dist/client -name 'ice-fire-import.json' -print
           find dist/client -name 'game.js' -print | head
           test -f dist/client/games/1-forest-temple/js/game.js
+

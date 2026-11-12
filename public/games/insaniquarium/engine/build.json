@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/SaMeiers/insaniquarium-port.git",
+  "commit": "95d4aafe408b36e8a195982ad7acbae5fb6a0b33",
+  "poplib": "45776cefdeb8cd5bd43ce7f345aa7be1807c7380",
+  "winfish": "61ddba10056621c7857ea6f822139c39c76a4019",
+  "emscripten": "4.0.20",
+  "retailAssetsIncluded": false,
+  "adapterSha256": "c9523f947dd0f05beaafee444d4a974be286499872c61ee50e7816c6710f9fc8",
+  "sha256": {
+    "insaniquarium.mjs": "5033ffe0d1b116ef0c607bc8c86a8c20eb9df5ee91a8048c1d847c3e2e94b60c",
+    "insaniquarium.wasm": "a25485547f58129fb140e3d8c5e0320e6a0e0d71088c71d17c3c60bc22fa87d6"
+  },
+  "sourceBundle": {
+    "path": "../source/insaniquarium-source.tar.gz",
+    "sha256": "2a2867e889166b12d5c1ed0fedb04bed521bce87f7205811e51aeab9194305ed"
+  }
+}

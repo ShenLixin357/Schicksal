@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Pinned upstream import adapted for independent same-origin hosting.
 import {spawnSync} from "node:child_process";
-import {cp,mkdir,mkdtemp,readFile,rm,rename,stat,writeFile} from "node:fs/promises";
-import {tmpdir} from "node:os";
+import {cp,mkdir,mkdtemp,readFile,rm,stat,writeFile} from "node:fs/promises";
 import {join,dirname,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import {optionalPlatformProgress} from "./standalone-compat.mjs";
+import {installImportedGames} from "./install-import.mjs";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"../..");
 const names=["1-forest-temple","2-light-temple","3-ice-temple","4-crystal-temple","5-elements","6-fairy-tales"];
 const expected="f255e5f74f695528d431d96aa8cf5181e88557f0";
@@ -17,7 +17,9 @@ async function requireFile(p){const st=await stat(p);if(!st.isFile()||st.size===
 function parseList(js,name){const found=js.match(new RegExp("\\bvar\\s+"+name+"\\s*=\\s*(\\[[\\s\\S]*?\\]);"));if(!found)throw Error("Missing "+name);const items=[...found[1].matchAll(/'([^']+)'/g)].map(m=>m[1]);if(!items.length||items.some(v=>!/^assets\/[A-Za-z0-9_./-]+$/.test(v)||v.includes("..")))throw Error("Unsafe asset path");return items;}
 async function main(){
 if(!enabled){console.log("[ice-fire] optional import not enabled");return;}
-const temp=await mkdtemp(join(tmpdir(),"schicksal-icefire-"));
+// Staging beside public/games keeps renames on the same filesystem.
+await mkdir(join(root,"public"),{recursive:true});
+const temp=await mkdtemp(join(root,"public",".icefire-import-"));
 const source=localSource?resolve(localSource):join(temp,"upstream");
 const staged=join(temp,"games");
 try{
@@ -52,13 +54,10 @@ await rm(join(staged,"sw.js"));
 await rm(join(staged,"shared-assets"),{recursive:true});
 const out=join(root,"public/games");
 await writeFile(join(staged,"ice-fire-import.json"),JSON.stringify({repository:sourceUrl,revision:expected,imported:names,mode:"shared-assets-restored"},null,2));
-// Atomic swap: never leave partially imported assets if anything fails.
+// Replace only this import's entries. Other games, including the original
+// aquarium engine, must survive every build. Roll back on an install failure.
 const backup=join(temp,"previous-games");
-let hadOld=false;
-try{await stat(out);hadOld=true;}catch{}
-await mkdir(join(root,"public"),{recursive:true});
-if(hadOld)await rename(out,backup);
-try{await rename(staged,out);}catch(error){if(hadOld)await rename(backup,out);throw error;}
+await installImportedGames(staged,out,backup);
 console.log("[ice-fire] six game directories imported into public/games");
 }finally{await rm(temp,{recursive:true,force:true});}
 }

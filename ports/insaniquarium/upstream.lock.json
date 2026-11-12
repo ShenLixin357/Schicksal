@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/SaMeiers/insaniquarium-port.git",
+  "commit": "95d4aafe408b36e8a195982ad7acbae5fb6a0b33",
+  "poplib": "45776cefdeb8cd5bd43ce7f345aa7be1807c7380",
+  "winfish": "61ddba10056621c7857ea6f822139c39c76a4019",
+  "emscripten": "4.0.20",
+  "retailAssetsIncluded": false
+}
