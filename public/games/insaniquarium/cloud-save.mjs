@@ -1,7 +1,7 @@
 import { validateSave } from "./file-bridge.mjs";
 
 export class CloudSave {
-  constructor(member, { fetcher = fetch, storage = localStorage, onStatus = () => {} } = {}) {
+  constructor(member, { fetcher = (...args) => globalThis.fetch(...args), storage = localStorage, onStatus = () => {} } = {}) {
     this.member = member; this.fetcher = fetcher; this.storage = storage; this.onStatus = onStatus;
     this.key = `schicksal:insaniquarium:${member}:v1`;
     this.revision = 0; this.pending = null; this.running = null; this.conflict = false; this.locked = false; this.acknowledged = ""; this.backupSucceeded = true;

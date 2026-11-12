@@ -7,6 +7,20 @@ function memory() { const data = new Map(); return { getItem: k => data.get(k) ?
 const state = n => ({ version: 1, format: "winfish-1.1", files: [{ path: "userdata/adventure1.dat", data: btoa(`progress-${n}`) }] });
 const ok = data => Response.json(data);
 
+test("default browser fetch retains the window receiver for cloud reads and writes", async () => {
+  const original = globalThis.fetch, methods = [];
+  globalThis.fetch = function (_url, options) {
+    assert.equal(this, globalThis);
+    methods.push(options.method);
+    return Promise.resolve(ok(options.method === "GET" ? { state: null, revision: 0 } : { revision: 1 }));
+  };
+  try {
+    const client = new CloudSave("amberina", { storage: memory() });
+    await client.load(); await client.save(state(1));
+    assert.deepEqual(methods, ["GET", "PUT"]);
+  } finally { globalThis.fetch = original; }
+});
+
 test("in-flight saves serialize newer progress against the acknowledged revision", async () => {
   const storage = memory(), calls = []; let release;
   const client = new CloudSave("amberina", { storage, fetcher: async (_, options) => {
@@ -93,4 +107,5 @@ test("original file bytes survive encoding; folder imports exclude executable an
   assert.equal(assets.length, 2);
   await assert.rejects(prepareAssets([file("game/images/fish.gif")]), /resources.xml/);
 });
+
 

@@ -1,9 +1,10 @@
 import { CloudSave } from "./cloud-save.mjs";
-import { collectSave, restoreSave, prepareAssets, installAssets, validateSave } from "./file-bridge.mjs";
-import { prepareZip } from "./zip-import.mjs";
+import { collectSave, restoreSave, installAssets, validateSave } from "./file-bridge.mjs";
+import { loadHostedAssets } from "./hosted-assets.mjs";
 
 const $ = id => document.getElementById(id);
 let engine = null, cloud = null, resources = null, initialSave = null, started = false, exportRequested = false, engineReady = false;
+let loadingResources = false;
 const status = (kind, message) => {
   $("status").dataset.kind = kind; $("status").textContent = message;
   if (kind === "conflict") { $("cloud").hidden = false; $("start").disabled = true; }
@@ -17,12 +18,12 @@ function assetDatabase() {
     request.onerror = () => reject(request.error);
   });
 }
-async function resourceCache(write) {
+async function resourceCache(hash, write) {
   const db = await assetDatabase();
   try {
     return await new Promise((resolve, reject) => {
       const tx = db.transaction("resources", write ? "readwrite" : "readonly");
-      const store = tx.objectStore("resources"), request = write ? store.put(write, "retail-v1") : store.get("retail-v1");
+      const store = tx.objectStore("resources"), key = `hosted:${hash}`, request = write ? store.put(write, key) : store.get(key);
       let result;
       request.onsuccess = () => { result = request.result; };
       tx.oncomplete = () => resolve(result);
@@ -46,36 +47,27 @@ async function boot() {
     cloud = new CloudSave(identity.citizenId, { onStatus: status });
     initialSave = await cloud.load();
     $("export").disabled = !initialSave && !cloud.readBackup();
-    try {
-      const cached = await resourceCache();
-      if (Array.isArray(cached) && cached.some(f => /^properties\/resources.xml$/i.test(f.path))) {
-        resources = cached; $("resources").textContent = "已读取这台设备上的原版游戏文件。";
-      }
-    } catch { /* Selection works even if persistent resource caching is unavailable. */ }
-    refreshStart();
+    await loadResources();
   } catch (error) { status("error", error.message); }
 }
-async function loadResources(read) {
-  if (started) return;
+async function loadResources() {
+  if (started || loadingResources || !cloud || cloud.conflict || cloud.locked) return;
+  loadingResources = true; $("retry").hidden = true;
   try {
-    status("loading", "正在读取原版游戏文件…");
-    resources = await read();
-    try { await resourceCache(resources); $("resources").textContent = `已准备 ${resources.length} 个游戏文件，下次无需重新选择。`; }
-    catch { $("resources").textContent = "本次游戏文件已准备好；浏览器未能缓存，下次需要重新选择。"; }
-    status("ready", "原版素材已准备好。"); refreshStart();
-  } catch (error) { status("error", error.message); }
+    resources = await loadHostedAssets({
+      readCache: hash => resourceCache(hash),
+      writeCache: (hash, bytes) => resourceCache(hash, bytes),
+      onProgress: message => { if (!cloud.conflict && !cloud.locked) status("loading", message); },
+    });
+    if (!cloud.conflict && !cloud.locked) status("ready", "游戏已就绪，点击开始游戏即可。");
+  } catch (error) { status("error", error.message); $("retry").hidden = false; }
+  finally { loadingResources = false; refreshStart(); }
 }
-$("folder").addEventListener("change", event => {
-  void loadResources(() => prepareAssets(event.target.files));
-});
-$("zip").addEventListener("change", event => {
-  const file = event.target.files[0];
-  if (file) void loadResources(() => prepareZip(file));
-});
+$("retry").addEventListener("click", () => { void loadResources(); });
 $("start").addEventListener("click", async () => {
   if (started || !resources || !cloud || cloud.conflict || cloud.locked) return;
-  started = true; refreshStart(); $("folder").disabled = true; $("zip").disabled = true; $("import").disabled = true;
-  $("folder-label").setAttribute("aria-disabled", "true"); $("zip-label").setAttribute("aria-disabled", "true"); $("import-label").setAttribute("aria-disabled", "true");
+  started = true; refreshStart(); $("retry").hidden = true; $("import").disabled = true;
+  $("import-label").setAttribute("aria-disabled", "true");
   status("loading", "正在启动怪怪水族馆…");
   try {
     const { default: createGame } = await import("./engine/insaniquarium.mjs");
@@ -105,7 +97,7 @@ $("start").addEventListener("click", async () => {
     void cloud.flush();
   } catch (error) {
     console.error(error);
-    status("error", "游戏程序未能启动。请稍后重试，并保留原版游戏文件。");
+    status("error", "游戏程序未能启动，请刷新页面后重试。存档备份会保留。");
     // Asyncify/SDL instances cannot safely be started twice in the same document.
     $("start").textContent = "刷新后重试";
     $("start").disabled = false;
@@ -136,7 +128,7 @@ $("cloud").addEventListener("click", () => {
   try { cloud.storage.removeItem(cloud.key); location.reload(); }
   catch { status("error", "未能清理旧缓存，请保留导出的备份。"); }
 });
-window.addEventListener("online", () => { if (cloud) void cloud.flush(); });
+window.addEventListener("online", () => { if (cloud) void cloud.flush(); if (!resources && !started) void loadResources(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && engineReady) engine._schicksal_request_save(); });
 window.addEventListener("beforeunload", event => {
   if (cloud?.pending) { event.preventDefault(); event.returnValue = ""; }

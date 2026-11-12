@@ -7,14 +7,15 @@ This branch replaces the earlier feed/earn/buy prototype with a standalone brows
 - Pinned WinFish -> PopLib/SDL3 -> Emscripten 4.0.20 build, including the libopenmpt module-music decoder and OpenAL browser audio. The native port's optional auto-collect additions are disabled to retain the original controls.
 - Single-thread adapters for resource loading and background work; Asyncify yields the original loop to the browser. Windows-only screensaver/registry installation stays disabled.
 - Standalone `public/games/insaniquarium/` player embedded at `/games/aquarium`; No.2's transparent glass tank opens it.
-- Local ZIP or folder import and IndexedDB resource caching. The ZIP reader uses vendored fflate 0.8.2, checks resource sizes before inflation and excludes executables, desktop DRM, userdata and unsafe paths. Original `.au` sound effects are accepted. Retail images/audio stay on the player's device. A lone installer or packed PAK is not accepted.
+- Original images, music, fonts and effects are hosted by the private website and load automatically for every authenticated member. Players never select a ZIP or game folder. The owner-supplied resource pack contains 602 files (including 15 AU effects), excludes executables/desktop DRM/userdata, and is delivered in four fingerprinted parts with SHA-256 verification. Optional browser caching is keyed by that hash; missing, stale or damaged caches download again, and disabled storage does not prevent online play.
 - Original save-file byte export/import; member-isolated D1 API `/api/insaniquarium-save`; serialized revision checks, durable pending local backups where browser storage is available, offline retry, and explicit conflict recovery.
 - Fireboy/Watergirl builds replace their own imported directories while preserving the aquarium. Staging uses the destination filesystem, avoiding EXDEV failures.
 
 ## Verified locally
 
 - C++ engine compiled and linked successfully to a roughly 10 MB WebAssembly binary and its JavaScript runtime.
-- Twelve original-engine/save/import tests passed, including instantiation of the real binary, a byte-identical round trip through its actual MEMFS, stored/deflated ZIP imports and rejection of oversized or malformed archives.
+- Twenty engine/save/resource tests pass, including two empty device caches automatically loading the hosted resources without a local file, disabled-storage startup, damaged-cache replacement, browser fetch receiver regressions and validation of the complete shipped pack. The real WebAssembly filesystem and original save bytes are also checked.
+- On 2026-11-13 the actual standalone player reached the original title in Chrome by automatically downloading the hosted pack; no local file was selected and the ZIP/folder controls were absent. This local browser check used fixture member/save GET responses; it does not establish authenticated production saves or physical cross-device continuation.
 - Browser runtime check passed using the same binary with `noInitialRun`; no substitute game or fake gameplay was used.
 - On 2026-11-12 the supplied game ZIP imported 602 original resource files. The actual engine reached the original title, new-user dialog, main menu, tutorial and Adventure 1-1. Feeding deducted money, and the native game produced its original registry, adventure, profile and users files (421 / 896 / 232 / 22 bytes in that test).
 - Real input exposed an Emscripten 4.0.20 OpenAL crash when resetting a stopped sound with `AL_SEC_OFFSET`. The adapter now calls `alSourceRewind`, resetting the processed-buffer index before replay. The rebuilt engine passed the same menu clicks and first-level input without that error.
@@ -24,19 +25,19 @@ This branch replaces the earlier feed/earn/buy prototype with a standalone brows
 - The existing full `npm test` command passed, including member privacy, photos, parliament, minigames and the Fireboy/Watergirl import regression.
 - Standalone repository-wide `tsc --noEmit` currently fails on existing Cloudflare environment declarations and readonly potion-sort test fixtures. Those broader issues were not changed by this port.
 
-## Still required before merge or deployment
+## Verification limits
 
 1. Finish the first level and check growth/coins, pets, alien attacks and the remaining game modes. Entering Adventure 1-1 is not full gameplay verification. Audio loaded without errors after the rewind fix; audible playback has not been independently confirmed.
 2. Test a Windows-created save separately, then test two real devices and conflicting concurrent sessions with the real engine running. API tests alone do not establish these outcomes.
-3. Let the packaging workflow finish and verify its generated runtime/source commit before merging. It compiles the pinned engine, runs save/import tests and saves only the engine and matching source archive into the same private branch. It checks the branch head before pushing and does not force-push. Fresh Cloudflare checkouts then have the files required by `npm run build`; retail artwork/audio remain local imports.
+3. Native packaging verifies committed runtime/adapter/source hashes and reuses an unchanged engine. It rebuilds C++ only when those checks fail, then saves generated engine/source files to the same private branch without force-pushing. Every website build also verifies that the hosted game resources are complete.
 4. Verify desktop Chrome/Safari and iOS/Android touch behavior. Mouse emulation is not a complete phone input test.
-5. Build the engine with the recipe below, deploy its matching runtime AND source bundle, apply migration `0009_member_insaniquarium_saves.sql` to the correct D1 database, and validate real member sessions. Production migration has not been applied.
+5. The Cloudflare deployment command applies pending D1 migrations before deployment. An authenticated production game/save session has not been independently exercised by the browser tests; local API tests use the real routes with SQLite and authenticated member sessions.
 
-Do not merge or deploy this draft until the resource-dependent checks pass. The earlier `member_aquarium_saves` table/API is retained as legacy data; it is not compatible with original game saves and is no longer used by the game page.
+The earlier `member_aquarium_saves` table/API is retained as legacy data; it is not compatible with original game saves and is no longer used by the game page.
 
 ## Build
 
-Activate the official Emscripten 4.0.20 SDK, install CMake >=3.26 and Ninja, then run:
+Normal website changes use the checked-in verified runtime and hosted resources: run `npm run test:insaniquarium` and `npm run build`. To change native port sources, activate Emscripten 4.0.20, install CMake >=3.26 and Ninja, then run:
 
 ```sh
 npm run game:build-native
@@ -51,4 +52,5 @@ The dedicated GitHub Actions workflow publishes an engine + matching source arti
 ## Source and resource distribution
 
 WinFish restored code, PopLib and third-party dependencies retain their upstream license status. PopLib/native-port modifications use AGPL-3.0. Keep attribution and supply the matching engine source to recipients of the compiled engine. The source-bundle script excludes build products and retail data. The surrounding website communicates with the separate engine through a file/save API. No redistribution permission for PopCap graphics or audio is asserted by this project.
+
 

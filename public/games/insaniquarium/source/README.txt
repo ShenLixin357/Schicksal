@@ -1,8 +1,10 @@
 Insaniquarium Deluxe - independent browser engine port
 
 This is a community port based on restored game code, not an official EA release.
-Retail graphics, music and sounds are NOT distributed with this engine.
-They are imported from the player's installed copy and remain on that device.
+Original game graphics, music and sounds are supplied by this private site's
+owner and load automatically for authenticated members. Players do not need
+to provide a ZIP or an installed game folder. Retail assets are excluded from
+the engine source archive linked below.
 
 Original game: PopCap Games / Flying Bear Entertainment.
 WinFish decompilation: https://github.com/Vindirect/WinFish
