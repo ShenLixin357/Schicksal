@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "sha256": "354400a8a3773e263b307c0d76c567e922d02ea9a0d60cb5e5b4977c47d99f25",
+  "bytes": 7762518,
+  "files": 602,
+  "uncompressedBytes": 8428398,
+  "parts": [
+    {
+      "file": "resources-354400a8a3773e26-0.bin",
+      "bytes": 2097152
+    },
+    {
+      "file": "resources-354400a8a3773e26-1.bin",
+      "bytes": 2097152
+    },
+    {
+      "file": "resources-354400a8a3773e26-2.bin",
+      "bytes": 2097152
+    },
+    {
+      "file": "resources-354400a8a3773e26-3.bin",
+      "bytes": 1471062
+    }
+  ]
+}

@@ -13,7 +13,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Check whether the committed engine still matches its sources
+        id: existing-engine
+        shell: bash
+        run: |
+          if node scripts/insaniquarium/check-engine.mjs; then
+            echo "rebuild=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "rebuild=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install the pinned official Emscripten SDK
+        if: steps.existing-engine.outputs.rebuild == 'true'
         shell: bash
         run: |
           git clone https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
@@ -22,15 +32,19 @@ jobs:
           ./emsdk install 4.0.20
           ./emsdk activate 4.0.20
       - name: Compile original engine without retail assets
+        if: steps.existing-engine.outputs.rebuild == 'true'
         shell: bash
         run: |
           source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
           bash ports/insaniquarium/build-web.sh
       - name: Test member saves, offline recovery and native filesystem
         run: npm run test:insaniquarium
+      - name: Verify automatically hosted game resources
+        run: node scripts/insaniquarium/check-resources.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: insaniquarium-original-engine-and-source
           path: public/games/insaniquarium
           retention-days: 30
+
 

@@ -8,7 +8,7 @@
   "scripts": {
     "install:ci": "bash scripts/install-ci.sh",
     "dev": "vite",
-    "build": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && vinext build",
+    "build": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && node scripts/insaniquarium/check-resources.mjs && vinext build",
     "start": "vinext start",
     "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire",
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
@@ -30,7 +30,7 @@
     "build:with-ice-fire": "npm run build",
     "test:ice-fire": "node --test tests/ice-fire-compat.test.mjs tests/ice-fire-import.test.mjs",
     "game:build-native": "bash ports/insaniquarium/build-web.sh",
-    "test:insaniquarium": "node --experimental-transform-types --test tests/insaniquarium-api.test.mjs tests/insaniquarium-client.test.mjs tests/insaniquarium-runtime.test.mjs tests/insaniquarium-zip.test.mjs"
+    "test:insaniquarium": "node --experimental-transform-types --test tests/insaniquarium-api.test.mjs tests/insaniquarium-client.test.mjs tests/insaniquarium-runtime.test.mjs tests/insaniquarium-zip.test.mjs tests/insaniquarium-hosted-assets.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
@@ -59,4 +59,5 @@
   "type": "module",
   "displayName": "Schicksal \u2014 \u5929\u547d\u7b2c\u4e00\u5e1d\u56fd"
 }
+
 
