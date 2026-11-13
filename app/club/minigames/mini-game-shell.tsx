@@ -38,12 +38,13 @@ function createGameTone(context: AudioContext, sound: MiniGameSound) {
   });
 }
 
-export function MiniGameShell({ registration, citizenId, emblemBlades, onClose, loungeTitle = "Committee Lounge" }: {
+export function MiniGameShell({ registration, citizenId, emblemBlades, onClose, loungeTitle = "Committee Lounge", backLabel }: {
   registration: MiniGameRegistration;
   citizenId: string;
   emblemBlades: readonly EmblemBlade[];
   onClose: () => void;
   loungeTitle?: string;
+  backLabel?: string;
 }) {
   const [paused, setPaused] = useState(false);
   const [rankingsOpen, setRankingsOpen] = useState(false);
@@ -128,7 +129,7 @@ export function MiniGameShell({ registration, citizenId, emblemBlades, onClose, 
 
   return <section className={`mini-game-shell camera-${registration.preferredCameraMode} ${registration.theme ? `theme-${registration.theme}` : ""} ${leaving ? "leaving" : "entering"}`} aria-label={registration.title}>
     <header className="mini-game-header">
-      <button type="button" className="mini-game-close" onClick={close} aria-label={`返回 ${loungeTitle}`}><span aria-hidden="true">←</span><b>{registration.theme === "jade" ? "返回书房" : "LOUNGE"}</b></button>
+      <button type="button" className="mini-game-close" onClick={close} aria-label={backLabel ?? `返回 ${loungeTitle}`}><span aria-hidden="true">←</span><b>{backLabel ?? (registration.theme === "jade" ? "返回书房" : "LOUNGE")}</b></button>
       <div className="mini-game-title"><i>{registration.icon}</i><div><small>{loungeTitle.toUpperCase()} · PRIVATE TABLE</small><h1>{registration.title}</h1><p>{registration.description}</p></div></div>
       <div className="mini-game-score" aria-live="polite">
         {registration.scoreType !== "none" && <span><small>{registration.scoreType === "moves" ? "MOVES" : "SCORE"}</small><strong>{registration.scoreType === "moves" ? records.totalMoves : score}</strong></span>}
@@ -164,3 +165,4 @@ export function MiniGameShell({ registration, citizenId, emblemBlades, onClose, 
     {rankingsOpen && <LoungeLeaderboard citizenId={citizenId} initialGame={registration.id} initialBoard={records.boardId} onClose={closeRankings} />}
   </section>;
 }
+

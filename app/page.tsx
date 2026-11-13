@@ -12,8 +12,10 @@ import { LoungeTable, LoungeTeaRitual } from "./club/tea-ritual";
 import { ChryserLounge } from "./club/chryser-lounge";
 import { WordmageGlobePassage, WordmageLounge } from "./club/wordmage-lounge";
 import { MafraerLounge, MAFRAER_ROOM_ASSETS } from "./club/mafraer-lounge";
-import { LoungeSolitaireDeck } from "./club/lounge-solitaire";
-import { LoungeGameObjects } from "./club/minigames/lounge-game-objects";
+import { GameRoom } from "./club/game-room";
+import { GAME_ROOM_RETURN_KEY } from "./club/game-room-catalogue";
+import { chatDate, chatTimestamp, mergeChatMessages, type ChatCursor } from "./club/chat-history";
+import { MagicChatScroll, MusicBoxDrawing, MusicBoxPortal, RotatingWordmageGlobe, startMusicBoxTune } from "./club/lounge-props";
 import { MiniGameSystem, useMiniGameSystem } from "./club/minigames/mini-game-system";
 import { LoungeLeaderboard } from "./club/minigames/lounge-leaderboard";
 import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
@@ -81,7 +83,7 @@ type ClubProfile = { citizenId: string; maskName: string; avatar: string; update
 type ClubMessage = { id: string; citizenId: string; body: string; sticker: string; createdAt: string };
 type ClubRoom = { id: string; vaseSelection: string; updatedByCitizenId: string; updatedAt: string };
 type LoungeSeat = { seatIndex: number; citizenId: string; seatedAt: string };
-type ClubData = { profiles?: ClubProfile[]; messages?: ClubMessage[]; room?: ClubRoom; seats?: LoungeSeat[]; error?: string };
+type ClubData = { profiles?: ClubProfile[]; messages?: ClubMessage[]; nextCursor?: ChatCursor | null; room?: ClubRoom; seats?: LoungeSeat[]; error?: string };
 
 
 
@@ -1398,6 +1400,13 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const [moonlight, setMoonlight] = useState(false);
   const [moonSpell, setMoonSpell] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
+  const [historyView, setHistoryView] = useState(false);
+  const [historyInput, setHistoryInput] = useState("");
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [historyMessages, setHistoryMessages] = useState<ClubMessage[]>([]);
+  const [historyCursor, setHistoryCursor] = useState<ChatCursor | null>(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [historyError, setHistoryError] = useState("");
   const [maskOpen, setMaskOpen] = useState(false);
   const [vaseOpen, setVaseOpen] = useState(false);
   const miniGames = useMiniGameSystem();
@@ -1407,12 +1416,22 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const [maskAvatar, setMaskAvatar] = useState("sigil");
   const [clubStatus, setClubStatus] = useState("");
   const [saving, setSaving] = useState(false);
-  const [roomView, setRoomView] = useState<"committee" | "amberina" | "chryser" | "truth">("committee");
+  const [roomView, setRoomView] = useState<"committee" | "amberina" | "chryser" | "truth" | "game-room">("committee");
   const [fanTransition, setFanTransition] = useState<"enter" | "exit" | null>(null);
   const [fireplaceOpening, setFireplaceOpening] = useState(false);
   const [globeOpening, setGlobeOpening] = useState(false);
-  const [whisper, setWhisper] = useState("Lounge 今晚很安静。月亮、茶具、卷轴、花瓶、书架上的洋扇和地球仪，还有壁炉，都藏着机关。");
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [musicBoxOpening, setMusicBoxOpening] = useState(false);
+  const [whisper, setWhisper] = useState("桌上的卷轴记着往事。左侧柜子上，八音盒通往游戏室，地球仪通往 Nishujiade 的休息室。");
+  const chatMessagesRef = useRef<HTMLDivElement>(null);
+  const chatDialogRef = useRef<HTMLElement>(null);
+  const chatCloseRef = useRef<HTMLButtonElement>(null);
+  const chatStickToBottomRef = useRef(true);
+  const historyRequestRef = useRef(0);
+  const historyAbortRef = useRef<AbortController | null>(null);
+  const historyScrollRef = useRef<{ height: number; top: number } | null>(null);
+  const musicBoxTimerRef = useRef<number | null>(null);
+  const musicBoxSoundRef = useRef<(() => void) | null>(null);
+  const musicBoxTravelRef = useRef(0);
   const fanTimerRef = useRef<number | null>(null);
   const fireplaceTimerRef = useRef<number | null>(null);
   const fanTravelRef = useRef(0);
@@ -1426,6 +1445,19 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const vaseChoice = CLUB_VASE_OPTIONS.find((option) => option.id === vaseSelection) ?? CLUB_VASE_OPTIONS[0];
 
   useEffect(() => {
+    let remembered = false;
+    try { remembered = window.sessionStorage.getItem(GAME_ROOM_RETURN_KEY) === "game-room"; } catch { /* URL still provides an explicit return. */ }
+    if (remembered || new URLSearchParams(window.location.search).get("lounge") === "game-room") {
+      setRoomView("game-room");
+      try { window.sessionStorage.removeItem(GAME_ROOM_RETURN_KEY); } catch { /* No stored return to clear. */ }
+      const url = new URL(window.location.href);
+      url.searchParams.delete("lounge");
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (roomView !== "committee" || miniGames.activeGame) return;
     let active = true;
     const loadClub = async () => {
       try {
@@ -1440,15 +1472,42 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
     void loadClub();
     const timer = window.setInterval(loadClub, chatOpen ? 3500 : 15000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [chatOpen, citizen.id]);
+  }, [chatOpen, citizen.id, roomView, miniGames.activeGame]);
 
   useEffect(() => {
-    if (chatOpen) chatEndRef.current?.scrollIntoView({ block: "nearest" });
-  }, [chatOpen, clubData.messages?.length]);
+    const panel = chatMessagesRef.current;
+    if (!chatOpen || !panel) return;
+    if (historyView) {
+      const previous = historyScrollRef.current;
+      panel.scrollTop = previous ? previous.top + panel.scrollHeight - previous.height : panel.scrollHeight;
+      historyScrollRef.current = null;
+    } else if (chatStickToBottomRef.current) panel.scrollTop = panel.scrollHeight;
+  }, [chatOpen, clubData.messages?.length, historyView, historyMessages]);
+
+  useEffect(() => {
+    if (!chatOpen) return;
+    chatCloseRef.current?.focus();
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setChatOpen(false);
+      if (event.key !== "Tab") return;
+      const controls = chatDialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled])");
+      if (!controls?.length) return;
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener("keydown", key);
+    return () => { window.removeEventListener("keydown", key); document.querySelector<HTMLButtonElement>(".club-magic-scroll")?.focus(); };
+  }, [chatOpen]);
 
   useEffect(() => () => {
     fanTravelRef.current += 1;
     globeTravelRef.current += 1;
+    musicBoxTravelRef.current += 1;
+    historyRequestRef.current += 1;
+    historyAbortRef.current?.abort();
+    musicBoxSoundRef.current?.();
+    if (musicBoxTimerRef.current !== null) window.clearTimeout(musicBoxTimerRef.current);
     if (fanTimerRef.current !== null) window.clearTimeout(fanTimerRef.current);
     if (fireplaceTimerRef.current !== null) window.clearTimeout(fireplaceTimerRef.current);
     if (globeTimerRef.current !== null) window.clearTimeout(globeTimerRef.current);
@@ -1456,7 +1515,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   }, []);
 
   const travelWithFan = (nextRoom: "committee" | "amberina") => {
-    if (fanTransition || globeOpening) return;
+    if (fanTransition || globeOpening || musicBoxOpening || fireplaceOpening) return;
     setChatOpen(false);
     setVaseOpen(false);
     setFanTransition(nextRoom === "amberina" ? "enter" : "exit");
@@ -1485,7 +1544,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   };
 
   const openWordmageLounge = () => {
-    if (globeOpening || fanTransition || fireplaceOpening) return;
+    if (globeOpening || fanTransition || fireplaceOpening || musicBoxOpening) return;
     setChatOpen(false);
     setVaseOpen(false);
     setGlobeOpening(true);
@@ -1517,7 +1576,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   };
 
   const openChryserLounge = () => {
-    if (fireplaceOpening || globeOpening) return;
+    if (fireplaceOpening || globeOpening || fanTransition || musicBoxOpening) return;
     setChatOpen(false);
     setVaseOpen(false);
     setFireplaceOpening(true);
@@ -1538,6 +1597,33 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
         fireplaceTimerRef.current = null;
       }, Math.max(0, minimum - elapsed));
     };
+    void background.decode().then(() => complete(true), () => complete(false));
+  };
+
+  const openGameRoom = () => {
+    if (musicBoxOpening || globeOpening || fireplaceOpening || fanTransition) return;
+    setChatOpen(false); setVaseOpen(false); setMusicBoxOpening(true);
+    setWhisper("八音盒打开了。小小的星月随音乐转动，另一间明亮的房间正在醒来。");
+    musicBoxSoundRef.current?.();
+    musicBoxSoundRef.current = startMusicBoxTune();
+    const request = ++musicBoxTravelRef.current, started = performance.now();
+    const background = new window.Image();
+    let finished = false;
+    const complete = (loaded: boolean) => {
+      if (finished || request !== musicBoxTravelRef.current) return;
+      finished = true;
+      if (musicBoxTimerRef.current !== null) window.clearTimeout(musicBoxTimerRef.current);
+      const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 250 : 2400;
+      musicBoxTimerRef.current = window.setTimeout(() => {
+        if (request !== musicBoxTravelRef.current) return;
+        musicBoxSoundRef.current?.(); musicBoxSoundRef.current = null;
+        if (loaded) setRoomView("game-room");
+        else setWhisper("八音盒的房门暂时没有打开，请再轻触一次。");
+        setMusicBoxOpening(false); musicBoxTimerRef.current = null;
+      }, Math.max(0, minimum - (performance.now() - started)));
+    };
+    musicBoxTimerRef.current = window.setTimeout(() => complete(false), 8000);
+    background.src = "/lounge-game-room-v1.webp";
     void background.decode().then(() => complete(true), () => complete(false));
   };
 
@@ -1564,9 +1650,38 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   };
 
   const openChat = () => {
+    chatStickToBottomRef.current = true;
+    setHistoryView(false);
     setChatOpen(true);
     setMaskOpen(false);
     reveal("scroll", "卷轴舒展开来，三人秘密聊天已经打开。");
+  };
+
+  const loadHistory = async (query = historyInput, older = false) => {
+    const request = ++historyRequestRef.current;
+    historyAbortRef.current?.abort();
+    const controller = new AbortController(); historyAbortRef.current = controller;
+    setHistoryBusy(true); setHistoryError(""); setHistoryView(true);
+    const applied = query.trim().slice(0, 120);
+    if (!older) { setHistoryQuery(applied); setHistoryMessages([]); setHistoryCursor(null); historyScrollRef.current = null; }
+    else if (chatMessagesRef.current) historyScrollRef.current = { height: chatMessagesRef.current.scrollHeight, top: chatMessagesRef.current.scrollTop };
+    const params = new URLSearchParams({ citizenId: citizen.id, q: applied });
+    if (older && historyCursor) { params.set("beforeAt", historyCursor.createdAt); params.set("beforeId", historyCursor.id); }
+    try {
+      const response = await fetch(`/api/committee-club?${params}`, { cache: "no-store", signal: controller.signal });
+      const payload = await response.json() as ClubData;
+      if (!response.ok) throw new Error(payload.error || "卷轴暂时无法翻页。");
+      if (request !== historyRequestRef.current) return;
+      setHistoryMessages(previous => older ? mergeChatMessages(previous, payload.messages ?? []) : payload.messages ?? []);
+      setHistoryCursor(payload.nextCursor ?? null);
+    } catch (error) { if (request === historyRequestRef.current && !controller.signal.aborted) { historyScrollRef.current = null; setHistoryError(error instanceof Error ? error.message : "往事暂时无法读取。"); } }
+    finally { if (request === historyRequestRef.current) setHistoryBusy(false); }
+  };
+
+  const backToLiveChat = () => {
+    historyRequestRef.current += 1; historyAbortRef.current?.abort();
+    setHistoryBusy(false); setHistoryView(false); setHistoryInput(""); setHistoryError("");
+    chatStickToBottomRef.current = true;
   };
 
   const sendMessage = async (event: FormEvent) => {
@@ -1577,7 +1692,8 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
     setClubStatus("");
     try {
       const payload = await postClub({ action: "message", body, sticker: "" });
-      if (payload.message) setClubData((current) => ({ ...current, messages: [...(current.messages ?? []), payload.message!] }));
+      if (payload.message) setClubData((current) => ({ ...current, messages: mergeChatMessages(current.messages ?? [], [payload.message!]) }));
+      backToLiveChat();
       setChatText("");
     } catch (error) {
       setClubStatus(error instanceof Error ? error.message : "消息没有送出去。");
@@ -1592,7 +1708,8 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
     setClubStatus("");
     try {
       const payload = await postClub({ action: "message", body: "", sticker });
-      if (payload.message) setClubData((current) => ({ ...current, messages: [...(current.messages ?? []), payload.message!] }));
+      if (payload.message) setClubData((current) => ({ ...current, messages: mergeChatMessages(current.messages ?? [], [payload.message!]) }));
+      backToLiveChat();
     } catch (error) {
       setClubStatus(error instanceof Error ? error.message : "魔法表情没有送出去。");
     } finally {
@@ -1669,7 +1786,9 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
 
   if (roomView === "truth") return <WordmageLounge onBack={() => setRoomView("committee")} />;
 
-  if (miniGames.activeGame) return <MiniGameSystem citizenId={citizen.id} gameId={miniGames.activeGame} emblemBlades={EMBLEM_BLADES} onClose={miniGames.closeMiniGame} />;
+  if (miniGames.activeGame) return <MiniGameSystem citizenId={citizen.id} gameId={miniGames.activeGame} emblemBlades={EMBLEM_BLADES} onClose={miniGames.closeMiniGame} loungeTitle={roomView === "game-room" ? "八音盒游艺室" : undefined} backLabel={roomView === "game-room" ? "返回游戏室" : undefined} />;
+
+  if (roomView === "game-room") return <><GameRoom onBack={() => setRoomView("committee")} onLaunch={miniGames.launchMiniGame} onRankings={() => setRankingsOpen(true)} />{rankingsOpen && <LoungeLeaderboard citizenId={citizen.id} onClose={() => setRankingsOpen(false)} />}</>;
 
   return (
     <>
@@ -1677,7 +1796,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
       <header className="club-room-toolbar">
         <button type="button" onClick={leave}><span aria-hidden="true">←</span> 返回帝国</button>
         <button type="button" onClick={() => setRankingsOpen(true)}>月光成绩簿 · 排行榜</button>
-        <a href="/games/fireboy-watergirl" style={{ display: "inline-flex", alignItems: "center", padding: "9px 13px", borderRadius: 8, border: "1px solid rgba(145,200,233,.6)", color: "#e7f8ff", textDecoration: "none", fontSize: 12, background: "rgba(25,67,91,.62)" }} aria-label="打开独立森林冰火人游戏选择页面">🔥❄️ 森林冰火人</a>
+        <button type="button" onClick={openGameRoom} disabled={musicBoxOpening}>八音盒 · 游戏室</button>
         <div><i /> COMMITTEE LOUNGE · {clubData.seats?.length ?? 0}/3 SEATED</div>
         <button type="button" aria-pressed={moonlight} onClick={() => { setMoonlight((value) => !value); setWhisper(moonlight ? "烛火重新亮起，壁炉又暖了起来。" : "烛火熄下，月光接管了整个房间。"); }}>{moonlight ? "点亮烛火" : "只留月光"}</button>
       </header>
@@ -1709,26 +1828,21 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
           })}
         </div>
 
-        <a className="club-ice-fire-plaque" href="/games/fireboy-watergirl" aria-label="触碰墙上的冰火双人徽章，进入森林冰火人游戏">
-          <span className="club-ice-fire-pair" aria-hidden="true"><i>🔥</i><i>❄️</i></span>
-          <small>冰与火 · 双人神殿</small>
-        </a>
         <button className="club-wall-fan" type="button" onClick={() => travelWithFan("amberina")} aria-label="拨动书架上合拢的欧洲蕾丝洋扇，进入 Mafraer 的私人 Lounge"><LaceFanDrawing openProgress={0.012} framing="closed" /></button>
-        <button className="club-wordmage-globe" type="button" onClick={openWordmageLounge} disabled={globeOpening} aria-label="转动左侧书架上的地球仪，进入言灵师 Nishujiade 的私人 Lounge"><span>地球仪 · 言灵师的入口</span></button>
+        <RotatingWordmageGlobe opening={globeOpening} onOpen={openWordmageLounge} />
+        <MusicBoxPortal opening={musicBoxOpening} onOpen={openGameRoom} />
 
         <button className="club-hotspot moon" type="button" aria-label="触碰月亮" aria-pressed={effect === "moon"} onClick={touchMoon}><i /><span>触碰月亮</span></button>
         <button className="club-hotspot portrait" type="button" aria-label="观察画像" aria-pressed={effect === "portrait"} onClick={() => reveal("portrait", "最右边的画像刚刚眨了一下。它显然知道委员会的秘密。")}><i /><span>观察画像</span></button>
         <button className="club-hotspot cat" type="button" aria-label="摸摸黑猫" aria-pressed={effect === "cat"} onClick={() => reveal("cat", "黑猫发出满意的呼噜声：今晚的密谋可以继续。")}><i /><span>摸摸黑猫</span></button>
         <button className="club-hotspot pumpkin" type="button" aria-label="唤醒南瓜" aria-pressed={effect === "pumpkin"} onClick={() => reveal("pumpkin", "南瓜管理员确认了三位委员的身份，无人尾随。")}><i /><span>唤醒南瓜</span></button>
-        <button className="club-hotspot scroll" type="button" aria-label="展开聊天卷轴" aria-pressed={chatOpen} onClick={openChat}><i /><span>展开聊天卷轴</span></button>
 
         <div className="lounge-table-scene">
           <LoungeTable onInteract={() => { setEffect("table"); setWhisper("原画中的月牙雕花圆桌回应了指尖，桌面与雕花基座产生细微的立体视差。"); }} />
           <LoungeTeaRitual onWhisper={setWhisper} />
           <div className={`club-vase-display vase-${vaseChoice.id}`} aria-hidden="true"><Image key={vaseChoice.id} className="club-vase-object-image" src={vaseChoice.image} width={512} height={512} alt="" unoptimized /></div>
-          <LoungeSolitaireDeck blades={EMBLEM_BLADES} onOpen={() => { setChatOpen(false); setVaseOpen(false); miniGames.launchMiniGame("solitaire"); }} />
-          <LoungeGameObjects onLaunch={(gameId) => { setChatOpen(false); setVaseOpen(false); miniGames.launchMiniGame(gameId); }} />
         </div>
+        <MagicChatScroll open={chatOpen} onOpen={openChat} />
         <button className="club-hotspot vase" type="button" aria-label="更换桌上花瓶陈设" aria-pressed={vaseOpen} onClick={() => { setVaseOpen((value) => !value); setEffect("vase"); }}><i /><span>更换桌上花瓶</span></button>
 
         <button className="club-fireplace-portal" type="button" onClick={openChryserLounge} disabled={fireplaceOpening} aria-label="打开右侧壁炉，进入 Lord Chryser 的私人 Lounge"><span>打开翡翠壁炉</span></button>
@@ -1740,6 +1854,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
       </div>
 
       {globeOpening && <WordmageGlobePassage />}
+      {musicBoxOpening && <div className="arcade-music-passage playing" role="status" aria-live="polite"><MusicBoxDrawing /><small>FOLLOW THE LITTLE MELODY</small><p>八音盒的另一面，是一间游艺室。</p><span>正在打开温暖的房门…</span></div>}
 
       {vaseOpen && <aside className="club-vase-menu" aria-label="花瓶与神秘菜单">
         <header><div><small>ENCHANTED VASE</small><strong>今天插什么？</strong></div><button type="button" onClick={() => setVaseOpen(false)} aria-label="关闭花瓶菜单">×</button></header>
@@ -1753,10 +1868,10 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
 
       {chatOpen && <>
         <button type="button" className="club-drawer-scrim" onClick={() => setChatOpen(false)} aria-label="关闭秘密聊天" />
-        <aside className="club-chat-drawer" aria-label="委员会秘密聊天">
+        <aside className="club-chat-drawer magic-chat-parchment" id="lounge-chat-scroll" ref={chatDialogRef} role="dialog" aria-modal="true" aria-label="委员会秘密聊天与历史卷轴">
           <header>
             <div><small>THE UNSEALED SCROLL</small><h2>秘密卷轴</h2><p>仅三位委员会成员可见</p></div>
-            <button type="button" onClick={() => setChatOpen(false)} aria-label="合上卷轴">×</button>
+            <button ref={chatCloseRef} type="button" onClick={() => setChatOpen(false)} aria-label="合上卷轴">×</button>
           </header>
           <div className="club-chat-identity">
             <ClubAvatar citizen={citizen} profile={currentProfile} />
@@ -1771,14 +1886,16 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
             <button className="club-mask-save" type="submit" disabled={saving}>戴上这副面具</button>
           </form>}
 
-          <div className="club-chat-messages">
-            {!clubData.messages?.length && <div className="club-chat-empty"><span>📜</span><p>卷轴还是空白的。<br />留下第一句秘密吧。</p></div>}
-            {clubData.messages?.map((message) => {
+          <form className="club-history-search" role="search" onSubmit={event => { event.preventDefault(); void loadHistory(historyInput); }}><input type="search" value={historyInput} maxLength={120} onChange={event=>setHistoryInput(event.target.value)} placeholder="查找卷轴里的话…" aria-label="搜索聊天记录关键词" /><button type="submit" disabled={historyBusy}>查找</button>{historyView ? <button type="button" onClick={backToLiveChat}>回到最新</button> : <button type="button" onClick={()=>void loadHistory("")}>查阅往事</button>}</form>
+          <p className="club-history-caption" role="status">{historyError || (historyBusy ? "正在翻阅卷轴…" : historyView ? `${historyQuery ? `「${historyQuery}」· ` : ""}已读出 ${historyMessages.length} 条往事` : "最新聊天 · 所有时间均为北京时间（UTC+8）")}</p>
+          <div className="club-chat-messages" ref={chatMessagesRef} onScroll={event => { const panel=event.currentTarget; chatStickToBottomRef.current = panel.scrollHeight - panel.scrollTop - panel.clientHeight < 80; }}>
+            {historyView && historyCursor && <button className="club-history-more" type="button" disabled={historyBusy} onClick={()=>void loadHistory(historyQuery, true)}>{historyBusy ? "正在翻阅…" : "↑ 更早的记录"}</button>}
+            {!(historyView ? historyMessages : clubData.messages)?.length && !historyBusy && <div className="club-chat-empty"><span>📜</span><p>{historyView ? historyQuery ? "卷轴里还没有找到这句话。" : "还没有可以翻阅的往事。" : <>卷轴还是空白的。<br />留下第一句秘密吧。</>}</p></div>}
+            {(historyView ? historyMessages : clubData.messages)?.map((message) => {
               const author = CLUB_MEMBERS.find((member) => member.id === message.citizenId) ?? CLUB_MEMBERS[0];
               const profile = clubData.profiles?.find((item) => item.citizenId === message.citizenId);
-              return <article key={message.id} className={message.citizenId === citizen.id ? "mine" : ""}><ClubAvatar citizen={author} profile={profile} /><div><header><strong>{loungeMaskName(author, profile)}</strong><time>{new Date(message.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</time></header>{message.sticker && <ClubSticker sticker={message.sticker} />}{message.body && <p>{message.body}</p>}</div></article>;
+              return <article key={message.id} className={message.citizenId === citizen.id ? "mine" : ""}><ClubAvatar citizen={author} profile={profile} /><div><header><strong>{loungeMaskName(author, profile)}</strong><time dateTime={Number.isFinite(chatDate(message.createdAt).getTime()) ? chatDate(message.createdAt).toISOString() : undefined} title="北京时间 · UTC+8">{chatTimestamp(message.createdAt)}</time></header>{message.sticker && <ClubSticker sticker={message.sticker} />}{message.body && <p>{message.body}</p>}</div></article>;
             })}
-            <div ref={chatEndRef} />
           </div>
 
           <div className="club-sticker-rail" aria-label="动态魔法表情">{CLUB_STICKERS.map((sticker) => <button type="button" key={sticker.id} onClick={() => void sendSticker(sticker.id)} disabled={saving} aria-label={`发送${sticker.label}`}><ClubSticker sticker={sticker.id} /></button>)}</div>
@@ -1800,6 +1917,14 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   useEffect(() => {
     try { setSidebarCollapsed(window.localStorage.getItem("schicksal:sidebar-collapsed") === "true"); } catch { /* Keep the navigation expanded when storage is unavailable. */ }
   }, []);
+  useEffect(() => {
+    if (!CLUB_MEMBER_IDS.has(citizen.id)) return;
+    let remembered = false;
+    try { remembered = window.sessionStorage.getItem(GAME_ROOM_RETURN_KEY) === "game-room"; } catch { /* Use the explicit return URL. */ }
+    if (remembered || new URLSearchParams(window.location.search).get("lounge") === "game-room") {
+      setSection("club"); setLoungeSeatingUnlocked(true);
+    }
+  }, [citizen.id]);
   const toggleSidebar = () => setSidebarCollapsed((current) => {
     const next = !current;
     try { window.localStorage.setItem("schicksal:sidebar-collapsed", String(next)); } catch { /* The toggle still works for this visit. */ }
@@ -1882,6 +2007,7 @@ export default function Home() {
         if (!member) return;
         restoredCitizen.current = member;
         setCitizen(member);
+        if (new URLSearchParams(window.location.search).get("lounge") === "game-room" && CLUB_MEMBER_IDS.has(member.id)) { setPhase("system"); return; }
         let entryCompleted = false;
         try { entryCompleted = window.sessionStorage.getItem("schicksal:entry-complete") === "1"; window.sessionStorage.removeItem("schicksal:entry-complete"); } catch { /* Retain the normal opening when storage is unavailable. */ }
         setPhase((current) => entryCompleted || current === "login" ? "welcome" : current);
@@ -1893,3 +2019,4 @@ export default function Home() {
   if (phase === "welcome") return <Welcome citizen={citizen} enter={() => setPhase("system")} />;
   return <System citizen={citizen} logout={() => { void logoutMember(); }} />;
 }
+

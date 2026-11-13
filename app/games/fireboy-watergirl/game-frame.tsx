@@ -14,12 +14,14 @@ const games = [
 export function FireboyWatergirlFrame() {
   const [chosen,setChosen]=useState<string|null>(null);
   const [showHelp,setShowHelp]=useState(false);
+  const [fromGameRoom,setFromGameRoom]=useState(false);
+  useEffect(()=>{setFromGameRoom(new URLSearchParams(window.location.search).get("from")==="game-room")},[]);
   const [installed,setInstalled]=useState<"checking"|"ready"|"missing">("checking");
   useEffect(()=>{let active=true;fetch("/games/ice-fire-import.json",{credentials:"same-origin",cache:"no-store"}).then(async r=>{if(!r.ok)throw Error("not installed");const j=await r.json() as {imported?:string[]};if(j.imported?.length!==6)throw Error("incomplete");if(active)setInstalled("ready");}).catch(()=>{if(active)setInstalled("missing")});return()=>{active=false}},[]);
   const source=chosen?`/games/${chosen}/index.html`:null;
   return <main style={{minHeight:"100svh",background:"#091525",color:"#f5f3e9",fontFamily:"system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
     <header style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:12,padding:"10px 18px",background:"#142a3f",borderBottom:"1px solid #63869b"}}>
-      <a href="/" style={{color:"#c5eaf4",textDecoration:"none",fontSize:14}}>← 返回天命</a>
+      <a href={fromGameRoom?"/?lounge=game-room":"/"} style={{color:"#c5eaf4",textDecoration:"none",fontSize:14}}>← {fromGameRoom?"返回游戏室":"返回天命"}</a>
       <strong style={{marginRight:"auto"}}>🔥❄️ 森林冰火人 · 天命游戏厅</strong>
       {chosen&&<button type="button" onClick={()=>setChosen(null)} style={{padding:"8px 12px",borderRadius:8,cursor:"pointer"}}>选择其他神庙</button>}
       <button type="button" onClick={()=>setShowHelp(v=>!v)} style={{padding:"8px 12px",borderRadius:8,cursor:"pointer"}}>帮助 / 打不开？</button>
@@ -50,3 +52,4 @@ export function FireboyWatergirlFrame() {
     }
   </main>;
 }
+

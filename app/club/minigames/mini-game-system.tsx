@@ -13,14 +13,16 @@ export function useMiniGameSystem() {
   return { activeGame, launchMiniGame, closeMiniGame };
 }
 
-export function MiniGameSystem({ gameId, citizenId, emblemBlades, onClose, loungeTitle }: {
+export function MiniGameSystem({ gameId, citizenId, emblemBlades, onClose, loungeTitle, backLabel }: {
   gameId: MiniGameId;
   citizenId: string;
   emblemBlades: readonly EmblemBlade[];
   onClose: () => void;
   loungeTitle?: string;
+  backLabel?: string;
 }) {
   const registration = getMiniGame(gameId);
-  if (registration.integration === "legacy-adapter") return <LoungeSolitaire citizenId={citizenId} blades={emblemBlades} onClose={onClose} />;
-  return <MiniGameShell key={`${citizenId}:${gameId}`} citizenId={citizenId} registration={registration} emblemBlades={emblemBlades} onClose={onClose} loungeTitle={loungeTitle} />;
+  if (registration.integration === "legacy-adapter") return <LoungeSolitaire citizenId={citizenId} blades={emblemBlades} onClose={onClose} backLabel={backLabel} />;
+  return <MiniGameShell key={`${citizenId}:${gameId}`} citizenId={citizenId} registration={registration} emblemBlades={emblemBlades} onClose={onClose} loungeTitle={loungeTitle} backLabel={backLabel} />;
 }
+

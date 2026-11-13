@@ -1,8 +1,9 @@
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { committeeClubMessages, committeeClubProfiles, committeeClubRoom } from "../../../db/schema";
 import { standaloneMember } from "../../standalone-access";
+import { readHistoryQuery, type ChatCursor } from "../../club/chat-history";
 
 const CLUB_MEMBER_IDS = new Set(["amberina", "zxy", "truth"]);
 const CLUB_AVATARS = new Set(["sigil", "crystal_ball", "witch_hat", "pumpkin", "black_cat", "crescent"]);
@@ -37,17 +38,39 @@ export async function GET(request: Request) {
     const denied = denyUnlessMember(citizenId);
     if (denied) return denied;
 
+    let history: ReturnType<typeof readHistoryQuery>;
+    try { history = readHistoryQuery(new URL(request.url).searchParams); }
+    catch (error) { return Response.json({ error: error instanceof Error ? error.message : "无效的翻页位置。" }, { status: 400 }); }
+    const conditions: string[] = [], values: (string | number)[] = [];
+    if (history.query) {
+      conditions.push("body LIKE ? ESCAPE '\\'");
+      values.push(`%${history.query.replace(/[\\%_]/g, char => `\\${char}`)}%`);
+    }
+    if (history.cursor) {
+      conditions.push("(julianday(created_at) < julianday(?) OR (julianday(created_at) = julianday(?) AND id < ?))");
+      values.push(history.cursor.createdAt, history.cursor.createdAt, history.cursor.id);
+    }
+    values.push(history.pageSize + 1);
+    const messagesQuery = env.DB.prepare(`SELECT id, citizen_id AS citizenId, body, sticker, created_at AS createdAt
+      FROM committee_club_messages ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
+      ORDER BY julianday(created_at) DESC, id DESC LIMIT ?`).bind(...values);
+
     const db = getDb();
     const [profiles, newestMessages, roomRows, seats] = await Promise.all([
       db.select().from(committeeClubProfiles),
-      db.select().from(committeeClubMessages).orderBy(desc(committeeClubMessages.createdAt), desc(committeeClubMessages.id)).limit(100),
+      messagesQuery.all<{ id: string; citizenId: string; body: string; sticker: string; createdAt: string }>(),
       db.select().from(committeeClubRoom).where(eq(committeeClubRoom.id, "main")).limit(1),
       getLoungeSeats(),
     ]);
 
+    const page = newestMessages.results.slice(0, history.pageSize);
+    const oldest = page.at(-1);
+    const nextCursor: ChatCursor | null = newestMessages.results.length > history.pageSize && oldest
+      ? { createdAt: oldest.createdAt, id: oldest.id } : null;
     return Response.json({
       profiles,
-      messages: newestMessages.reverse(),
+      messages: page.reverse(),
+      nextCursor,
       room: roomRows[0] ?? { id: "main", vaseSelection: "autumn", updatedByCitizenId: "", updatedAt: "" },
       seats,
     });
@@ -147,3 +170,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

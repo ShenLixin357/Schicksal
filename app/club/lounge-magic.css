@@ -1,0 +1,130 @@
+/* Props are anchored to the same illustration coordinates as the existing room. */
+.club-magic-scroll,.club-arcade-music-box{position:absolute;z-index:14;padding:0;border:0;background:none;cursor:pointer;pointer-events:auto;isolation:isolate}
+.club-magic-scroll{left:53%;top:55%;width:6.4%;height:10%;transform:translate(-50%,-50%) rotate(-9deg);filter:drop-shadow(0 0 10px #c89be955)}
+.club-magic-scroll svg,.club-arcade-music-box svg,.wordmage-globe-drawing{display:block;width:100%;height:100%;overflow:visible}
+.scroll-parchment{animation:magicScrollHover 4.2s ease-in-out infinite;transform-origin:80px 70px}
+.scroll-aura{animation:scrollAura 4.2s ease-in-out infinite;transform-origin:80px 123px}
+.scroll-writing{stroke-dasharray:1;animation:scrollInk 6s ease-in-out infinite}
+.scroll-sparkles{animation:scrollTwinkle 3s ease-in-out infinite}
+.club-magic-scroll:hover,.club-magic-scroll:focus-visible{filter:drop-shadow(0 0 14px #f2ccff99)}
+.lounge-prop-label{position:absolute;left:50%;bottom:105%;padding:8px 12px;border:1px solid #d6b79266;border-radius:10px;background:#25162de8;color:#fff0d3;font-size:12px;white-space:nowrap;pointer-events:none;opacity:0;transform:translate(-50%,5px);transition:opacity .2s,transform .2s}
+.club-magic-scroll:hover .lounge-prop-label,.club-magic-scroll:focus-visible .lounge-prop-label,.club-arcade-music-box:hover .lounge-prop-label,.club-arcade-music-box:focus-visible .lounge-prop-label{opacity:1;transform:translate(-50%,0)}
+.club-arcade-music-box{left:17.1%;top:53.6%;width:7%;height:12%;transform:translate(-50%,-100%);filter:brightness(.8) drop-shadow(2px 4px 5px #100818aa);transition:filter .3s}
+.club-arcade-music-box:hover,.club-arcade-music-box:focus-visible,.club-arcade-music-box.playing{filter:brightness(1.15) drop-shadow(0 0 14px #e3b7c766)}
+.club-magic-scroll:focus-visible,.club-arcade-music-box:focus-visible{outline:2px solid #eed4a0;outline-offset:5px;border-radius:12px}
+.music-box-lid{transform-origin:90px 88px;transform:translateY(31px) scaleY(.36);transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+.music-box-carousel{opacity:0;transform-origin:90px 81px;transform:translateY(20px) scale(.65);transition:opacity .4s,transform .6s}
+.music-box-notes{opacity:0}
+.playing .music-box-lid{transform:none}
+.playing .music-box-carousel{opacity:1;animation:musicBoxTurn 1.9s linear infinite}
+.playing .music-box-notes{animation:musicBoxNotes 1.6s ease-in-out infinite}
+.arcade-music-passage{position:absolute;z-index:45;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff2db;background:radial-gradient(ellipse,#b594ab88,#24172bd9 65%);backdrop-filter:blur(4px);animation:musicPassageIn 1.8s ease both;pointer-events:none}
+.arcade-music-passage>.music-box-drawing{width:min(270px,50vw);height:260px;filter:drop-shadow(0 0 50px #f7d5a077)}
+.arcade-music-passage small{font-size:11px;letter-spacing:.24em}
+.arcade-music-passage p{font:400 1.6rem var(--serif);margin:14px 0}
+.arcade-music-passage>span{font-size:13px;color:#f6ddde}
+.club-wordmage-globe .wordmage-globe-drawing{filter:brightness(.75) saturate(.68) drop-shadow(2px 3px 2px #170f1aaa);transition:filter .3s}
+.club-wordmage-globe:hover .wordmage-globe-drawing,.club-wordmage-globe:focus-visible .wordmage-globe-drawing,.club-wordmage-globe.globe-turning .wordmage-globe-drawing{filter:brightness(1) saturate(.85) drop-shadow(0 0 10px #dac09966)}
+.wordmage-globe-map{transform:translateX(0)}
+.club-wordmage-globe:hover .wordmage-globe-map{animation:globeMapTurn 10s linear infinite}
+.club-wordmage-globe.globe-turning .wordmage-globe-map{animation:globeMapTurn 1.5s cubic-bezier(.3,.05,.3,1) infinite}
+.committee-restroom>.wordmage-passage{animation:globePassageIn 1.9s ease both}
+.club-chat-drawer.magic-chat-parchment{top:50%;left:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(640px,calc(100% - 32px));height:min(840px,calc(100svh - 64px));border:1px solid #b39768;border-radius:12px;background:radial-gradient(ellipse at 30% 0,#fff7dc,#f0dfb9 65%,#e2c99e);color:#554150;box-shadow:0 25px 100px #080410aa,0 0 55px #cfa3e344;animation:parchmentOpen .45s cubic-bezier(.2,.8,.2,1) both;overflow:visible}
+.magic-chat-parchment::before,.magic-chat-parchment::after{content:"";position:absolute;z-index:4;left:-12px;right:-12px;top:-10px;bottom:auto;height:19px;border:1px solid #bc9a67;border-radius:12px;background:linear-gradient(180deg,#7d5944,#f2d3a0 35%,#b58a59 65%,#5b3c37);opacity:1;pointer-events:none;box-shadow:0 3px 8px #6c423e33}
+.magic-chat-parchment::after{top:auto;bottom:-10px}
+.magic-chat-parchment>header{min-height:95px;padding:24px 24px 16px;border-color:#c0a58655;background:linear-gradient(#fff8e799,transparent);border-radius:12px 12px 0 0}
+.magic-chat-parchment>header small{color:#957855;font-size:8px}
+.magic-chat-parchment>header h2{color:#654656;font-size:1.65rem}
+.magic-chat-parchment>header p{color:#947f79;font-size:11px}
+.magic-chat-parchment>header>button{color:#77576b;border-color:#baa18e;background:#fff9e766}
+.magic-chat-parchment .club-chat-identity{background:#fff4d944;border-color:#c0a58655}
+.magic-chat-parchment .club-chat-identity strong{color:#69516a}.magic-chat-parchment .club-chat-identity small{color:#947f79}
+.magic-chat-parchment .club-chat-identity>button{color:#79576d;background:#d9bbcb33;border-color:#b991a477}
+.magic-chat-parchment .club-chat-messages{scrollbar-color:#b5949a transparent;padding:18px 22px}
+.magic-chat-parchment .club-chat-messages>article{align-items:start}
+.magic-chat-parchment .club-chat-messages>article>div{width:100%;max-width:100%;background:#fff8e6a6;border-color:#c7b09966;box-shadow:0 3px 12px #9d78700a}
+.magic-chat-parchment .club-chat-messages>article.mine>div{background:linear-gradient(135deg,#e1cfe3,#d4c8dc);border-color:#bba5c877}
+.magic-chat-parchment .club-chat-messages article header{align-items:flex-start;flex-wrap:wrap;gap:4px 12px}
+.magic-chat-parchment .club-chat-messages article header strong{color:#7b536e;font-size:12px}
+.magic-chat-parchment .club-chat-messages article time{color:#8c7775;font-size:10px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.magic-chat-parchment .club-chat-messages article p{color:#554353;font-size:14px;line-height:1.65;white-space:pre-wrap}
+.magic-chat-parchment .club-chat-empty{color:#967d80}
+.magic-chat-parchment .club-chat-compose input,.magic-chat-parchment .club-mask-editor input{background:#fff9e9bb;border-color:#bba18d88;color:#654e60}
+.magic-chat-parchment .club-chat-compose button{background:#94778b;color:#fff8ed;border-color:#8e6b83}
+.magic-chat-parchment .club-chat-status{color:#986444;max-height:64px}
+.magic-chat-parchment .club-sticker-rail{background:#fff4db55;border-color:#d4bba077}
+.magic-chat-parchment .club-mask-editor{background:#f9edda;border-color:#d0b5a3;color:#755569}
+.magic-chat-parchment .club-mask-editor label>span,.magic-chat-parchment .club-mask-editor legend{color:#806c75}
+.club-history-search{position:relative;display:flex;gap:7px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid #c9b49a77;background:#fff9e633;flex:none}
+.club-history-search input{min-width:80px;flex:1 1 170px;border:1px solid #cbb29b;border-radius:8px;background:#fffaf0;color:#66505e;padding:8px 10px;font:inherit;font-size:12px}
+.club-history-search button,.club-history-more{border:1px solid #c4a895;border-radius:8px;color:#775970;background:#f9efdb;padding:7px 10px;font-size:12px;cursor:pointer}
+.club-history-search button:focus-visible,.club-history-search input:focus-visible,.club-history-more:focus-visible{outline:2px solid #ac85af;outline-offset:2px}
+.club-history-more{align-self:center;flex-shrink:0}.club-history-more:disabled{opacity:.5;cursor:wait}
+.club-history-caption{color:#8a727b;font-size:11px;text-align:center;padding:5px 10px;margin:0}
+/* A light-filled room behind the music box, kept in one responsive coordinate system. */
+.lounge-game-room{position:relative;isolation:isolate;min-height:100svh;overflow:hidden;background:#f2dfca;color:#6b5665;animation:gameRoomArrive .6s ease both}
+.game-room-stage{position:absolute;left:50%;top:50%;width:min(100%,177.68svh);aspect-ratio:1672/941;transform:translate(-50%,-50%);container-type:inline-size;overflow:hidden}
+.game-room-art{object-fit:contain;z-index:0;transition:filter 1.2s}
+.game-room-soft-light .game-room-art{filter:brightness(.88) saturate(.88)}
+.game-room-sunbeam{position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(120deg,#fffad80d,transparent 50%);transition:background 1s}
+.game-room-soft-light .game-room-sunbeam{background:radial-gradient(ellipse at 28% 42%,#ffe7a333,transparent 43%)}
+.game-room-toolbar{position:relative;z-index:6;padding:18px 24px;display:flex;align-items:center;gap:9px;background:linear-gradient(#fdf2e7ee,#fff6ec99,transparent)}
+.game-room-toolbar>div{margin-right:auto;margin-left:10px}
+.game-room-toolbar small{font-size:8px;letter-spacing:.18em;color:#a48280}
+.game-room-toolbar h1{margin:4px 0 0;font:400 clamp(18px,1.6vw,27px) var(--serif);color:#775666}
+.game-room-toolbar button,.game-room-caption button{flex-shrink:0;min-height:38px;padding:7px 14px;border:1px solid #ba9c9966;border-radius:999px;background:#fffaf0d9;color:#806372;font-size:12px;cursor:pointer;box-shadow:0 3px 12px #977d7020;backdrop-filter:blur(12px)}
+.game-room-toolbar button:hover,.game-room-caption button:hover{background:#f6e4ef;border-color:#bb95aa}
+.game-room-toolbar button:focus-visible,.game-room-caption button:focus-visible{outline:2px solid #a783a6;outline-offset:3px}
+.game-cabinet{position:absolute;z-index:3;inset:0;pointer-events:none}
+.cabinet-game{position:absolute;left:var(--prop-x);top:var(--prop-base);width:11.8%;height:11%;padding:0;border:0;background:none;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;transition:filter .2s;filter:drop-shadow(0 4px 3px #886c5320);touch-action:manipulation}
+.cabinet-miniature{display:block;width:100%;height:100%;overflow:visible}
+.cabinet-game:hover,.cabinet-game:focus-visible{filter:drop-shadow(0 0 9px #fff8dccc) brightness(1.05);outline:none}
+.cabinet-game:focus-visible::after{content:"";position:absolute;inset:0;border:2px solid #bb91b6;border-radius:12px}
+.cabinet-game-name{position:absolute;z-index:6;left:50%;bottom:105%;width:max-content;max-width:180px;padding:10px 14px;border:1px solid #d7b4b0;border-radius:12px;background:#fffaf2f5;box-shadow:0 5px 20px #9a747c25;text-align:center;opacity:0;transform:translate(-50%,6px);transition:opacity .2s,transform .2s;pointer-events:none;color:#79586f}
+.cabinet-game-name strong{display:block;font-size:13px;font-weight:600}.cabinet-game-name small{display:block;font-size:10px;color:#a48288;margin-top:3px}
+.cabinet-game:hover .cabinet-game-name,.cabinet-game:focus-visible .cabinet-game-name{opacity:1;transform:translate(-50%,0)}
+.cabinet-empty-place{position:absolute;left:90%;top:62%;transform:translate(-50%,-50%);color:#d8b5ad88;font-size:3cqw;pointer-events:none}
+.miniature-idle,.miniature-moon{transform-origin:75px 84px;animation:miniatureRock 5s ease-in-out var(--prop-delay,0s) infinite}
+.miniature-crystal{transform-origin:75px 55px;animation:miniatureCrystal 4s ease-in-out infinite}
+.potion-bubble{animation:tinyBubble 3.5s ease-in-out infinite}.miniature-vial:nth-child(2) .potion-bubble{animation-delay:-1.3s}
+.sigil-lamp{animation:scrollTwinkle 2.8s ease-in-out infinite}
+.miniature-fish{animation:tinyFish 6s ease-in-out infinite;transform-origin:75px 60px}
+.aquarium-bubbles{animation:tinyBubble 4.5s ease-in-out infinite}
+.miniature-fire{animation:tinyFire 3.5s ease-in-out infinite;transform-origin:40px 88px}.miniature-water{animation:tinyFire 4s ease-in-out -2s infinite;transform-origin:98px 88px}
+.game-room-console,.game-room-door,.game-room-lamp{position:absolute;z-index:2;border:0;background:transparent;cursor:pointer;border-radius:20px}
+.game-room-console{left:25%;top:43%;width:24%;height:13%}.game-room-door{left:5.5%;top:19%;width:7%;height:37%}.game-room-lamp{left:17%;top:25%;width:9%;height:30%}
+.game-room-console>span,.game-room-door>span,.game-room-lamp>span{position:absolute;left:50%;bottom:100%;background:#fff9eff0;border:1px solid #cfb2a5;border-radius:12px;padding:8px 12px;color:#846979;font-size:12px;white-space:nowrap;opacity:0;transform:translateX(-50%);pointer-events:none;transition:opacity .2s}
+.game-room-console:hover>span,.game-room-console:focus-visible>span,.game-room-door:hover>span,.game-room-door:focus-visible>span,.game-room-lamp:hover>span,.game-room-lamp:focus-visible>span{opacity:1}
+.game-room-console:focus-visible,.game-room-door:focus-visible,.game-room-lamp:focus-visible{outline:2px solid #b184ae;outline-offset:4px}
+.game-room-caption{position:absolute;z-index:4;bottom:18px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);padding:8px 10px 8px 20px;border-radius:999px;background:#fff8ecd9;box-shadow:0 5px 30px #896e5b1a;color:#9b7c83;backdrop-filter:blur(8px);white-space:nowrap}
+.game-room-caption p{margin:0;font-size:12px}.game-room-caption>span{color:#c49b83}.game-room-caption button{border:0;box-shadow:none;background:#e9d7e6cc}
+.game-room-dialog-layer{position:absolute;z-index:20;inset:0;display:grid;place-items:center;padding:24px}
+.game-room-dialog-scrim{position:absolute;inset:0;border:0;background:#715e6b55;backdrop-filter:blur(6px);cursor:pointer}
+.game-room-dialog{position:relative;width:min(550px,100%);max-height:calc(100svh - 48px);overflow:auto;padding:32px;border:1px solid #f5e8dc;border-radius:28px;background:#fff8ec;box-shadow:0 25px 90px #694e5b44;color:#7a6370}
+.game-room-dialog>small{font-size:9px;letter-spacing:.17em;color:#b59998}.game-room-dialog h2{font:400 25px var(--serif);margin:10px 0 22px;color:#835e72}
+.game-room-dialog-close{position:absolute;right:16px;top:14px;width:32px;height:32px;border:1px solid #dbbfc6;border-radius:50%;background:#f4e4eb;color:#8c6b81;font-size:20px;cursor:pointer}
+.game-room-dialog p{font-size:14px;line-height:1.8}.game-room-primary{padding:12px 18px;border:0;border-radius:13px;background:#a78eae;color:#fff8ef;font-size:14px;cursor:pointer}
+.game-room-controller{width:130px;height:65px;margin:10px auto 20px;border:3px solid #d0b7da;border-radius:28px 28px 35px 35px;background:#dfd0e6;display:flex;align-items:center;justify-content:space-around;font-size:28px;color:#8e759c;transform:rotate(-8deg);box-shadow:0 8px 0 #c6b1ce}
+.game-room-controller i{font-size:12px;letter-spacing:5px;font-style:normal}
+.game-room-game-list{display:grid;gap:8px}.game-room-game-list>button,.game-room-game-list>a{display:flex;align-items:center;gap:14px;text-align:left;padding:8px 12px;border:1px solid #e1c8ce;border-radius:15px;background:#fffdf6;color:#825e78;font-size:15px;text-decoration:none;cursor:pointer}
+.game-room-game-list .cabinet-miniature{width:69px;height:50px;flex:none}.game-room-game-list small{display:block;font-size:11px;margin-top:3px;color:#b2969e}.game-room-game-list b{margin-left:auto;color:#b69ab5;font-weight:400}.game-room-game-list>button:hover,.game-room-game-list>a:hover{background:#efe4ed}
+.game-room-dialog button:focus-visible,.game-room-dialog a:focus-visible{outline:2px solid #9d7caa;outline-offset:3px}
+@keyframes magicScrollHover{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+@keyframes scrollAura{50%{transform:scaleX(.8);opacity:.14}}
+@keyframes scrollInk{0%,20%{stroke-dashoffset:1;opacity:.4}65%,100%{stroke-dashoffset:0;opacity:1}}
+@keyframes scrollTwinkle{50%{opacity:.3}}
+@keyframes musicBoxTurn{0%{transform:scaleX(1)}25%{transform:scaleX(.3)}50%{transform:scaleX(-1)}75%{transform:scaleX(-.3)}100%{transform:scaleX(1)}}
+@keyframes musicBoxNotes{0%{opacity:0;transform:translateY(9px)}30%,65%{opacity:.9}100%{opacity:0;transform:translateY(-12px)}}
+@keyframes musicPassageIn{0%,28%{opacity:0}100%{opacity:1}}
+@keyframes globeMapTurn{to{transform:translateX(-100px)}}
+@keyframes globePassageIn{0%,36%{opacity:0;backdrop-filter:none}100%{opacity:1;backdrop-filter:blur(7px)}}
+@keyframes parchmentOpen{from{opacity:0;transform:translate(-50%,-47%) scaleY(.8)}to{opacity:1;transform:translate(-50%,-50%) scaleY(1)}}
+@keyframes gameRoomArrive{from{opacity:0}to{opacity:1}}
+@keyframes miniatureRock{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+@keyframes miniatureCrystal{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-5px) rotate(4deg)}}
+@keyframes tinyBubble{0%,100%{opacity:.2;transform:translateY(3px)}60%{opacity:.9;transform:translateY(-7px)}}
+@keyframes tinyFish{0%,100%{transform:translateX(-6px)}50%{transform:translateX(13px)}}
+@keyframes tinyFire{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.92)}}
+@media(max-width:900px){.game-room-toolbar{padding:14px;gap:6px;flex-wrap:wrap}.game-room-toolbar>div{order:-1;flex-basis:100%;margin:0 0 4px}.game-room-toolbar h1{font-size:21px}.game-room-toolbar button{font-size:11px;min-height:36px;padding:7px 10px}.game-room-caption p{display:none}.game-room-caption{padding-left:14px}.club-arcade-music-box .lounge-prop-label{left:0;transform:translate(0,5px)}.club-arcade-music-box:hover .lounge-prop-label{transform:none}}
+@media(max-width:600px){.lounge-game-room{display:flex;flex-direction:column;min-height:100svh;overflow:auto}.game-room-stage{position:relative;top:auto;left:auto;transform:none;width:100%;margin:auto 0}.game-room-caption{position:relative;left:auto;bottom:auto;transform:none;margin:20px auto 28px;max-width:calc(100% - 20px)}.cabinet-game{min-height:38px;min-width:40px}.cabinet-game-name{max-width:125px;padding:7px}.cabinet-game-name strong{font-size:11px}.cabinet-game-name small{font-size:9px}.club-chat-drawer.magic-chat-parchment{width:calc(100% - 28px);height:calc(100svh - 40px)}.magic-chat-parchment>header{padding:20px 16px 12px;min-height:88px}.magic-chat-parchment .club-chat-messages{padding:12px}.club-magic-scroll{min-width:32px;min-height:36px}.club-arcade-music-box{min-width:36px;min-height:40px}.game-room-dialog-layer{padding:14px}.game-room-dialog{padding:25px 20px}.game-room-dialog h2{font-size:22px}}
+@media(prefers-reduced-motion:reduce){.scroll-parchment,.scroll-aura,.scroll-writing,.scroll-sparkles,.music-box-carousel,.music-box-notes,.wordmage-globe-map,.miniature-idle,.miniature-moon,.miniature-crystal,.potion-bubble,.sigil-lamp,.miniature-fish,.aquarium-bubbles,.miniature-fire,.miniature-water{animation:none!important}.playing .music-box-carousel{transform:none;opacity:1}.playing .music-box-notes{opacity:.8}.arcade-music-passage,.committee-restroom>.wordmage-passage,.club-chat-drawer.magic-chat-parchment,.lounge-game-room{animation:none}.music-box-lid,.game-room-art{transition-duration:.01ms}}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./navigation-layout.css";
+import "./club/lounge-magic.css";
 
 export const metadata: Metadata = {
   title: "Schicksal — 天命第一帝国",
@@ -12,3 +13,4 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="zh-CN"><body>{children}</body></html>;
 }
+

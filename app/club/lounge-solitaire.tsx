@@ -84,7 +84,7 @@ export function LoungeSolitaireDeck({ blades, onOpen }: { blades: readonly Emble
   </button>;
 }
 
-export function LoungeSolitaire({ blades, onClose, citizenId }: { blades: readonly EmblemBlade[]; onClose: () => void; citizenId: string }) {
+export function LoungeSolitaire({ blades, onClose, citizenId, backLabel = "返回 Lounge" }: { blades: readonly EmblemBlade[]; onClose: () => void; citizenId: string; backLabel?: string }) {
   const [game, setGame] = useState<GameState>(() => createVerifiedGame(0));
   const [history, setHistory] = useState<GameState[]>([]);
   const [selected, setSelected] = useState<Source | null>(null);
@@ -360,7 +360,7 @@ export function LoungeSolitaire({ blades, onClose, citizenId }: { blades: readon
   return <section className="lounge-solitaire" aria-label="Lounge Solitaire 天命纸牌">
     <div className="solitaire-room-veil" aria-hidden="true" />
     <header className="solitaire-header">
-      <button type="button" className="solitaire-back" onClick={onClose}>返回 Lounge</button>
+      <button type="button" className="solitaire-back" onClick={onClose}>{backLabel}</button>
       <div className="solitaire-title"><FateEmblem blades={blades} small /><span><small>THE COMMITTEE’S PRIVATE PATIENCE</small><h1>LOUNGE SOLITAIRE</h1><p>天命纸牌</p></span></div>
       <div className="solitaire-stats"><span><small>TIME</small><strong>{formatTime(seconds)}</strong></span><span><small>MOVES</small><strong>{records.totalMoves}</strong></span><span><small>FATE</small><strong>{totalFoundation}/52</strong></span></div>
       <nav className="solitaire-actions" aria-label="纸牌控制">
@@ -436,3 +436,4 @@ export function LoungeSolitaire({ blades, onClose, citizenId }: { blades: readon
     {rankingsOpen && <LoungeLeaderboard citizenId={citizenId} initialGame="solitaire" onClose={closeRankings} />}
   </section>;
 }
+
