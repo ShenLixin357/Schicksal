@@ -18,20 +18,15 @@ export function MagicChatScroll({ open, onOpen }: { open: boolean; onOpen: () =>
 }
 
 export function MusicBoxDrawing() {
-  const id = useId().replace(/:/g, "");
-  return <svg className="music-box-drawing" viewBox="0 0 180 170" aria-hidden="true">
-    <defs><linearGradient id={`${id}-box`} x2=".3" y2="1"><stop stopColor="#e1b68a" /><stop offset=".45" stopColor="#7f505e" /><stop offset="1" stopColor="#422e49" /></linearGradient><linearGradient id={`${id}-lid`} x2="1" y2="1"><stop stopColor="#be9a8c" /><stop offset="1" stopColor="#5b3759" /></linearGradient></defs>
-    <ellipse cx="91" cy="153" rx="64" ry="10" fill="#130e20" opacity=".45" />
-    <g className="music-box-lid"><path d="m29 90 10-64q49-23 101 2l11 63Z" fill={`url(#${id}-lid)`} stroke="#e5be7d" strokeWidth="3" /><path d="m40 79 8-43q40-17 84 1l8 42Z" fill="#d6b7cb" stroke="#ab8266" strokeWidth="2" /><ellipse cx="91" cy="58" rx="27" ry="22" fill="#ece0e4" opacity=".8" /><path d="m91 40 4 12 13 1-10 8 3 12-10-7-11 7 4-12-10-8 13-1Z" fill="#e2b779" /></g>
-    <path d="M26 101 40 81h101l14 20-9 43q-54 24-111 0Z" fill={`url(#${id}-box)`} stroke="#d9b87e" strokeWidth="2" /><ellipse cx="90" cy="103" rx="64" ry="22" fill="#d9bb92" stroke="#f6d99c" strokeWidth="2" /><ellipse cx="90" cy="102" rx="47" ry="14" fill="#8a667c" stroke="#e4c48d" />
-    <g className="music-box-carousel"><ellipse cx="90" cy="101" rx="27" ry="8" fill="#e7d09e" /><path d="M87 98 91 58l6 40" fill="#e2c27e" /><path d="m91 37 4 10 11 1-9 7 3 11-9-6-9 6 3-11-9-7 11-1Z" fill="#fff1b3" stroke="#c4a267" /><path d="M76 82Q91 70 107 83L113 92Q91 104 68 92Z" fill="#ccb3df" stroke="#fff0cf" /><circle cx="91" cy="70" r="6" fill="#ffe5ba" /></g>
-    <path d="M37 125q54 22 107 0M53 138l9 3m57-3 9-3" stroke="#e8bf78" strokeWidth="2" fill="none" /><circle cx="91" cy="133" r="5" fill="#eec984" />
-    <g className="music-box-notes" fill="#ffe7a9"><text x="13" y="62" fontSize="24">♪</text><text x="146" y="47" fontSize="28">♫</text><text x="135" y="18" fontSize="18">♪</text></g>
-  </svg>;
+  return <span className="music-box-art" aria-hidden="true">
+    <span className="sculpture-sprite music-box-closed-art" />
+    <span className="sculpture-sprite music-box-open-art" />
+    <span className="music-box-inner-mechanism"><span className="sculpture-sprite music-box-carousel-art" /></span>
+  </span>;
 }
 
 export function MusicBoxPortal({ opening, onOpen }: { opening: boolean; onOpen: () => void }) {
-  return <button type="button" className={`club-arcade-music-box ${opening ? "playing" : ""}`} onClick={onOpen} disabled={opening} aria-label="转动八音盒，播放音乐并进入游戏室" aria-busy={opening}><MusicBoxDrawing /><span className="lounge-prop-label">八音盒 · 通往游戏室</span></button>;
+  return <button type="button" className={`club-arcade-music-box ${opening ? "playing" : ""}`} onClick={onOpen} disabled={opening} aria-label="转动八音盒，播放音乐并进入游戏室" aria-busy={opening}><MusicBoxDrawing /></button>;
 }
 
 export function startMusicBoxTune(): () => void {
@@ -55,12 +50,9 @@ export function startMusicBoxTune(): () => void {
 }
 
 export function RotatingWordmageGlobe({ opening, onOpen }: { opening: boolean; onOpen: () => void }) {
-  const id = useId().replace(/:/g, "");
-  const land = "M9 30 19 23 24 12 38 8 47 17 39 26 44 32 32 45 26 59 17 52 19 40ZM55 14 65 10 79 17 89 30 82 39 72 37 67 46 77 55 71 68 61 62 58 45 47 35 49 26ZM86 57l10-4 9 8-5 10-14-2Z";
+  // The original detailed globe is already painted into the room plate.
+  // Idle: only an invisible hit area. No replacement drawing, tooltip or glow.
   return <button className={`club-wordmage-globe ${opening ? "globe-turning" : ""}`} type="button" onClick={onOpen} disabled={opening} aria-label="转动左侧柜子上的地球仪，进入 Nishujiade 的个人休息室" aria-busy={opening}>
-    <svg className="wordmage-globe-drawing" viewBox="0 0 120 150" aria-hidden="true"><defs><radialGradient id={`${id}-ocean`} cx=".3" cy=".25" r=".8"><stop stopColor="#7b9ba0" /><stop offset=".5" stopColor="#315966" /><stop offset="1" stopColor="#112731" /></radialGradient><clipPath id={`${id}-sphere`}><circle cx="59" cy="58" r="40" /></clipPath></defs>
-      <ellipse cx="60" cy="139" rx="38" ry="7" fill="#211724" opacity=".7" /><path d="M56 101v24l-23 11q27 10 55 0l-24-11v-24" fill="#b18c51" stroke="#e7c287" strokeWidth="2" /><ellipse cx="59" cy="58" rx="48" ry="51" transform="rotate(23 59 58)" fill="none" stroke="#b89355" strokeWidth="5" /><circle cx="59" cy="58" r="41" fill={`url(#${id}-ocean)`} stroke="#d1ac69" strokeWidth="2" />
-      <g clipPath={`url(#${id}-sphere)`}><g className="wordmage-globe-map" fill="#b6ab76" stroke="#dad1a2" strokeWidth=".6">{[-100,0,100].map(x=><path key={x} d={land} transform={`translate(${x+9} 15)`} />)}</g><g fill="none" stroke="#c3ba85" strokeWidth=".65" opacity=".5"><ellipse cx="59" cy="58" rx="40" ry="13" /><ellipse cx="59" cy="58" rx="16" ry="40" /><path d="M19 58h80M26 35h66M26 81h66" /></g><ellipse cx="43" cy="37" rx="14" ry="10" fill="#fffbd6" opacity=".12" /></g><path d="M11 75q44 32 98-4" fill="none" stroke="#d7b479" strokeWidth="3" />
-    </svg><span>地球仪 · Nishujiade 的休息室</span>
+    <span className="wordmage-original-globe-turn" aria-hidden="true" />
   </button>;
 }

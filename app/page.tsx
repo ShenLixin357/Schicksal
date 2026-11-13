@@ -1421,7 +1421,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const [fireplaceOpening, setFireplaceOpening] = useState(false);
   const [globeOpening, setGlobeOpening] = useState(false);
   const [musicBoxOpening, setMusicBoxOpening] = useState(false);
-  const [whisper, setWhisper] = useState("桌上的卷轴记着往事。左侧柜子上，八音盒通往游戏室，地球仪通往 Nishujiade 的休息室。");
+  const [whisper, setWhisper] = useState("月光落在茶桌上，老书架仍像往常一样安静。");
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const chatDialogRef = useRef<HTMLElement>(null);
   const chatCloseRef = useRef<HTMLButtonElement>(null);
@@ -1788,7 +1788,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
 
   if (miniGames.activeGame) return <MiniGameSystem citizenId={citizen.id} gameId={miniGames.activeGame} emblemBlades={EMBLEM_BLADES} onClose={miniGames.closeMiniGame} loungeTitle={roomView === "game-room" ? "八音盒游艺室" : undefined} backLabel={roomView === "game-room" ? "返回游戏室" : undefined} />;
 
-  if (roomView === "game-room") return <><GameRoom onBack={() => setRoomView("committee")} onLaunch={miniGames.launchMiniGame} onRankings={() => setRankingsOpen(true)} />{rankingsOpen && <LoungeLeaderboard citizenId={citizen.id} onClose={() => setRankingsOpen(false)} />}</>;
+  if (roomView === "game-room") return <><GameRoom emblemBlades={EMBLEM_BLADES} onBack={() => setRoomView("committee")} onLaunch={miniGames.launchMiniGame} onRankings={() => setRankingsOpen(true)} />{rankingsOpen && <LoungeLeaderboard citizenId={citizen.id} onClose={() => setRankingsOpen(false)} />}</>;
 
   return (
     <>
@@ -1796,7 +1796,6 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
       <header className="club-room-toolbar">
         <button type="button" onClick={leave}><span aria-hidden="true">←</span> 返回帝国</button>
         <button type="button" onClick={() => setRankingsOpen(true)}>月光成绩簿 · 排行榜</button>
-        <button type="button" onClick={openGameRoom} disabled={musicBoxOpening}>八音盒 · 游戏室</button>
         <div><i /> COMMITTEE LOUNGE · {clubData.seats?.length ?? 0}/3 SEATED</div>
         <button type="button" aria-pressed={moonlight} onClick={() => { setMoonlight((value) => !value); setWhisper(moonlight ? "烛火重新亮起，壁炉又暖了起来。" : "烛火熄下，月光接管了整个房间。"); }}>{moonlight ? "点亮烛火" : "只留月光"}</button>
       </header>

@@ -77,9 +77,13 @@ function FateCard({ card, blades, selected, hinted, dealOrder = 0, className = "
   </button>;
 }
 
+export function LoungeSolitaireDeckFigure({ blades }: { blades: readonly EmblemBlade[] }) {
+  return <span className="club-solitaire-stack" aria-hidden="true"><i /><i /><span><CardBack blades={blades} /></span></span>;
+}
+
 export function LoungeSolitaireDeck({ blades, onOpen }: { blades: readonly EmblemBlade[]; onOpen: () => void }) {
   return <button className="club-solitaire-deck" type="button" onClick={onOpen} aria-label="拿起桌上的天命纸牌，开始 Lounge Solitaire">
-    <span className="club-solitaire-stack" aria-hidden="true"><i /><i /><span><CardBack blades={blades} /></span></span>
+    <LoungeSolitaireDeckFigure blades={blades} />
     <span className="club-solitaire-deck-label">LOUNGE SOLITAIRE</span>
   </button>;
 }

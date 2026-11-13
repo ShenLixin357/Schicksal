@@ -1,7 +1,36 @@
 /* Props are anchored to the same illustration coordinates as the existing room. */
+.sculpture-sprite{display:block;background-image:url('/lounge-collectibles-v2.webp');background-size:300% 300%;background-position:var(--sprite-x,0%) var(--sprite-y,0%);background-repeat:no-repeat}
+.music-box-art{position:relative;display:block;width:100%;height:100%;perspective:420px}
+.music-box-art>.sculpture-sprite{position:absolute;inset:0;transition:opacity .6s ease}
+.music-box-closed-art{--sprite-x:0%;--sprite-y:0%;opacity:1}
+.music-box-open-art{--sprite-x:50%;--sprite-y:0%;opacity:0}
+.music-box-inner-mechanism{position:absolute;left:50%;bottom:37.5%;width:28%;height:28%;transform:translateX(-50%);opacity:0;transition:opacity .5s .25s}
+.music-box-carousel-art{--sprite-x:100%;--sprite-y:0%;width:100%;height:100%;transform-origin:50% 88%}
+.playing .music-box-closed-art{opacity:0}.playing .music-box-open-art{opacity:1}.playing .music-box-inner-mechanism{opacity:1}
+.playing .music-box-carousel-art{animation:collectibleMusicTurn 2.2s linear infinite}
+.club-wordmage-globe,.club-wordmage-globe:disabled{cursor:default}
+.club-wordmage-globe:hover,.club-wordmage-globe:focus-visible{background:transparent;box-shadow:none}
+.club-wordmage-globe:focus-visible{outline:1px solid #ad93734d;outline-offset:2px}
+.club-wordmage-globe>.wordmage-original-globe-turn{visibility:hidden;position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;opacity:1;background-color:transparent;background-image:url('/committee-lounge-word-globe-v1.png');background-size:1818.181818% 847.457627%;background-position:8.624339% 21.882086%;clip-path:ellipse(34% 29% at 48% 38%);transform:none;transform-origin:48% 38%;pointer-events:none}
+.club-wordmage-globe.globe-turning>.wordmage-original-globe-turn{visibility:visible;animation:originalPaintedGlobeTurn 1.9s cubic-bezier(.25,.1,.25,1) both}
+.cabinet-object-sculpture{position:absolute;left:50%;bottom:-9%;height:100%;aspect-ratio:1;transform:translateX(-50%);filter:brightness(.97) saturate(.82);animation:collectibleCandlelight 9s ease-in-out var(--prop-delay,0s) infinite}
+.cabinet-object-sculpture::after{content:"";position:absolute;inset:0;mask-image:url('/lounge-collectibles-v2.webp');mask-size:300% 300%;mask-position:var(--sprite-x) var(--sprite-y);mask-repeat:no-repeat;background:linear-gradient(110deg,transparent 30%,#fff3d33b 48%,transparent 62%);background-size:250% 100%;opacity:.45;animation:collectibleGlassLight 10s ease-in-out var(--prop-delay,0s) infinite;pointer-events:none}
+.miniature-merge .cabinet-object-sculpture{animation:collectibleRelicBreath 7s ease-in-out var(--prop-delay,0s) infinite}
+.miniature-aquarium .cabinet-object-sculpture::after{animation-duration:6s}
+.cabinet-original-solitaire{position:absolute;left:50%;bottom:0;height:79%;aspect-ratio:.72;transform:translateX(-50%) rotate(-8deg);transform-origin:50% 100%;filter:drop-shadow(1px 4px 3px #5b403c44);animation:originalCardRock 9s ease-in-out infinite;color:#f5e7c8}
+.cabinet-original-solitaire .club-solitaire-stack::after{background:#533e4138;filter:blur(3px)}
+.cabinet-original-solitaire .fate-card-back{box-shadow:inset 0 0 12px #130b1f66}
+.cabinet-original-solitaire .fate-card-back>small{font-size:clamp(2px,.22cqw,3.3px);letter-spacing:.07em}
+@keyframes collectibleMusicTurn{0%{transform:rotateY(0deg)}100%{transform:rotateY(360deg)}}
+@keyframes originalPaintedGlobeTurn{0%{transform:perspective(180px) rotateY(0)}100%{transform:perspective(180px) rotateY(360deg)}}
+@keyframes collectibleCandlelight{0%,100%{filter:brightness(.97) saturate(.82)}50%{filter:brightness(1.025) saturate(.86)}}
+@keyframes collectibleRelicBreath{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-1.3%)}}
+@keyframes collectibleGlassLight{0%,25%{background-position:100% 0;opacity:.12}65%{background-position:0% 0;opacity:.4}100%{background-position:0% 0;opacity:.12}}
+@keyframes originalCardRock{0%,100%{transform:translateX(-50%) rotate(-8deg)}50%{transform:translateX(-50%) rotate(-6.5deg)}}
+@media(prefers-reduced-motion:reduce){.music-box-carousel-art,.wordmage-original-globe-turn,.cabinet-object-sculpture,.cabinet-object-sculpture::after,.cabinet-original-solitaire{animation:none!important}.music-box-art>.sculpture-sprite,.music-box-inner-mechanism{transition-duration:.01ms}}
 .club-magic-scroll,.club-arcade-music-box{position:absolute;z-index:14;padding:0;border:0;background:none;cursor:pointer;pointer-events:auto;isolation:isolate}
 .club-magic-scroll{left:53%;top:55%;width:6.4%;height:10%;transform:translate(-50%,-50%) rotate(-9deg);filter:drop-shadow(0 0 10px #c89be955)}
-.club-magic-scroll svg,.club-arcade-music-box svg,.wordmage-globe-drawing{display:block;width:100%;height:100%;overflow:visible}
+.club-magic-scroll svg{display:block;width:100%;height:100%;overflow:visible}
 .scroll-parchment{animation:magicScrollHover 4.2s ease-in-out infinite;transform-origin:80px 70px}
 .scroll-aura{animation:scrollAura 4.2s ease-in-out infinite;transform-origin:80px 123px}
 .scroll-writing{stroke-dasharray:1;animation:scrollInk 6s ease-in-out infinite}
@@ -9,25 +38,15 @@
 .club-magic-scroll:hover,.club-magic-scroll:focus-visible{filter:drop-shadow(0 0 14px #f2ccff99)}
 .lounge-prop-label{position:absolute;left:50%;bottom:105%;padding:8px 12px;border:1px solid #d6b79266;border-radius:10px;background:#25162de8;color:#fff0d3;font-size:12px;white-space:nowrap;pointer-events:none;opacity:0;transform:translate(-50%,5px);transition:opacity .2s,transform .2s}
 .club-magic-scroll:hover .lounge-prop-label,.club-magic-scroll:focus-visible .lounge-prop-label,.club-arcade-music-box:hover .lounge-prop-label,.club-arcade-music-box:focus-visible .lounge-prop-label{opacity:1;transform:translate(-50%,0)}
-.club-arcade-music-box{left:17.1%;top:53.6%;width:7%;height:12%;transform:translate(-50%,-100%);filter:brightness(.8) drop-shadow(2px 4px 5px #100818aa);transition:filter .3s}
-.club-arcade-music-box:hover,.club-arcade-music-box:focus-visible,.club-arcade-music-box.playing{filter:brightness(1.15) drop-shadow(0 0 14px #e3b7c766)}
+.club-arcade-music-box{left:17.1%;top:53.6%;width:6%;height:10.3%;transform:translate(-50%,-100%);cursor:default;filter:brightness(.68) saturate(.76);transition:filter .6s}
+.club-arcade-music-box:hover{filter:brightness(.68) saturate(.76)}
+.club-arcade-music-box.playing{filter:brightness(.86) saturate(.8)}
 .club-magic-scroll:focus-visible,.club-arcade-music-box:focus-visible{outline:2px solid #eed4a0;outline-offset:5px;border-radius:12px}
-.music-box-lid{transform-origin:90px 88px;transform:translateY(31px) scaleY(.36);transition:transform .8s cubic-bezier(.2,.7,.2,1)}
-.music-box-carousel{opacity:0;transform-origin:90px 81px;transform:translateY(20px) scale(.65);transition:opacity .4s,transform .6s}
-.music-box-notes{opacity:0}
-.playing .music-box-lid{transform:none}
-.playing .music-box-carousel{opacity:1;animation:musicBoxTurn 1.9s linear infinite}
-.playing .music-box-notes{animation:musicBoxNotes 1.6s ease-in-out infinite}
 .arcade-music-passage{position:absolute;z-index:45;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff2db;background:radial-gradient(ellipse,#b594ab88,#24172bd9 65%);backdrop-filter:blur(4px);animation:musicPassageIn 1.8s ease both;pointer-events:none}
-.arcade-music-passage>.music-box-drawing{width:min(270px,50vw);height:260px;filter:drop-shadow(0 0 50px #f7d5a077)}
+.arcade-music-passage>.music-box-art{position:relative;width:min(270px,50vw);aspect-ratio:1;height:auto;filter:drop-shadow(0 12px 20px #100a1377)}
 .arcade-music-passage small{font-size:11px;letter-spacing:.24em}
 .arcade-music-passage p{font:400 1.6rem var(--serif);margin:14px 0}
 .arcade-music-passage>span{font-size:13px;color:#f6ddde}
-.club-wordmage-globe .wordmage-globe-drawing{filter:brightness(.75) saturate(.68) drop-shadow(2px 3px 2px #170f1aaa);transition:filter .3s}
-.club-wordmage-globe:hover .wordmage-globe-drawing,.club-wordmage-globe:focus-visible .wordmage-globe-drawing,.club-wordmage-globe.globe-turning .wordmage-globe-drawing{filter:brightness(1) saturate(.85) drop-shadow(0 0 10px #dac09966)}
-.wordmage-globe-map{transform:translateX(0)}
-.club-wordmage-globe:hover .wordmage-globe-map{animation:globeMapTurn 10s linear infinite}
-.club-wordmage-globe.globe-turning .wordmage-globe-map{animation:globeMapTurn 1.5s cubic-bezier(.3,.05,.3,1) infinite}
 .committee-restroom>.wordmage-passage{animation:globePassageIn 1.9s ease both}
 .club-chat-drawer.magic-chat-parchment{top:50%;left:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(640px,calc(100% - 32px));height:min(840px,calc(100svh - 64px));border:1px solid #b39768;border-radius:12px;background:radial-gradient(ellipse at 30% 0,#fff7dc,#f0dfb9 65%,#e2c99e);color:#554150;box-shadow:0 25px 100px #080410aa,0 0 55px #cfa3e344;animation:parchmentOpen .45s cubic-bezier(.2,.8,.2,1) both;overflow:visible}
 .magic-chat-parchment::before,.magic-chat-parchment::after{content:"";position:absolute;z-index:4;left:-12px;right:-12px;top:-10px;bottom:auto;height:19px;border:1px solid #bc9a67;border-radius:12px;background:linear-gradient(180deg,#7d5944,#f2d3a0 35%,#b58a59 65%,#5b3c37);opacity:1;pointer-events:none;box-shadow:0 3px 8px #6c423e33}
@@ -77,20 +96,13 @@
 .game-room-toolbar button:focus-visible,.game-room-caption button:focus-visible{outline:2px solid #a783a6;outline-offset:3px}
 .game-cabinet{position:absolute;z-index:3;inset:0;pointer-events:none}
 .cabinet-game{position:absolute;left:var(--prop-x);top:var(--prop-base);width:11.8%;height:11%;padding:0;border:0;background:none;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;transition:filter .2s;filter:drop-shadow(0 4px 3px #886c5320);touch-action:manipulation}
-.cabinet-miniature{display:block;width:100%;height:100%;overflow:visible}
-.cabinet-game:hover,.cabinet-game:focus-visible{filter:drop-shadow(0 0 9px #fff8dccc) brightness(1.05);outline:none}
+.cabinet-miniature{display:block;position:relative;width:100%;height:100%;overflow:visible}
+.cabinet-game:hover,.cabinet-game:focus-visible{filter:brightness(1.035);outline:none}
 .cabinet-game:focus-visible::after{content:"";position:absolute;inset:0;border:2px solid #bb91b6;border-radius:12px}
 .cabinet-game-name{position:absolute;z-index:6;left:50%;bottom:105%;width:max-content;max-width:180px;padding:10px 14px;border:1px solid #d7b4b0;border-radius:12px;background:#fffaf2f5;box-shadow:0 5px 20px #9a747c25;text-align:center;opacity:0;transform:translate(-50%,6px);transition:opacity .2s,transform .2s;pointer-events:none;color:#79586f}
 .cabinet-game-name strong{display:block;font-size:13px;font-weight:600}.cabinet-game-name small{display:block;font-size:10px;color:#a48288;margin-top:3px}
 .cabinet-game:hover .cabinet-game-name,.cabinet-game:focus-visible .cabinet-game-name{opacity:1;transform:translate(-50%,0)}
 .cabinet-empty-place{position:absolute;left:90%;top:62%;transform:translate(-50%,-50%);color:#d8b5ad88;font-size:3cqw;pointer-events:none}
-.miniature-idle,.miniature-moon{transform-origin:75px 84px;animation:miniatureRock 5s ease-in-out var(--prop-delay,0s) infinite}
-.miniature-crystal{transform-origin:75px 55px;animation:miniatureCrystal 4s ease-in-out infinite}
-.potion-bubble{animation:tinyBubble 3.5s ease-in-out infinite}.miniature-vial:nth-child(2) .potion-bubble{animation-delay:-1.3s}
-.sigil-lamp{animation:scrollTwinkle 2.8s ease-in-out infinite}
-.miniature-fish{animation:tinyFish 6s ease-in-out infinite;transform-origin:75px 60px}
-.aquarium-bubbles{animation:tinyBubble 4.5s ease-in-out infinite}
-.miniature-fire{animation:tinyFire 3.5s ease-in-out infinite;transform-origin:40px 88px}.miniature-water{animation:tinyFire 4s ease-in-out -2s infinite;transform-origin:98px 88px}
 .game-room-console,.game-room-door,.game-room-lamp{position:absolute;z-index:2;border:0;background:transparent;cursor:pointer;border-radius:20px}
 .game-room-console{left:25%;top:43%;width:24%;height:13%}.game-room-door{left:5.5%;top:19%;width:7%;height:37%}.game-room-lamp{left:17%;top:25%;width:9%;height:30%}
 .game-room-console>span,.game-room-door>span,.game-room-lamp>span{position:absolute;left:50%;bottom:100%;background:#fff9eff0;border:1px solid #cfb2a5;border-radius:12px;padding:8px 12px;color:#846979;font-size:12px;white-space:nowrap;opacity:0;transform:translateX(-50%);pointer-events:none;transition:opacity .2s}
