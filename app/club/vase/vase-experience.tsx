@@ -90,11 +90,12 @@ export function VaseExperience({ room, citizenId, memberName, onRoomChange }: Pr
   }
 
   async function select(selection: string) {
-    if (locked.current || selection === current) return;
+    if (locked.current) return;
     locked.current = true; setBusy(true); setError("");
     try {
       const result = await save("vase", selection, crypto.randomUUID());
       if (!alive.current) return;
+      drawId.current = null; // An explicit manual choice starts a fresh future draw.
       onRoomChange(result.room); setPane(null);
     } catch (reason) { if (alive.current) setError(reason instanceof Error ? reason.message : "这次更换没有完成。"); }
     finally { locked.current = false; if (alive.current) setBusy(false); }
