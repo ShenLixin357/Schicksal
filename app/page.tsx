@@ -697,8 +697,8 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
     const timer = window.setInterval(() => {
       const params = new URLSearchParams({ citizenId: citizen.id, itemId: activeItem.id, scope: "live" });
       fetch(`/api/parliament?${params.toString()}`)
-        .then((response) => response.json())
-        .then((board: ParliamentBoard) => applyLiveBoard(board))
+        .then(async (response) => { if (!response.ok) throw new Error("Live meeting unavailable"); return await response.json() as ParliamentBoard; })
+        .then((board) => applyLiveBoard(board))
         .catch(() => undefined);
     }, 4_000);
     return () => window.clearInterval(timer);
