@@ -1,3 +1,5 @@
+import { requireMember } from "../../../../server/auth/member.ts";
+import { ApiError } from "../../../../server/http.ts";
 import { eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { getDb } from "../../../../db";
@@ -7,6 +9,7 @@ import { getPhotoStorage, PhotoStorageError } from "../../../photo-storage";
 
 export async function GET(request: Request) {
   try {
+    await requireMember(request);
     const id = new URL(request.url).searchParams.get("id")?.trim();
     if (!id) return new Response("Missing photo id", { status: 400 });
     const storage = getPhotoStorage(env);
@@ -31,8 +34,8 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    return new Response(error instanceof PhotoStorageError ? error.message : "照片暂时无法读取。", {
-      status: error instanceof PhotoStorageError ? error.status : 500,
+    return new Response(error instanceof ApiError || error instanceof PhotoStorageError ? error.message : "照片暂时无法读取。", {
+      status: error instanceof ApiError || error instanceof PhotoStorageError ? error.status : 500,
       headers: { "Cache-Control": "no-store" },
     });
   }

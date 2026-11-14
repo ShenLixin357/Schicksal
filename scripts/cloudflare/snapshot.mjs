@@ -20,8 +20,10 @@ export async function schemaSql(root) {
 }
 export async function validateSnapshot(snapshot, root) {
   assert.equal(snapshot.version, 1); assert.ok(Array.isArray(snapshot.tables));
-  const database = new DatabaseSync(":memory:"); const schema = await schemaSql(root); database.exec(schema);
+  const database = new DatabaseSync(":memory:"); database.exec(await schemaSql(root));
+  const schema = database.prepare("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, rowid").all().map(row => `${row.sql};`).join("\n");
   const expected = database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all().map((row) => row.name).sort();
+  for (const table of expected) database.exec(`DELETE FROM ${identifier(table)}`);
   assert.deepEqual(snapshot.tables.map((table) => table.table_name).filter((name) => !OMIT_TABLES.has(name)).sort(), expected.filter((name) => !OMIT_TABLES.has(name)), "Every application table must be represented");
   const statements = [], counts = Object.fromEntries([...OMIT_TABLES].map((name) => [name, 0]));
   for (const table of snapshot.tables) {

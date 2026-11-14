@@ -1,3 +1,4 @@
+// Historical generation metadata only. Use db:new/db:seal/db:check for ordered SQL.
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
