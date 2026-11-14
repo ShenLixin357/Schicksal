@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && node scripts/insaniquarium/check-resources.mjs && vinext build",
     "start": "vinext start",
-    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge",
+    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello",
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
     "test:minigames": "node --experimental-transform-types --test tests/potion-sort-engine.test.ts tests/merge-game-engine.test.ts tests/chryser-games.test.ts",
     "test:mafraer": "node --experimental-transform-types --test tests/mafraer-magic.test.ts tests/mafraer-observatory.test.ts",
@@ -31,7 +31,8 @@
     "test:ice-fire": "node --test tests/ice-fire-compat.test.mjs tests/ice-fire-import.test.mjs",
     "game:build-native": "bash ports/insaniquarium/build-web.sh",
     "test:insaniquarium": "node --experimental-transform-types --test tests/insaniquarium-api.test.mjs tests/insaniquarium-client.test.mjs tests/insaniquarium-runtime.test.mjs tests/insaniquarium-zip.test.mjs tests/insaniquarium-hosted-assets.test.mjs",
-    "test:lounge": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/lounge-chat-history.test.mjs"
+    "test:lounge": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/lounge-chat-history.test.mjs",
+    "test:cello": "node --experimental-strip-types --test tests/emerald-cello.test.mjs tests/cello-audio.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

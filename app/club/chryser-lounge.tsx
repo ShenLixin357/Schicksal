@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { CelloCorner } from "./cello/cello-corner";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { MiniGameSystem, useMiniGameSystem } from "./minigames/mini-game-system";
 import type { EmblemBlade, MiniGameId } from "./minigames/mini-game-types";
@@ -138,6 +139,7 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
     <div className="chryser-lounge-stage">
       <Image className="chryser-lounge-art" src="/chryser-private-lounge.png" alt="暗翡翠与古金色的欧洲古典私人 Lounge：壁炉、炉台座钟、翡翠扶手椅、书桌与拱窗" fill sizes="(max-width: 760px) 100vw, calc(100vw - 248px)" priority unoptimized />
       <div className="chryser-lounge-shade" aria-hidden="true" />
+      <CelloCorner citizenId={citizenId} soundEnabled={soundEnabled} />
       <div className="chryser-lounge-title"><small>PRIVATE LOUNGE · ROOM NO. 02</small><h1>LORD CHRYSER’S <em>LOUNGE</em></h1><p>The Jade Ember · 翡翠余烬</p></div>
       <div className="chryser-rain-window" aria-hidden="true">{Array.from({ length: 26 }, (_, index) => <i key={index} style={{ "--rain-index": index, left: `${(index * 37) % 100}%`, animationDelay: `${-index * .29}s`, animationDuration: `${1.6 + index % 5 * .25}s` } as CSSProperties} />)}</div>
       <div className="chryser-window-mist" aria-hidden="true" />
@@ -168,3 +170,4 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
     </aside>}
   </section>;
 }
+

@@ -1,0 +1,170 @@
+/* Independent art plane and interface; no changes to the room's furniture or stage. */
+.cello-corner-scene{position:absolute;z-index:7;aspect-ratio:2/3;transform:rotate(var(--cello-rotation,0deg));transform-origin:58% 95%;isolation:isolate;pointer-events:none}
+.cello-corner-scene>img{display:block;width:100%;height:auto;pointer-events:none;filter:brightness(.77) saturate(.82)}
+.cello-scene-hit{position:absolute;display:block;min-width:32px;min-height:32px;padding:0;border:0!important;border-radius:0;background:transparent!important;box-shadow:none!important;cursor:pointer;opacity:1;pointer-events:auto}
+.cello-scene-hit:focus-visible{outline:1px solid rgba(230,210,155,.85);outline-offset:3px}
+.cello-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.cello-dialog,.cello-recovery{--ink:#3e3328;--paper:#eee2c6;--gold:#b6a271;--forest:#142e25;position:fixed;inset:0;z-index:1200;color:#eee4ca;background:#0b1a14;font-family:Georgia,'Noto Serif SC','Songti SC',serif;box-sizing:border-box}
+.cello-dialog *{box-sizing:border-box}
+.cello-dialog{display:flex;flex-direction:column;height:100dvh;overflow:hidden;animation:cello-dialog-reveal .25s ease both;background:radial-gradient(ellipse at 28% 40%,rgba(54,71,39,.14),transparent 65%),linear-gradient(120deg,rgba(6,17,12,.96),rgba(8,18,14,.98)),url('/chryser-private-lounge.png') center/cover}
+.cello-dialog button,.cello-dialog input,.cello-dialog textarea,.cello-dialog select{font:inherit}
+.cello-dialog button{min-height:38px;border:1px solid #b8a57855;padding:8px 15px;border-radius:3px;background:#dfcf9e0b;color:inherit;cursor:pointer;transition:background .18s,border-color .18s}
+.cello-dialog button:hover{background:#d4ba7820;border-color:#d4ba7890}
+.cello-dialog button:disabled{opacity:.42;cursor:default}
+.cello-dialog :focus-visible{outline:2px solid #c5a45b;outline-offset:3px}
+.cello-dialog select,.cello-dialog input:not([type=checkbox]):not([type=range]),.cello-dialog textarea{border:1px solid #a9926266;border-radius:3px;background:#fff9e850;color:var(--ink);padding:9px 11px;max-width:100%}
+.cello-dialog select{color:inherit;background:#112a21}
+.cello-dialog input[type=checkbox]{accent-color:#3b6349}
+.cello-dialog input[type=range]{accent-color:#baa16b;width:110px;max-width:30vw}
+.cello-dialog-bar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:19px clamp(20px,4vw,64px) 12px;border-bottom:1px solid #bda97c29}
+.cello-dialog-bar small{font:10px/1.5 Arial,sans-serif;letter-spacing:.24em;color:#afa47e}
+.cello-dialog-bar h2{font-size:24px;font-weight:400;letter-spacing:.13em;margin:5px 0}
+.cello-dialog .cello-close{width:43px;height:43px;border-radius:50%;font:28px/1 Georgia,serif;padding:0}
+.cello-dialog-nav{display:flex;flex-shrink:0;gap:10px;align-items:center;padding:10px clamp(20px,4vw,64px);font-size:13px}
+.cello-dialog-nav button{border:0;border-bottom:1px solid transparent;background:transparent;padding:6px 12px;min-height:34px;border-radius:0;color:#c5bea6}
+.cello-dialog-nav button[aria-current=page]{color:#f1dfae;border-color:#c5aa69}
+.cello-dialog-nav>label{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;color:#aaa58e;white-space:nowrap}
+.cello-dialog-main{overflow:auto;overscroll-behavior:contain;flex:1;min-height:0;padding:4px clamp(16px,3.5vw,60px) 26px;scrollbar-width:thin;scrollbar-color:#8b7950 transparent}
+.cello-trial{max-width:1070px;margin:auto;min-height:100%;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:40px;align-items:center}
+.cello-trial-art{position:relative;width:auto;height:min(71dvh,760px);aspect-ratio:2/3;justify-self:center;will-change:transform}
+.cello-trial-art>img{display:block;width:100%;height:100%;object-fit:contain;filter:brightness(.94) saturate(.9)}
+.cello-string-animation{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.cello-vibrating-string{fill:none;stroke:#d2c5ab;stroke-width:.12;animation:cello-string-quiver .68s ease-out both;transform-origin:57% 35%;vector-effect:non-scaling-stroke}
+@keyframes cello-string-quiver{0%{transform:translateX(0);opacity:.85}12%{transform:translateX(.13px)}24%{transform:translateX(-.13px)}36%{transform:translateX(.1px)}48%{transform:translateX(-.08px)}64%{transform:translateX(.05px);opacity:.6}100%{transform:translateX(0);opacity:0}}
+.cello-dialog .cello-trial-string-hit,.cello-dialog .cello-trial-score-hit{position:absolute;border:0;background:transparent;box-shadow:none;min-height:0;padding:0}
+.cello-trial-string-hit{left:45%;top:14%;width:26%;height:48%;clip-path:polygon(70% 0,100% 0,45% 100%,0 100%);touch-action:manipulation}
+.cello-trial-score-hit{left:4%;top:42%;width:32%;height:13%}
+.cello-dialog .cello-trial-string-hit:hover,.cello-dialog .cello-trial-score-hit:hover{background:transparent;border:0}
+.cello-trial-notes{max-width:385px;padding:20px 0}
+.cello-trial-notes>small{font:11px Arial,sans-serif;letter-spacing:.25em;color:#b4a16e}
+.cello-trial-notes h3{font-size:clamp(32px,4vw,58px);line-height:1.5;letter-spacing:.06em;font-weight:400;margin:20px 0}
+.cello-trial-notes h3 em{font-style:normal;color:#b6c49e}
+.cello-trial-notes p{font-size:14px;line-height:2;color:#bcbda7}
+.cello-open-strings{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:28px 0 17px}
+.cello-dialog .cello-open-strings button{min-height:78px;padding:10px 5px;background:linear-gradient(#36433144,#181f1744);border-color:#c1aa6e55}
+.cello-open-strings strong{font-size:22px;font-weight:400;display:block}
+.cello-open-strings small{font:9px Arial,sans-serif;display:block;margin-top:8px;color:#b6ad8d}
+.cello-dialog .cello-open-strings .sounded{border-color:#c9ad6c;background:#b6aa7020}
+.cello-dialog .cello-manuscript-link{border:0;border-bottom:1px solid #c6ad6855;background:none;padding:12px 0;letter-spacing:.06em;color:#e1c890}
+.cello-dialog .cello-fine-print{font-size:12px;line-height:1.9;opacity:.76}
+.cello-audio-bar{display:flex;flex-shrink:0;align-items:center;gap:14px;padding:10px clamp(18px,3.5vw,60px);border-top:1px solid #bda97c29;background:#07150ff5;font-size:12px}
+.cello-audio-bar label{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.cello-audio-bar>span{margin-left:auto;color:#a9b295;font-size:11px;line-height:1.5}
+.cello-audio-bar button{min-height:32px;padding:5px 12px}
+.cello-book,.cello-melody-collection{max-width:1220px;margin:0 auto}
+.cello-book-index{display:flex;align-items:center;gap:20px;min-height:65px;padding-bottom:12px}
+.cello-book-owner{font-size:14px;letter-spacing:.17em;margin-right:auto;color:#d5c08d}
+.cello-book-owner small{font:8px/1.9 Arial,sans-serif;display:block;letter-spacing:.25em;color:#9ca78d}
+.cello-book-index select{max-width:330px;min-width:180px;font-size:13px}
+.cello-book-index button{font-size:12px}
+.cello-book-spread{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.9fr);gap:2px;perspective:1000px;animation:cello-page-turn .35s ease both;filter:drop-shadow(0 15px 24px #0005)}
+.cello-paper{color:var(--ink);background:radial-gradient(ellipse at 40% 15%,#fff9eaa0,transparent 65%),repeating-linear-gradient(0deg,#72562d05 0px,#72562d05 1px,transparent 1px,transparent 4px),linear-gradient(100deg,#ddcdad,#eee1c3 14%,#f2e6cb 82%,#e0d0ac);border:1px solid #d6bf8a;padding:clamp(23px,3vw,48px);position:relative}
+.cello-score-page{border-radius:5px 0 0 5px;min-height:500px;box-shadow:inset -15px 0 22px -22px #3a250dd0}
+.cello-margin-page{border-radius:0 5px 5px 0;box-shadow:inset 15px 0 22px -22px #3a250dd0;line-height:1.9;padding-top:65px}
+.cello-dialog .cello-paper button{border-color:#80653c55;background:#90673509}
+.cello-dialog .cello-paper button:hover{background:#8d713c18;border-color:#80653c99}
+.cello-dialog .cello-primary,.cello-dialog .cello-paper .cello-primary{background:#234438;color:#f6ebd1;border-color:#516c4c}
+.cello-page-number{position:absolute;right:25px;top:21px;font:10px Arial,sans-serif;color:#8e7950}
+.cello-page-heading{text-align:center;margin:16px 0 27px}
+.cello-page-heading>small,.cello-margin-page>small,.cello-collection-heading small{font:9px/1.8 Arial,sans-serif;letter-spacing:.2em;color:#8b7447}
+.cello-page-heading h2{font-size:clamp(24px,2.8vw,37px);font-weight:400;letter-spacing:.07em;line-height:1.5;margin:9px 0}
+.cello-page-heading p{font-size:13px;line-height:1.8;margin:4px 0;color:#7b6b51}
+.cello-margin-page h3{font-weight:400;font-size:24px;margin:8px 0 24px}
+.cello-margin-page p{font-size:14px;line-height:2}
+.cello-book-mark{position:absolute;right:32px;top:-1px;width:21px;height:46px;background:linear-gradient(90deg,#315544,#4b6650,#244937);clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);box-shadow:2px 3px 6px #0004}
+.cello-staff{color:#50432e;width:100%;margin:14px 0;overflow:hidden}
+.cello-staff svg{display:block;width:100%;height:auto;min-height:90px;overflow:visible}
+.cello-staff line{stroke:currentColor;stroke-width:.65}
+.cello-staff .staff-line{opacity:.6}
+.cello-staff text{fill:#a18a5d;font:9px Georgia,serif}
+.staff-note{transition:color .15s}
+.staff-note.active{color:#356548}
+.cello-score-writing{font-size:15px;line-height:2.1;white-space:pre-wrap;overflow-wrap:anywhere;margin:24px 0}
+.cello-score-scan{display:block;max-width:100%;max-height:570px;object-fit:contain;margin:auto;background:#f7efdc}
+.cello-page-navigation{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;margin-top:15px}
+.cello-handwritten{font-style:italic;color:#756449;white-space:pre-wrap;overflow-wrap:anywhere}
+.cello-handwritten>span{font:10px/1.7 Arial,sans-serif;color:#8b7957}
+.cello-recording{margin:24px 0;border-top:1px solid #9c865044;padding-top:18px}
+.cello-recording>small,.cello-recording>span{display:block;font-size:11px;overflow-wrap:anywhere}
+.cello-recording audio{width:100%;height:36px;margin:10px 0;filter:sepia(.5) saturate(.65)}
+.cello-book-invitations{border-top:1px solid #9c865044;border-bottom:1px solid #9c865044;margin:30px 0 15px;padding:12px 0;display:grid;gap:8px}
+.cello-dialog .cello-book-invitations>button{border:0;background:none;text-align:left;padding:9px 0;font-size:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cello-book-invitations small{font-size:10px;color:#8d7e5d}
+.cello-book-footer{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 5px;font-size:12px;color:#b7ac8e}
+.cello-book-footer>span{font-size:11px}
+.cello-collection-tools{display:grid;gap:10px;font-size:12px;padding-top:15px}
+.cello-collection-tools>small{font-size:10px;color:#8c7958;line-height:1.6}
+.cello-upload-button{display:block;padding:10px 14px;border:1px dashed #9c865077;cursor:pointer;position:relative;overflow:hidden}
+.cello-upload-button>small{display:block;font:10px/1.8 Arial,sans-serif;opacity:.65}
+.cello-upload-button>input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.cello-upload-button:focus-within{outline:2px solid #9d8046;outline-offset:2px}
+.cello-upload-button:has(input:disabled){opacity:.4;pointer-events:none}
+.cello-file-entry{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #9c865033;padding-bottom:8px}
+.cello-file-entry>span{font-size:11px;flex:1;overflow-wrap:anywhere}
+.cello-file-entry>button{min-height:28px;padding:3px 7px;font-size:11px}
+.cello-permissions{font-size:12px;margin-top:25px;padding-top:15px;border-top:1px solid #9c865044}
+.cello-permissions summary{cursor:pointer;color:#806a40}
+.cello-permissions p{font-size:11px}
+.cello-permissions label{font-size:11px;line-height:1.8;display:block}
+.cello-score-editor{border-radius:4px;max-width:800px;margin:0 auto}
+.cello-dialog fieldset{border:0;padding:0;margin:0;min-width:0}
+.cello-score-editor label{display:grid;gap:8px;font-size:13px;margin:17px 0}
+.cello-score-editor label small{font-size:10px;opacity:.65}
+.cello-score-editor textarea{resize:vertical}
+.cello-score-editor footer{display:flex;gap:12px;justify-content:flex-end;margin-top:20px}
+.cello-status{padding:13px 17px;border:1px solid #a6a27b44;font-size:13px;line-height:1.8;border-radius:3px}
+.cello-paper .cello-status{border-color:#9f805955;color:#675132}
+.cello-status.error{color:#9e4936;background:#c4856410}
+.cello-global-error{position:fixed;bottom:68px;left:50%;transform:translateX(-50%);width:min(700px,90vw);padding:14px 20px;border:1px solid #aa825a77;background:#281e16f5;color:#f2d2b4;z-index:5;font-size:13px;line-height:1.8}
+.cello-global-error button{margin-left:12px}
+.cello-loading{padding:100px 20px;text-align:center;font-size:14px;color:#c8c0a4}
+.cello-composer{max-width:1000px;margin:20px auto;border-radius:5px;filter:drop-shadow(0 15px 24px #0005)}
+.cello-composer legend{font-size:14px;padding:0 0 13px;width:100%}
+.cello-composer legend>span{float:right;font-size:11px;opacity:.65}
+.cello-pitch-keys{display:grid;grid-template-columns:repeat(9,1fr);gap:8px}
+.cello-dialog .cello-pitch-keys>button{min-height:73px;padding:10px 3px;font-size:20px;background:linear-gradient(#fffdf4a0,#e8d8b5);box-shadow:0 3px 0 #bdab82}
+.cello-pitch-keys small{font-size:11px;display:block;color:#8c7958;margin-top:8px}
+.cello-editor-line{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:24px 0;font-size:12px}
+.cello-editor-line label{display:flex;align-items:center;gap:7px}
+.cello-editor-line input[type=number]{width:70px}
+.cello-editor-line select{color:var(--ink);background:#f4ead4}
+.cello-editor-line button{font-size:12px}
+.cello-message-label{display:grid;gap:10px;font-size:13px;margin:24px 0 16px}
+.cello-message-label textarea{height:76px;resize:vertical}
+.cello-compose-footer>span{display:block;font-size:11px;color:#8b7854;line-height:1.8}
+.cello-compose-footer>div{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+.cello-note-sequence{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 24px;max-height:110px;overflow:auto}
+.cello-note-sequence button{font-size:11px;padding:5px 8px;min-height:31px}
+.cello-note-sequence small{opacity:.6;font-size:9px}
+.cello-dialog .cello-note-sequence .selected{background:#60794a20;border-color:#59734d}
+.cello-collection-heading{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:16px 0 25px}
+.cello-collection-heading small{color:#b7a77b}
+.cello-collection-heading h2{font-size:28px;font-weight:400;margin:10px 0}
+.cello-melody-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.cello-melody-card{padding:25px;border-radius:4px;animation:cello-card-arrive .4s ease both}
+.cello-melody-card header{display:flex;align-items:baseline;gap:12px;justify-content:space-between;flex-wrap:wrap}
+.cello-melody-card h3{font-weight:400;font-size:18px;margin:0}
+.cello-melody-card time{font:10px/1.8 Arial,sans-serif;color:#8d7b58}
+.cello-melody-card .cello-staff{margin:5px 0}
+.cello-melody-card p{line-height:1.9;font-size:14px;margin-top:0}
+.cello-melody-card footer{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-top:1px solid #9c865033;padding-top:12px;font-size:11px}
+.cello-melody-card footer>span{margin-right:auto;opacity:.7}
+.cello-melody-card button{font-size:12px;padding:5px 10px;min-height:33px}
+.cello-empty-melodies{max-width:740px;margin:auto;text-align:center;font-size:14px;line-height:2}
+.cello-load-more{display:block;margin:28px auto}
+.cello-recovery{display:grid;align-content:center;justify-items:center;gap:16px;padding:20px;text-align:center}
+.cello-recovery button{background:#19372a;color:#e8dcc0;border:1px solid #b6a27177;padding:12px 20px;cursor:pointer}
+@keyframes cello-dialog-reveal{from{opacity:0}to{opacity:1}}
+.cello-dialog.cello-reduced{animation:none!important}
+@keyframes cello-page-turn{from{opacity:.65;transform:rotateY(-2deg) translateX(-4px)}to{opacity:1;transform:none}}
+@keyframes cello-card-arrive{from{opacity:.5;transform:translateY(10px)}to{opacity:1;transform:none}}
+.cello-reduced *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media(max-width:760px){
+ .cello-dialog-bar{padding:13px 16px 8px}.cello-dialog-bar h2{font-size:19px}.cello-dialog-bar small{font-size:8px}.cello-dialog .cello-close{width:38px;height:38px}
+ .cello-dialog-nav{padding:5px 12px;gap:2px;flex-wrap:wrap}.cello-dialog-nav button{font-size:12px;padding:6px 9px}.cello-dialog-nav>label{font-size:10px;gap:3px}
+ .cello-dialog-main{padding:4px 13px 20px}.cello-trial{grid-template-columns:1fr;gap:0;min-height:0}.cello-trial-art{height:min(50dvh,480px);margin:0 auto}.cello-trial-notes{max-width:500px;text-align:center;padding:6px 0 12px;margin:auto;width:100%}.cello-trial-notes>small,.cello-trial-notes>p:not(.cello-fine-print){display:none}.cello-trial-notes h3{font-size:22px;margin:0 0 10px;line-height:1.5}.cello-trial-notes h3 br{display:none}.cello-open-strings{margin:10px 0;gap:8px}.cello-dialog .cello-open-strings button{min-height:60px}.cello-open-strings strong{font-size:21px}.cello-trial-notes .cello-fine-print{font-size:10px;margin:8px 0}.cello-dialog .cello-manuscript-link{font-size:13px;min-height:35px;padding:5px 0}
+ .cello-audio-bar{padding:8px 12px;gap:9px;flex-wrap:wrap}.cello-audio-bar input[type=range]{width:85px}.cello-audio-bar>span{flex-basis:100%;margin:0;font-size:10px;order:5}.cello-audio-bar label{gap:6px;font-size:11px}.cello-audio-bar button{font-size:11px;padding:5px 9px}
+ .cello-book-index{gap:10px;flex-wrap:wrap;padding:12px 1px}.cello-book-owner{font-size:12px;flex:1}.cello-book-index select{min-width:0;max-width:100%;flex-basis:100%;order:3;font-size:12px}.cello-book-index button{font-size:11px;padding:5px 10px}
+ .cello-book-spread{grid-template-columns:1fr;gap:0}.cello-paper{padding:25px 20px}.cello-score-page{min-height:330px;border-radius:4px 4px 0 0;box-shadow:inset 0 -13px 20px -23px #3a250d}.cello-margin-page{padding-top:40px;border-radius:0 0 4px 4px;box-shadow:none;border-top:1px solid #b4a07655}.cello-page-heading{margin:15px 0 20px}.cello-page-heading h2{font-size:25px}.cello-book-footer{gap:9px;padding:14px 0}.cello-book-footer>span{font-size:9px}.cello-book-footer button{font-size:11px;padding:6px 9px}.cello-staff svg{min-height:76px}.cello-composer{margin:13px auto}.cello-composer .cello-page-heading p{font-size:11px}.cello-pitch-keys{grid-template-columns:repeat(5,1fr);gap:8px}.cello-dialog .cello-pitch-keys>button{min-height:60px;font-size:18px}.cello-editor-line{gap:10px}.cello-editor-line select{font-size:11px}.cello-editor-line input[type=number]{width:65px}.cello-compose-footer>div{justify-content:flex-start}.cello-compose-footer button{font-size:12px}.cello-collection-heading{gap:12px;align-items:flex-start}.cello-collection-heading h2{font-size:23px}.cello-collection-heading button{font-size:12px;padding:8px 10px}.cello-collection-heading small{font-size:7px}.cello-melody-cards{grid-template-columns:1fr;gap:16px}.cello-melody-card{padding:23px 18px}.cello-melody-card h3{font-size:16px}.cello-melody-card time{font-size:9px}.cello-global-error{bottom:100px;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.cello-dialog,.cello-dialog *,.cello-corner-scene{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
