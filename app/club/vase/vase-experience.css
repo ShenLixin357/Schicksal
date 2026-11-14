@@ -1,0 +1,70 @@
+.vase-anchor { display: none; }
+.vase-experience-hotspot { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.vase-experience-hotspot:focus-visible { outline: 1px solid #eac994; outline-offset: 5px; }
+.vase-experience-layer { position: absolute; z-index: 70; inset: 0; isolation: isolate; color: #f0e4d2; }
+.vase-pane-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #0e071827; cursor: default; }
+.vase-experience-menu { position: absolute; right: 3%; top: 16%; width: min(310px,calc(100% - 28px)); max-height: 76%; display: flex; flex-direction: column; border: 1px solid #c9a56b67; border-radius: 15px; padding: 20px 21px 12px; background: linear-gradient(145deg,#211126f7,#120d1bf7); box-shadow: 0 22px 65px #0503089c,inset 0 0 0 5px #c9a56b09; backdrop-filter: blur(18px); animation: vasePaneIn .22s ease-out; outline: none; }
+.vase-experience-menu > header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid #b58e5233; }
+.vase-experience-menu > header small { display: block; font: 8px Georgia,serif; letter-spacing: .19em; color: #c4a77f; }
+.vase-experience-menu h2 { margin: 6px 0 0; font: 400 18px var(--serif,Georgia,serif); letter-spacing: .05em; color: #f1dfc4; }
+.vase-experience-menu .vase-close { border: 0; background: transparent; color: #cbb9a1; font: 25px Georgia,serif; width: 32px; height: 32px; padding: 0; cursor: pointer; }
+.vase-experience-menu button:focus-visible { outline: 1px solid #e2bd82; outline-offset: 2px; }
+.vase-experience-menu button:disabled { cursor: wait; opacity: .55; }
+.vase-name-list,.vase-history-scroll { overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: #80633f transparent; overscroll-behavior: contain; }
+.vase-name-list { padding: 2px 3px 7px 0; }
+.vase-name-list section { margin-top: 16px; }
+.vase-name-list h3 { margin: 0 0 5px; font: 500 10px var(--sans,serif); color: #aa947d; letter-spacing: .16em; }
+.vase-name-list ul,.vase-history-scroll ol { list-style: none; padding: 0; margin: 0; }
+.vase-name-list li button { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 34px; padding: 6px 9px; border: 0; border-radius: 4px; background: transparent; color: #e0d2c4; text-align: left; font: 13px var(--sans,sans-serif); letter-spacing: .035em; cursor: pointer; transition: color .18s,background .18s,padding-left .18s; }
+.vase-name-list li button:hover,.vase-name-list li button.selected { background: #d1a25d0c; color: #f8d597; padding-left: 13px; }
+.vase-name-list li button > span { font-size: 23px; line-height: .6; color: #e9c17f; }
+.vase-experience-menu > footer { flex: none; display: flex; align-items: center; justify-content: center; position: relative; border-top: 1px solid #b58e5233; margin-top: 8px; padding-top: 8px; }
+.vase-guess-button { display: block; width: 205px; max-width: 90%; padding: 1px 5px; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 1px 5px #e2b87817); transition: filter .2s,transform .2s; }
+.vase-guess-button img { display: block; width: 100%; height: 57px; object-fit: contain; }
+.vase-guess-button:hover { transform: rotate(-1deg) translateY(-1px); filter: drop-shadow(0 0 7px #edc17765); }
+.vase-quiet-button { border: 0; background: transparent; color: #bfa588; padding: 9px; font: 11px var(--sans,sans-serif); cursor: pointer; }
+.vase-quiet-button:hover { color: #f2d7b1; }
+.vase-history-link { position: absolute; right: -12px; bottom: -1px; writing-mode: vertical-rl; font-size: 10px; letter-spacing: .15em; }
+.vase-history-scroll { padding: 9px 0; }
+.vase-history-scroll li { padding: 13px 0; border-bottom: 1px solid #c9a56b1c; }
+.vase-history-scroll li > div { display: flex; flex-wrap: wrap; gap: 5px 10px; align-items: baseline; }
+.vase-history-scroll li strong { font-size: 12px; font-weight: 500; color: #e4caa6; }
+.vase-history-scroll li span { font-size: 12px; color: #d3c1d1; }
+.vase-history-scroll time { display: block; margin-top: 5px; color: #a797a2; font-size: 9px; letter-spacing: .02em; }
+.vase-experience-menu .vase-error { margin: 11px 0 0; padding: 9px; color: #f1b8b2; background: #8c49451c; font-size: 11px; line-height: 1.7; }
+.vase-empty { margin: 18px 0; font-size: 12px; line-height: 1.8; color: #bba8bc; }
+.vase-experience-layer.has-draw { background: #0b071bd6; backdrop-filter: blur(7px); }
+.vase-draw-dialog { position: absolute; inset: 0; display: grid; place-items: center; outline: none; }
+.vase-draw-surface { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; padding: 0; background: transparent; display: grid; place-items: center; perspective: 1200px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.vase-draw-card,.vase-draw-stack { display: block; position: absolute; width: min(245px,50vw); height: min(350px,64vh); }
+.vase-draw-card { transform-style: preserve-3d; transition: transform .65s cubic-bezier(.2,.7,.25,1); }
+.vase-draw-stack > i { position: absolute; inset: 0; border: 1px solid #c4a27670; border-radius: 15px; background: #291833; transform: rotate(-7deg) translateX(-13px); box-shadow: 0 7px 25px #0004; }
+.vase-draw-stack > i + i { transform: rotate(6deg) translateX(12px); }
+.vase-card-back,.vase-card-front { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; border: 1px solid #cfaf7d; border-radius: 15px; box-shadow: inset 0 0 0 6px #b58c4e13,inset 0 0 0 7px #c7a67155,0 20px 60px #0008; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; background: radial-gradient(ellipse at 50% 35%,#49314f,#211327 70%); }
+.vase-card-back::before { content: ""; position: absolute; inset: 21px; border: 1px solid #c4a2764a; border-radius: 50% 50% 8px 8px; }
+.vase-card-back img { position: relative; width: 90%; height: 95px; }
+.vase-card-back b { font-size: 24px; font-weight: 400; color: #d1ae75; margin-top: 25px; text-shadow: 0 0 16px #d9a96066; }
+.vase-card-front { transform: rotateY(180deg); background: radial-gradient(ellipse at 50% 37%,#3a2a4d,#1d1328 75%); padding: 21px 16px; }
+.vase-card-front small { font: 8px Georgia,serif; letter-spacing: .18em; color: #c4a7c9; }
+.vase-card-art { position: relative; width: 100%; height: 75%; display: grid; place-items: center; }
+.vase-card-art .vase-artwork,.vase-card-art > img { max-height: 100%; object-fit: contain; }
+.vase-card-front strong { color: #f1d9b9; text-align: center; font: 400 17px var(--serif,Georgia,serif); }
+.vase-draw-halo { position: absolute; width: min(650px,95vw); aspect-ratio: 1; border-radius: 50%; opacity: 0; pointer-events: none; background: radial-gradient(circle,#d9bcff4a,transparent 65%); }
+.vase-draw-dialog.shuffling .vase-draw-card { animation: vaseCardShuffle .55s ease-in-out infinite alternate; }
+.vase-draw-dialog.shuffling .vase-draw-stack > i { animation: vaseStackShuffle .65s ease-in-out infinite alternate; }
+.vase-draw-dialog.revealing .vase-draw-card { transform: rotateY(180deg); }
+.vase-draw-dialog.revealing .vase-draw-stack { opacity: 0; transition: opacity .3s; }
+.vase-draw-dialog.revealing .vase-draw-halo { animation: vaseRevealHalo 1s ease-out both; }
+.vase-draw-dialog.royal .vase-card-front { border-color: #ffe6a0; background: radial-gradient(ellipse at 50% 38%,#7e5727,#34203c 72%); box-shadow: inset 0 0 0 6px #efd08715,inset 0 0 0 7px #ffe2a15e,0 0 55px #ffcb646b; }
+.vase-draw-dialog.royal .vase-draw-halo { background: repeating-conic-gradient(from 0deg,#ffdf8b00 0deg,#ffe99e99 8deg,#ffdf8b00 16deg),radial-gradient(circle,#ffdd8280,transparent 65%); mask-image: radial-gradient(circle,#000 10%,transparent 70%); }
+.vase-draw-dialog.royal .vase-card-front small,.vase-draw-dialog.royal .vase-card-front strong { color: #ffe5a5; }
+.vase-draw-dialog.diamond .vase-card-front { border-color: #dbf4ff; background: radial-gradient(ellipse at 50% 38%,#486073,#282039 72%); box-shadow: inset 0 0 0 6px #c1eeff15,inset 0 0 0 7px #e0f7ff5e,0 0 55px #baeaff6b; }
+.vase-draw-dialog.diamond .vase-draw-halo { background: repeating-conic-gradient(from 0deg,#d9f4ff00 0deg,#e7f8ff99 8deg,#d9f4ff00 16deg),radial-gradient(circle,#b4dcff80,transparent 65%); }
+.vase-draw-dialog.diamond .vase-card-front small,.vase-draw-dialog.diamond .vase-card-front strong { color: #e3f8ff; }
+.vase-draw-announcement { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+@keyframes vasePaneIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes vaseCardShuffle { from { transform: rotate(-3deg) translateY(-4px); } to { transform: rotate(3deg) translateY(4px); } }
+@keyframes vaseStackShuffle { to { translate: 5px -3px; rotate: 2deg; } }
+@keyframes vaseRevealHalo { 0% { opacity: 0; transform: scale(.5) rotate(-10deg); } 30% { opacity: 1; } 100% { opacity: .3; transform: scale(1.2) rotate(12deg); } }
+@media (max-width: 760px) { .vase-experience-menu { top: 17%; right: 14px; max-height: 76%; padding: 16px 17px 10px; } .vase-name-list li button { min-height: 38px; } .vase-card-front strong { font-size: 15px; } }
+@media (prefers-reduced-motion: reduce) { .vase-experience-layer *, .vase-experience-layer *::before { animation: none !important; transition: none !important; } .vase-experience-hotspot { animation: none !important; } }

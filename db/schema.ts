@@ -289,6 +289,16 @@ export const committeeClubRoom = sqliteTable(
   (table) => [index("committee_club_room_updated_at_idx").on(table.updatedAt)],
 );
 
+// The original room row remains unchanged; these are append-only object memories.
+export const committeeVaseHistory = sqliteTable("committee_vase_history", {
+  seq: integer("seq").primaryKey({ autoIncrement: true }),
+  requestId: text("request_id").notNull().unique(),
+  citizenId: text("citizen_id").notNull(),
+  vaseSelection: text("vase_selection").notNull(),
+  createdAt: text("created_at").notNull(),
+  method: text("method").notNull(),
+});
+
 export const committeeLoungeSeats = sqliteTable(
   "committee_lounge_seats",
   {
@@ -320,3 +330,4 @@ export const memberInsaniquariumSaves = sqliteTable("member_insaniquarium_saves"
   revision: integer("revision").notNull().default(1),
   updatedAt: text("updated_at").notNull(),
 });
+

@@ -4,11 +4,11 @@ import { getDb } from "../../../db";
 import { committeeClubMessages, committeeClubProfiles, committeeClubRoom } from "../../../db/schema";
 import { standaloneMember } from "../../standalone-access";
 import { readHistoryQuery, type ChatCursor } from "../../club/chat-history";
+import { changeVase } from "../../club/vase/vase-server";
 
 const CLUB_MEMBER_IDS = new Set(["amberina", "zxy", "truth"]);
 const CLUB_AVATARS = new Set(["sigil", "crystal_ball", "witch_hat", "pumpkin", "black_cat", "crescent"]);
 const CLUB_STICKERS = new Set(["", "ghost", "sparkles", "pumpkin", "crystal", "bat", "candy", "moon"]);
-const VASE_SELECTIONS = new Set(["autumn", "sunflower", "roses", "tulips", "lavender", "daisies", "cabbage", "popcorn", "lollipop"]);
 
 function cleanText(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -92,6 +92,7 @@ export async function POST(request: Request) {
       maskName?: unknown;
       avatar?: unknown;
       vaseSelection?: unknown;
+      requestId?: unknown;
       seatIndex?: unknown;
     };
     const citizenId = standaloneMember(request, env) || cleanText(payload.citizenId, 40);
@@ -126,15 +127,7 @@ export async function POST(request: Request) {
       return Response.json({ profile });
     }
 
-    if (action === "vase") {
-      const vaseSelection = cleanText(payload.vaseSelection, 30);
-      if (!VASE_SELECTIONS.has(vaseSelection)) return Response.json({ error: "这个陈设不在秘密菜单里。" }, { status: 400 });
-      const now = new Date().toISOString();
-      const [room] = await db.insert(committeeClubRoom).values({ id: "main", vaseSelection, updatedByCitizenId: citizenId, updatedAt: now })
-        .onConflictDoUpdate({ target: committeeClubRoom.id, set: { vaseSelection, updatedByCitizenId: citizenId, updatedAt: now } })
-        .returning();
-      return Response.json({ room });
-    }
+    if (action === "vase" || action === "vase-random") return await changeVase(env.DB, citizenId, payload);
 
     if (action === "seat") {
       const seatIndex = typeof payload.seatIndex === "number" ? payload.seatIndex : Number.NaN;
@@ -170,4 +163,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
 
