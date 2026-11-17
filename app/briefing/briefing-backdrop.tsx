@@ -26,7 +26,7 @@ export function BriefingBackdrop() {
 
       {/* One crystalline facet assembly, repeated at a reduced scale in the
           opposing margin. Three tones only per cluster. */}
-      <g className="imperial-briefing-facet-group" transform="translate(1370 172) rotate(17)" strokeLinejoin="round">
+      <g className="imperial-briefing-facet-group" transform="translate(1450 230) rotate(17)" strokeLinejoin="round">
         <polygon points="0,-80 60,-29 51,62 -4,89 -68,29 -56,-41"
           fill="#b9d5e1" fillOpacity=".12" stroke="#8cabc5" strokeWidth="1.15"/>
         <polygon points="0,-80 12,3 -4,89 -23,0" fill="#c1dfe6" fillOpacity=".15" stroke="#87b1c9" strokeWidth=".9"/>
@@ -46,13 +46,10 @@ export function BriefingBackdrop() {
       {/* Fine coordinate details use the same faceted geometry, not
           unrelated stars, flowers, planets, and ornamental objects. */}
       <g className="imperial-briefing-construction-lines" strokeWidth=".9" strokeLinecap="round">
-        <path d="M 1351 46 V 99 M 1324 72 H 1377" stroke="#c6a979" strokeDasharray="2 6"/>
-        <circle cx="1351" cy="72" r="22" stroke="#a8b7c8"/>
         <path d="M 126 896 H 226 M 176 867 V 924" stroke="#c3a9be" strokeDasharray="2 8"/>
         <circle cx="176" cy="896" r="18" stroke="#a0c1cc"/>
       </g>
       <g className="imperial-briefing-paper-dots">
-        <circle cx="1340" cy="310" r="3" fill="#fffaf3" stroke="#d2ae77" strokeWidth="1"/>
         <circle cx="215" cy="783" r="2.6" fill="#fffaf3" stroke="#a1bbd5" strokeWidth="1"/>
       </g>
     </svg>
