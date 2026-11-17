@@ -529,3 +529,61 @@
   .imperial-briefing-lead-copy { width:72%; }
   .imperial-briefing-canvas > svg { min-height:1200px; }
 }
+
+
+/* V2.3 refinement — one visual grammar, not miscellaneous ornaments.
+   BASE: unbleached ivory; ACCENTS: eight hairline colours;
+   GEOMETRY: two airy faceted assemblies located only in the margins.
+   The original flat compact emblem remains the only Schicksal symbol. */
+.imperial-briefing-overlay .imperial-briefing-paper {
+  background:
+    radial-gradient(ellipse 51% 54% at 3% 16%,rgba(255,255,255,.67),transparent 78%),
+    radial-gradient(ellipse 43% 60% at 94% 83%,rgba(227,237,235,.13),transparent 78%),
+    #faf8f2;
+}
+.imperial-briefing-paper::before { opacity:.025; }
+.imperial-briefing-paper > .imperial-briefing-canvas { opacity:.9; }
+.imperial-briefing-canvas .imperial-briefing-edge-ribbon { opacity:.69; }
+.imperial-briefing-canvas .imperial-briefing-facet-group { opacity:.72; }
+.imperial-briefing-canvas .imperial-briefing-construction-lines { opacity:.45; }
+.imperial-briefing-canvas .imperial-briefing-paper-dots { opacity:.62; }
+
+/* Concentrate the eight-colour flow behind the actual emblem instead of
+   sweeping across the editorial headline and unrelated content cards. */
+.imperial-briefing-overlay .imperial-briefing-wave-embroidery {
+  inset:auto -9% -13% auto;
+  width:82%; height:88%; z-index:1;
+  opacity:.7;
+  mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.15) 18%,black 41%,black 82%,transparent 100%);
+}
+.imperial-briefing-overlay .imperial-briefing-hero-art {
+  width:48%; right:0;
+  opacity:1;
+  background:radial-gradient(ellipse at 53% 48%,rgba(255,255,255,.42),transparent 75%);
+}
+.imperial-briefing-hero-art::before { border-color:rgba(121,163,196,.21); }
+.imperial-briefing-hero-art::after { border-color:rgba(177,157,195,.18); }
+.imperial-briefing-overlay .imperial-briefing-lead {
+  background:linear-gradient(103deg,rgba(255,255,255,.97),rgba(253,251,247,.88) 48%,rgba(250,249,245,.75));
+}
+.imperial-briefing-overlay .imperial-briefing-lead-copy { width:52%; }
+/* Clear functional information wins over illustration. */
+.imperial-briefing-overlay .imperial-briefing-panel,
+.imperial-briefing-overlay .imperial-briefing-news-item,
+.imperial-briefing-overlay .imperial-briefing-quick-grid > button {
+  backdrop-filter:none;
+}
+@media (max-width:980px) {
+  .imperial-briefing-overlay .imperial-briefing-wave-embroidery { width:80%; opacity:.55; }
+  .imperial-briefing-canvas .imperial-briefing-edge-ribbon { opacity:.48; }
+  .imperial-briefing-canvas .imperial-briefing-facet-group { opacity:.48; }
+}
+@media (max-width:680px) {
+  .imperial-briefing-paper > .imperial-briefing-canvas { opacity:.37; }
+  .imperial-briefing-overlay .imperial-briefing-wave-embroidery {
+    inset:auto -24% -6% auto; width:100%; height:69%; opacity:.47;
+    mask-image:linear-gradient(90deg,transparent 0%,black 48%,black 80%,transparent 100%);
+  }
+  .imperial-briefing-overlay .imperial-briefing-hero-art { width:60%; right:-6%; opacity:.78; }
+  .imperial-briefing-overlay .imperial-briefing-lead-copy { width:73%; }
+}
