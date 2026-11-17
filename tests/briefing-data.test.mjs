@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  BRIEFING_SEEN_SESSION_KEY, foundingNews, latestNews, latestUnreadMessages,
+  BRIEFING_SEEN_SESSION_KEY, briefingDateTime, briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages,
   markBriefingViewed, orderedBriefingTasks,
 } from "../app/briefing/briefing-data.ts";
 
@@ -53,4 +53,11 @@ test("one automatic display per login marker; new login marker displays again", 
   assert.equal(markBriefingViewed(storage, "session-A"), false);
   assert.equal(memory.get(BRIEFING_SEEN_SESSION_KEY), "session-A");
   assert.equal(markBriefingViewed(storage, "session-B"), true);
+});
+
+test("date-only expected dates use the end of the UTC+8 calendar day", () => {
+  assert.equal(briefingDateTime("2026-11-18"), Date.parse("2026-11-18T23:59:59.999+08:00"));
+  assert.equal(briefingDeadlineInfo("2026-11-18", Date.parse("2026-11-18T12:00:00+08:00")).passed, false);
+  assert.equal(briefingDeadlineInfo("2026-11-18", Date.parse("2026-11-19T00:00:00+08:00")).passed, true);
+  assert.match(briefingDeadlineInfo("2026-11-18").label, /2026年11月18日/);
 });
