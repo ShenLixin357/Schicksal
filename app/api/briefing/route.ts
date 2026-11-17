@@ -1,10 +1,10 @@
-import { env } from "cloudflare:workers";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { ensureParliamentSchema } from "../../../db/parliament-schema";
 import { parliamentAuditEvents, parliamentItems, parliamentVotes } from "../../../db/schema";
 import { currentMember } from "../../member-session";
 import { foundingNews, latestNews, orderedBriefingTasks } from "../../briefing/briefing-data";
+import { verifiedReleaseNews } from "../../briefing/feature-news";
 import { parliamentAuditNews, parliamentVotingTasks } from "../../briefing/briefing-feed";
 
 const headers = { "Cache-Control": "private, no-store" };
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       }).from(parliamentAuditEvents).orderBy(desc(parliamentAuditEvents.createdAt)),
     ]);
     const tasks = orderedBriefingTasks(parliamentVotingTasks(items, ownVotes, citizenId));
-    const news = latestNews([...foundingNews, ...parliamentAuditNews(events, items)]);
+    const news = latestNews([...foundingNews, ...verifiedReleaseNews, ...parliamentAuditNews(events, items)]);
     return Response.json({ tasks, news, messageState: "not-connected" }, { headers });
   } catch {
     // Do not expose database errors or the existence of other members' records.
