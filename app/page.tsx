@@ -1900,7 +1900,7 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
   const [parliamentDeepLink, setParliamentDeepLink] = useState("");
-  const briefingFeed = useBriefingFeed(citizen.id);
+  const briefingFeed = useBriefingFeed(citizen.id, section);
   useEffect(() => {
     const controller = new AbortController();
     void fetch("/api/briefing-session", { cache: "no-store", signal: controller.signal })
