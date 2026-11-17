@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { BriefingDesk, BriefingOverlay } from "./briefing/briefing";
 import { markBriefingViewed, type BriefingTarget } from "./briefing/briefing-data";
+import { useBriefingFeed } from "./briefing/use-briefing-feed";
 import { CITIZENS, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SpeakerManagement } from "./speaker-management";
@@ -549,7 +550,7 @@ const AGE_BAND_META: Record<ProposerAgeBand, string> = {
   unknown: "尚未确认",
 };
 
-function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
+function PersistentParliamentSection({ citizen, requestedItemId = "" }: { citizen: Citizen; requestedItemId?: string }) {
   const [items, setItems] = useState<ParliamentItem[]>([]);
   const [activeId, setActiveId] = useState("");
   const [comments, setComments] = useState<ParliamentComment[]>([]);
@@ -646,18 +647,32 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
   useEffect(() => {
     let active = true;
     const params = new URLSearchParams({ citizenId: citizen.id });
+    if (requestedItemId) params.set("itemId", requestedItemId);
     fetch(`/api/parliament?${params.toString()}`)
       .then(async (response) => {
         const board = await response.json() as ParliamentBoard;
         if (!response.ok) throw new Error(board.error || "议会资料暂时无法读取。");
-        if (active) applyBoard(board);
+        if (active) {
+          if (requestedItemId && board.activeItem?.id !== requestedItemId) {
+            setStatus("原待办对应的议案已无法找到，请从议事清单重新选择。");
+            setWorkspaceOpen(false);
+          } else {
+            applyBoard(board);
+            if (requestedItemId) { setWorkspaceOpen(true); setCasePanel("stage"); }
+          }
+        }
       })
       .catch((error: unknown) => { if (active) setStatus(error instanceof Error ? error.message : "议会资料暂时无法读取。"); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [citizen.id]);
+  }, [citizen.id, requestedItemId]);
 
   const activeItem = items.find((item) => item.id === activeId) ?? items[0];
+  useEffect(() => {
+    if (!requestedItemId || !workspaceOpen || !activeItem || activeItem.id !== requestedItemId || activeItem.stage !== "voting") return;
+    const frame = window.requestAnimationFrame(() => document.getElementById("parliament-vote-actions")?.scrollIntoView({ block: "center", behavior: "auto" }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [requestedItemId, workspaceOpen, activeItem?.id, activeItem?.stage]);
 
   useEffect(() => {
     if (!activeItem) return;
@@ -1017,7 +1032,7 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
             <div className="amendment-list">{amendments.length ? amendments.map((amendment) => { const author = citizenFor(amendment.citizenId); return <article key={amendment.id} className={amendment.status}><header><div><strong>{author?.username ?? amendment.citizenId}</strong><time>{new Date(amendment.createdAt).toLocaleDateString("zh-CN")}</time></div><span>{amendment.status === "pending" ? "等待决定" : amendment.status === "accepted" ? "已接受" : "已否决"}</span></header><div className="amendment-diff"><blockquote><small>删除 / 原文</small><del>{amendment.targetQuote}</del></blockquote><blockquote><small>新增 / 建议</small><ins>{amendment.proposedText}</ins></blockquote></div><p><b>理由</b>{amendment.reason}</p>{session.stageManager && amendment.status === "pending" && <footer><button type="button" onClick={() => decideAmendment(amendment.id, "rejected")} disabled={busy}>否决并留档</button><button type="button" onClick={() => decideAmendment(amendment.id, "accepted")} disabled={busy}>接受并生成新版本</button></footer>}</article>; }) : <div className="docket-empty">暂无正式修正案。</div>}</div>
           </section>}
 
-          {casePanel === "stage" && activeItem.stage === "voting" && <section className="division-public">
+          {casePanel === "stage" && activeItem.stage === "voting" && <section className="division-public" id="parliament-vote-actions">
             <header><div><p className="eyebrow">Division · 正式表决</p><h3>选择后，个人标志实时公开</h3></div><span>FROZEN TEXT · v{activeItem.votingVersion}</span></header>
             <div className="division-public-grid">
               <article className={myVote === "support" ? "chosen support" : ""}><header><small>AYE</small><strong>赞成 · {support}</strong></header>{renderMarks(currentVotes.filter((vote) => vote.choice === "support").map((vote) => vote.citizenId))}<button type="button" onClick={() => castVote("support")} disabled={busy}>投赞成票</button></article>
@@ -1884,6 +1899,8 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
+  const [parliamentDeepLink, setParliamentDeepLink] = useState("");
+  const briefingFeed = useBriefingFeed(citizen.id);
   useEffect(() => {
     const controller = new AbortController();
     void fetch("/api/briefing-session", { cache: "no-store", signal: controller.signal })
@@ -1940,8 +1957,9 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
     announceCommitteeLounge(citizen, () => setLoungeSeatingUnlocked(true));
   };
   const openBriefingDesk = () => { setBriefingOpen(false); setSection("briefing"); };
-  const navigateFromBriefing = (target: BriefingTarget) => {
+  const navigateFromBriefing = (target: BriefingTarget, targetId?: string) => {
     setBriefingOpen(false);
+    setParliamentDeepLink(target === "parliament" ? targetId || "" : "");
     if (target === "club") { enterLounge(); return; }
     setSection(target);
   };
@@ -1949,10 +1967,10 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const active = NAV.find((item) => item.id === section) ?? { id: "club" as const, label: "委员会 Lounge", en: "Committee Lounge" };
   let content: ReactNode;
   switch (section) {
-    case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} />; break;
+    case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "citizens": content = <CitizensSection />; break;
     case "emblem": content = <EmblemSection />; break;
-    case "parliament": content = <PersistentParliamentSection citizen={citizen} />; break;
+    case "parliament": content = <PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} />; break;
     case "honors": content = <HonorsSection />; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection />; break;
@@ -1968,11 +1986,15 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
         onClose={() => { setBriefingOpen(false); setSection("home"); }}
         onOpenDesk={openBriefingDesk}
         onNavigate={navigateFromBriefing}
+        tasks={briefingFeed.tasks}
+        taskState={briefingFeed.status}
+        news={briefingFeed.news}
+        newsState={briefingFeed.status}
         canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)}
         sharedMark={<Emblem compact />}
         heroMark={<HeroEmblemSculpture blades={EMBLEM_BLADES} />}
       />}
-      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => setSection(item.id)}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
+      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") setParliamentDeepLink(""); setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
     </main>
   );
