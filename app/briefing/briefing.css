@@ -459,3 +459,73 @@
 @media (prefers-reduced-motion:reduce) {
  .imperial-briefing-wave-embroidery { animation:none; }
 }
+
+
+/* V2.3 — user-approved emblem is the small, flat eight-ray mark from
+   SCHICKSAL's existing sidebar. The ivory base is unchanged. */
+.imperial-briefing-paper { isolation:isolate; }
+.imperial-briefing-paper > .imperial-briefing-topbar,
+.imperial-briefing-paper > .imperial-briefing-content,
+.imperial-briefing-paper > .imperial-briefing-footer { position:relative; z-index:1; }
+.imperial-briefing-canvas {
+  position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+}
+.imperial-briefing-canvas > svg {
+  display:block; width:100%; height:100%; min-height:880px;
+}
+.imperial-briefing-paper > .imperial-briefing-canvas { opacity:.92; }
+.imperial-briefing-overlay .imperial-briefing-paper {
+  background:
+    radial-gradient(ellipse 62% 64% at 12% 15%,rgba(255,255,255,.68),transparent 75%),
+    radial-gradient(ellipse 45% 54% at 91% 78%,rgba(228,240,238,.20),transparent 74%),
+    #faf8f2;
+}
+.imperial-briefing-paper::before {
+  background-size:112px 112px;
+  opacity:.045;
+}
+.imperial-briefing-overlay .imperial-briefing-hero-art {
+  width:49%; opacity:1;
+  background:transparent;
+}
+.imperial-briefing-overlay .imperial-briefing-emblem-art {
+  width:100%; max-width:none; height:100%;
+  left:0; top:0; transform:none;
+  display:grid; place-items:center;
+}
+.imperial-briefing-emblem-art > .emblem.compact {
+  width:42px; height:42px; flex:0 0 42px;
+  transform:scale(5.2);
+  transform-origin:center;
+  filter:drop-shadow(0 4px 5px rgba(91,121,145,.12));
+}
+.imperial-briefing-hero-art .imperial-briefing-arcade {
+  opacity:.13; left:-16%; bottom:-25%; height:72%;
+}
+.imperial-briefing-overlay .imperial-briefing-lead {
+  background:linear-gradient(104deg,rgba(255,255,255,.93),rgba(251,249,245,.62));
+}
+.imperial-briefing-lead-copy { width:52%; }
+.imperial-briefing-hero-art::after {
+  content:""; position:absolute; inset:13% 7% 9% 4%; border-radius:50%;
+  border:1px solid rgba(177,161,194,.21);
+  transform:rotate(27deg) scaleX(.79); pointer-events:none;
+}
+.imperial-briefing-hero-art::before {
+  content:""; position:absolute; inset:11% 12% 14% 5%;
+  border:1px solid rgba(127,175,196,.25); border-radius:50%;
+  transform:rotate(-33deg) scaleX(.8); pointer-events:none;
+}
+.imperial-briefing-desk { position:relative; isolation:isolate; }
+.imperial-briefing-desk > .imperial-briefing-canvas { z-index:-1; opacity:.56; }
+.imperial-briefing-desk > .imperial-briefing-canvas > svg { min-height:0; }
+@media (max-width:980px) {
+  .imperial-briefing-emblem-art > .emblem.compact { transform:scale(4.9); }
+}
+@media (max-width:680px) {
+  .imperial-briefing-paper > .imperial-briefing-canvas { opacity:.63; }
+  .imperial-briefing-overlay .imperial-briefing-hero-art { width:58%; right:-8%; opacity:.76; }
+  .imperial-briefing-emblem-art > .emblem.compact { transform:scale(3.15); }
+  .imperial-briefing-lead-copy { width:72%; }
+  .imperial-briefing-canvas > svg { min-height:1200px; }
+}
