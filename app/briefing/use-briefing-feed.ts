@@ -6,7 +6,7 @@ import { foundingNews, type BriefingNews, type BriefingTask } from "./briefing-d
 export type BriefingFeedState = "loading" | "ready" | "error";
 type BriefingFeed = { tasks: BriefingTask[]; news: BriefingNews[] };
 
-export function useBriefingFeed(citizenId: string) {
+export function useBriefingFeed(citizenId: string, refreshKey: string) {
   const [feed, setFeed] = useState<BriefingFeed>({ tasks: [], news: [...foundingNews] });
   const [status, setStatus] = useState<BriefingFeedState>("loading");
 
@@ -43,7 +43,7 @@ export function useBriefingFeed(citizenId: string) {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [citizenId]);
+  }, [citizenId, refreshKey]);
 
   return { ...feed, status };
 }
