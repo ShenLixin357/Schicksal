@@ -1886,7 +1886,7 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [briefingOpen, setBriefingOpen] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    void fetch("/api/member-session", { cache: "no-store", signal: controller.signal })
+    void fetch("/api/briefing-session", { cache: "no-store", signal: controller.signal })
       .then(async (response) => response.ok ? await response.json() as { citizenId?: string; briefingSessionKey?: string | null } : null)
       .then((session) => {
         if (controller.signal.aborted || session?.citizenId !== citizen.id || !session.briefingSessionKey) return;
