@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { BriefingDesk, BriefingOverlay } from "./briefing/briefing";
+import { markBriefingViewed, type BriefingTarget } from "./briefing/briefing-data";
 import { CITIZENS, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SpeakerManagement } from "./speaker-management";
@@ -23,7 +25,7 @@ import { getVase } from "./club/vase/vase-catalogue";
 import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
 
 type Phase = "opening" | "login" | "welcome" | "system";
-type Section = "home" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "club";
+type Section = "home" | "briefing" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "club";
 
 type ArchivePhoto = {
   id: string;
@@ -181,7 +183,8 @@ const CLUB_STICKERS = [
 
 
 const NAV: { id: Section; label: string; en: string }[] = [
-  { id: "home", label: "首页", en: "Home" },
+  { id: "home", label: "天命首页", en: "Home" },
+  { id: "briefing", label: "帝国简报台", en: "Briefing" },
   { id: "citizens", label: "公民", en: "Citizens" },
   { id: "emblem", label: "主标志", en: "Emblem" },
   { id: "parliament", label: "议会", en: "Parliament" },
@@ -1880,6 +1883,28 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [section,setSection] = useState<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/member-session", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => response.ok ? await response.json() as { citizenId?: string; briefingSessionKey?: string | null } : null)
+      .then((session) => {
+        if (controller.signal.aborted || session?.citizenId !== citizen.id || !session.briefingSessionKey) return;
+        // The display marker (not the authentication token) is shared between tabs.
+        // It changes on each new login and survives refresh in that login session.
+        try {
+          if (markBriefingViewed(window.localStorage, session.briefingSessionKey)) {
+            // A returning mini-game should not be interrupted by a full-screen overlay.
+            if (new URLSearchParams(window.location.search).get("lounge") !== "game-room") setBriefingOpen(true);
+          }
+        } catch {
+          try {
+            if (markBriefingViewed(window.sessionStorage, session.briefingSessionKey)) setBriefingOpen(true);
+          } catch { setBriefingOpen(true); }
+        }
+      }).catch(() => undefined);
+    return () => controller.abort();
+  }, [citizen.id]);
   useEffect(() => {
     try { setSidebarCollapsed(window.localStorage.getItem("schicksal:sidebar-collapsed") === "true"); } catch { /* Keep the navigation expanded when storage is unavailable. */ }
   }, []);
@@ -1914,10 +1939,17 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
     setSection("club");
     announceCommitteeLounge(citizen, () => setLoungeSeatingUnlocked(true));
   };
+  const openBriefingDesk = () => { setBriefingOpen(false); setSection("briefing"); };
+  const navigateFromBriefing = (target: BriefingTarget) => {
+    setBriefingOpen(false);
+    if (target === "club") { enterLounge(); return; }
+    setSection(target);
+  };
   const clubOpen = section === "club" && CLUB_MEMBER_IDS.has(citizen.id);
   const active = NAV.find((item) => item.id === section) ?? { id: "club" as const, label: "委员会 Lounge", en: "Committee Lounge" };
   let content: ReactNode;
   switch (section) {
+    case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} />; break;
     case "citizens": content = <CitizensSection />; break;
     case "emblem": content = <EmblemSection />; break;
     case "parliament": content = <PersistentParliamentSection citizen={citizen} />; break;
@@ -1932,6 +1964,14 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   }
   return (
     <main className={`system ${clubOpen ? "club-system" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      {briefingOpen && <BriefingOverlay
+        onClose={() => { setBriefingOpen(false); setSection("home"); }}
+        onOpenDesk={openBriefingDesk}
+        onNavigate={navigateFromBriefing}
+        canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)}
+        sharedMark={<Emblem compact />}
+        heroMark={<HeroEmblemSculpture blades={EMBLEM_BLADES} />}
+      />}
       <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => setSection(item.id)}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
     </main>
