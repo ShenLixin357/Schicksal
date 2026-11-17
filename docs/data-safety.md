@@ -19,7 +19,7 @@ Ordered `drizzle/*.sql` is authoritative. `drizzle/history.json` seals names and
 - Update SQL and `db/schema.ts`, review, then run `npm run db:seal` and `npm run check`.
 - `db:generate` now aliases explicit draft creation. Historical `drizzle/meta/` remains intact but is not the generation/deployment authority; automatic drizzle-kit generation is retired here.
 
-0011 contains the exact former HTTP-time Parliament bootstrap/backfills. Original `INSERT OR IGNORE` and exact-match predicates protect edited proposals. No election rules or historical texts are invented. Runtime `ensure*Schema` names are retained but only perform retryable SELECT checks. The legacy Sites exporter now emits DDL without bootstrap rows so a restored snapshot cannot collide with seeds.
+0011 preserves the already-added committee vase history table; 0012 contains the former HTTP-time Parliament bootstrap/backfills. Original `INSERT OR IGNORE` and exact-match predicates protect edited proposals. No election rules or historical texts are invented. Runtime `ensure*Schema` names are retained but only perform retryable SELECT checks. The legacy Sites exporter now emits DDL without bootstrap rows so a restored snapshot cannot collide with seeds.
 
 Migrations are additive; never rewrite applied SQL or automatically drop old columns. Old Workers must remain compatible while new schema is applied. Rolling back code does not roll back a database.
 

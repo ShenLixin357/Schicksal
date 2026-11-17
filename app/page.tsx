@@ -19,6 +19,8 @@ import { chatDate, chatTimestamp, mergeChatMessages, type ChatCursor } from "./c
 import { MagicChatScroll, MusicBoxDrawing, MusicBoxPortal, RotatingWordmageGlobe, startMusicBoxTune } from "./club/lounge-props";
 import { MiniGameSystem, useMiniGameSystem } from "./club/minigames/mini-game-system";
 import { LoungeLeaderboard } from "./club/minigames/lounge-leaderboard";
+import { VaseExperience } from "./club/vase/vase-experience";
+import { getVase } from "./club/vase/vase-catalogue";
 import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
 
 type Phase = "opening" | "login" | "welcome" | "system";
@@ -177,17 +179,7 @@ const CLUB_STICKERS = [
   { id: "candy", icon: "🍬", label: "糖果" },
   { id: "moon", icon: "🌙", label: "月亮" },
 ];
-const CLUB_VASE_OPTIONS = [
-  { id: "autumn", image: "/club-vase-autumn.png", label: "秋日红叶", category: "花束" },
-  { id: "sunflower", image: "/club-vase-sunflower.png", label: "向日葵", category: "花束" },
-  { id: "roses", image: "/club-vase-roses.png", label: "玫瑰", category: "花束" },
-  { id: "tulips", image: "/club-vase-tulips.png", label: "郁金香", category: "花束" },
-  { id: "lavender", image: "/club-vase-lavender.png", label: "薰衣草", category: "花束" },
-  { id: "daisies", image: "/club-vase-daisies.png", label: "雏菊", category: "花束" },
-  { id: "cabbage", image: "/club-vase-cabbage.png", label: "卷心菜", category: "神秘菜单" },
-  { id: "popcorn", image: "/club-vase-popcorn.png", label: "爆米花", category: "神秘菜单" },
-  { id: "lollipop", image: "/club-vase-lollipop.png", label: "棒棒糖", category: "神秘菜单" },
-];
+
 
 const NAV: { id: Section; label: string; en: string }[] = [
   { id: "home", label: "首页", en: "Home" },
@@ -1280,7 +1272,6 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const [historyBusy, setHistoryBusy] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [maskOpen, setMaskOpen] = useState(false);
-  const [vaseOpen, setVaseOpen] = useState(false);
   const miniGames = useMiniGameSystem();
   const [clubData, setClubData] = useState<ClubData>({ profiles: [], messages: [], seats: [], room: { id: "main", vaseSelection: "autumn", updatedByCitizenId: "", updatedAt: "" } });
   const [chatText, setChatText] = useState("");
@@ -1313,8 +1304,6 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
 
   const currentProfile = clubData.profiles?.find((profile) => profile.citizenId === citizen.id);
   const amberinaProfile = clubData.profiles?.find((profile) => profile.citizenId === "amberina");
-  const vaseSelection = clubData.room?.vaseSelection ?? "autumn";
-  const vaseChoice = CLUB_VASE_OPTIONS.find((option) => option.id === vaseSelection) ?? CLUB_VASE_OPTIONS[0];
 
   useEffect(() => {
     let remembered = false;
@@ -1389,7 +1378,6 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const travelWithFan = (nextRoom: "committee" | "amberina") => {
     if (fanTransition || globeOpening || musicBoxOpening || fireplaceOpening) return;
     setChatOpen(false);
-    setVaseOpen(false);
     setFanTransition(nextRoom === "amberina" ? "enter" : "exit");
     const request = ++fanTravelRef.current;
     const started = performance.now();
@@ -1418,7 +1406,6 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const openWordmageLounge = () => {
     if (globeOpening || fanTransition || fireplaceOpening || musicBoxOpening) return;
     setChatOpen(false);
-    setVaseOpen(false);
     setGlobeOpening(true);
     setWhisper("地球仪上的经纬线缓缓展开，磁场回应了言灵师的暗号。");
     const request = ++globeTravelRef.current;
@@ -1450,7 +1437,6 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const openChryserLounge = () => {
     if (fireplaceOpening || globeOpening || fanTransition || musicBoxOpening) return;
     setChatOpen(false);
-    setVaseOpen(false);
     setFireplaceOpening(true);
     setWhisper("壁炉深处先出现一粒绿色余烬，随后整座炉膛突然燃烧起来。");
     const started = performance.now();
@@ -1474,7 +1460,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
 
   const openGameRoom = () => {
     if (musicBoxOpening || globeOpening || fireplaceOpening || fanTransition) return;
-    setChatOpen(false); setVaseOpen(false); setMusicBoxOpening(true);
+    setChatOpen(false); setMusicBoxOpening(true);
     setWhisper("八音盒打开了。小小的星月随音乐转动，另一间明亮的房间正在醒来。");
     musicBoxSoundRef.current?.();
     musicBoxSoundRef.current = startMusicBoxTune();
@@ -1612,23 +1598,6 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
     }
   };
 
-  const selectVase = async (selection: string) => {
-    const previous = clubData.room;
-    const optimistic = { id: "main", vaseSelection: selection, updatedByCitizenId: citizen.id, updatedAt: new Date().toISOString() };
-    setClubData((current) => ({ ...current, room: optimistic }));
-    setVaseOpen(false);
-    setEffect("vase");
-    try {
-      const payload = await postClub({ action: "vase", vaseSelection: selection });
-      if (payload.room) setClubData((current) => ({ ...current, room: payload.room }));
-      const selected = CLUB_VASE_OPTIONS.find((option) => option.id === selection);
-      setWhisper(`${loungeMaskName(citizen, currentProfile)} 把桌上的花瓶换成了“${selected?.label ?? "秘密陈设"}”。`);
-    } catch (error) {
-      setClubData((current) => ({ ...current, room: previous }));
-      setClubStatus(error instanceof Error ? error.message : "花瓶没有换成功。");
-    }
-  };
-
   const selectSeat = async (seatIndex: number) => {
     if (!seatingUnlocked || saving) return;
     const occupied = clubData.seats?.find((seat) => seat.seatIndex === seatIndex);
@@ -1711,10 +1680,11 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
         <div className="lounge-table-scene">
           <LoungeTable onInteract={() => { setEffect("table"); setWhisper("原画中的月牙雕花圆桌回应了指尖，桌面与雕花基座产生细微的立体视差。"); }} />
           <LoungeTeaRitual onWhisper={setWhisper} />
-          <div className={`club-vase-display vase-${vaseChoice.id}`} aria-hidden="true"><Image key={vaseChoice.id} className="club-vase-object-image" src={vaseChoice.image} width={512} height={512} alt="" unoptimized /></div>
+          <VaseExperience room={clubData.room} citizenId={citizen.id}
+            memberName={(id) => { const member = CITIZENS.find(value => value.id === id); return member ? loungeMaskName(member, clubData.profiles?.find(profile => profile.citizenId === id)) : "成员"; }}
+            onRoomChange={(room) => { setClubData(current => ({ ...current, room })); setEffect("vase"); const member = CITIZENS.find(value => value.id === room.updatedByCitizenId); setWhisper(`${member ? loungeMaskName(member, clubData.profiles?.find(profile => profile.citizenId === member.id)) : "成员"} · ${getVase(room.vaseSelection).label}`); }} />
         </div>
         <MagicChatScroll open={chatOpen} onOpen={openChat} />
-        <button className="club-hotspot vase" type="button" aria-label="更换桌上花瓶陈设" aria-pressed={vaseOpen} onClick={() => { setVaseOpen((value) => !value); setEffect("vase"); }}><i /><span>更换桌上花瓶</span></button>
 
         <button className="club-fireplace-portal" type="button" onClick={openChryserLounge} disabled={fireplaceOpening} aria-label="打开右侧壁炉，进入 Lord Chryser 的私人 Lounge"><span>打开翡翠壁炉</span></button>
         <div className="club-jade-fire" aria-hidden="true">
@@ -1727,10 +1697,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
       {globeOpening && <WordmageGlobePassage />}
       {musicBoxOpening && <div className="arcade-music-passage playing" role="status" aria-live="polite"><MusicBoxDrawing /><small>FOLLOW THE LITTLE MELODY</small><p>八音盒的另一面，是一间游艺室。</p><span>正在打开温暖的房门…</span></div>}
 
-      {vaseOpen && <aside className="club-vase-menu" aria-label="花瓶与神秘菜单">
-        <header><div><small>ENCHANTED VASE</small><strong>今天插什么？</strong></div><button type="button" onClick={() => setVaseOpen(false)} aria-label="关闭花瓶菜单">×</button></header>
-        {["花束", "神秘菜单"].map((category) => <section key={category}><h3>{category}</h3><div>{CLUB_VASE_OPTIONS.filter((option) => option.category === category).map((option) => <button type="button" key={option.id} className={vaseSelection === option.id ? "selected" : ""} onClick={() => void selectVase(option.id)}><Image src={option.image} width={72} height={72} alt="" unoptimized /><strong>{option.label}</strong></button>)}</div></section>)}
-      </aside>}
+
 
       <aside className="club-whisper" aria-live="polite">
         <small>THE LOUNGE WHISPERS TO {loungeMaskName(citizen, currentProfile).toUpperCase()}</small>
@@ -1890,4 +1857,5 @@ export default function Home() {
   if (phase === "welcome") return <Welcome citizen={citizen} enter={() => setPhase("system")} />;
   return <System citizen={citizen} logout={() => { void logoutMember(); }} />;
 }
+
 

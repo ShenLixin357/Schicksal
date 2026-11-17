@@ -1,0 +1,56 @@
+.vase-artwork{position:relative;display:block;width:100%;height:100%;aspect-ratio:1;pointer-events:none;isolation:isolate;contain:layout style}
+.vase-artwork>svg,.vase-artwork>img{display:block;width:100%;height:100%;object-fit:contain}
+.vase-artwork>svg{overflow:visible}
+.club-room-stage .club-vase-display>.vase-artwork{font-size:0;line-height:0;filter:none;animation:none}
+.vase-artwork .vase-art-spark{animation:vase-art-twinkle 4.9s ease-in-out infinite;opacity:.28}
+.vase-artwork .vase-art-gold-spark{animation-duration:3.9s}
+.vase-artwork .vase-art-crystal-facet{animation:vase-art-facet 6s ease-in-out infinite}
+.vase-artwork .vase-art-ice-light{animation:vase-art-ice-light 5s ease-in-out infinite}
+.vase-artwork .vase-art-dew{animation:vase-art-dew 7.3s ease-in infinite;opacity:0}
+.vase-artwork .vase-art-feather{animation:vase-art-feather 12s ease-in-out infinite}
+.vase-artwork .vase-art-pinwheel{animation:vase-art-pinwheel 15s cubic-bezier(.35,0,.4,1) infinite;transform-origin:0 0}
+.vase-artwork .vase-art-cloud{animation:vase-art-cloud 8s ease-in-out infinite}
+.vase-artwork .vase-art-raindrop{animation:vase-art-rain 2.1s linear infinite;opacity:0}
+.vase-artwork .vase-art-rain-reverse .vase-art-raindrop{animation-direction:reverse}
+.vase-artwork .vase-art-ripple{animation:vase-art-ripple 2.4s ease-out infinite;transform-origin:258px 326px;opacity:0}
+.vase-artwork .vase-art-rainbow{animation:vase-art-rainbow 9s ease-in-out infinite}
+.vase-artwork .vase-art-rainbow-shine{stroke-dasharray:22 360;animation:vase-art-rainbow-shine 8s linear infinite}
+.vase-artwork .vase-art-rainbow-drop{animation:vase-art-dew 7s ease-in infinite;opacity:0}
+.vase-artwork .vase-art-hanging-star{animation:vase-art-star 8s ease-in-out infinite}
+.vase-artwork .vase-art-crane-wing{animation:vase-art-crane 13s ease-in-out infinite;transform-origin:0 2px}
+.vase-artwork .vase-art-aurora-ribbon{animation:vase-art-aurora 10s ease-in-out infinite;transform-origin:258px 326px}
+.vase-artwork .vase-art-aurora-ribbon-1{animation-delay:-3.4s;animation-duration:12s}
+.vase-artwork .vase-art-aurora-ribbon-2{animation-delay:-6.2s;animation-duration:14s}
+.vase-artwork .vase-art-aurora-pool{animation:vase-art-ice-light 8s ease-in-out infinite}
+.vase-artwork .vase-art-ink-flower{animation:vase-art-ink 11s ease-in-out infinite}
+.vase-artwork .vase-art-ink-droplet{animation:vase-art-ink-drop 8s ease-in-out infinite}
+.vase-artwork .vase-art-crown{animation:vase-art-crown 14s ease-in-out infinite}
+.vase-artwork .vase-art-crown-leaf{animation:vase-art-crown-leaf 14s ease-in-out infinite}
+.vase-artwork .vase-art-royal-halo{animation:vase-art-royal-halo 6s ease-in-out infinite}
+.vase-artwork-celebrated .vase-art-crown{animation:vase-art-coronation 1.35s cubic-bezier(.2,.75,.3,1) both,vase-art-crown 14s 1.35s ease-in-out infinite}
+.vase-artwork-celebrated .vase-art-royal-halo{animation:vase-art-golden-reveal 1.7s ease-out both,vase-art-royal-halo 6s 1.7s ease-in-out infinite}
+.vase-artwork-celebrated .vase-art-gold-spark{animation:vase-art-gold-reveal 1.8s ease-out both,vase-art-twinkle 3.9s 1.8s ease-in-out infinite}
+.vase-artwork[data-paused=true] *,[data-vase-paused=true] .vase-artwork *{animation-play-state:paused!important}
+@keyframes vase-art-twinkle{0%,100%{opacity:.2;scale:.65}42%{opacity:.5}55%{opacity:1;scale:1.12}75%{opacity:.3;scale:.82}}
+@keyframes vase-art-facet{0%,35%,100%{opacity:.13}53%{opacity:.8}67%{opacity:.25}}
+@keyframes vase-art-ice-light{0%,100%{opacity:.33}50%{opacity:.9}}
+@keyframes vase-art-dew{0%,58%{opacity:0;translate:0 0}63%{opacity:.9;translate:0 0}79%{opacity:.75;translate:0 25px}89%,100%{opacity:0;translate:0 35px}}
+@keyframes vase-art-feather{0%,65%,100%{rotate:0deg}74%{rotate:1.9deg}85%{rotate:-1deg}}
+@keyframes vase-art-pinwheel{0%,32%{rotate:0deg}61%,100%{rotate:180deg}}
+@keyframes vase-art-cloud{0%,100%{translate:0 0}50%{translate:0 -5px}}
+@keyframes vase-art-rain{0%{translate:0 -7px;opacity:0}14%{opacity:.8}83%{opacity:.65}100%{translate:0 93px;opacity:0}}
+@keyframes vase-art-ripple{0%{scale:.4;opacity:0}24%{opacity:.65}100%{scale:1.5;opacity:0}}
+@keyframes vase-art-rainbow{0%,100%{opacity:.8}50%{opacity:1}}
+@keyframes vase-art-rainbow-shine{0%{stroke-dashoffset:390;opacity:0}25%{opacity:.8}80%{opacity:.5}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes vase-art-star{0%,100%{rotate:-3deg;opacity:.7}40%{opacity:1}60%{rotate:4deg;opacity:.84}}
+@keyframes vase-art-crane{0%,68%,100%{rotate:0deg}75%{rotate:-9deg}82%{rotate:3deg}89%{rotate:0deg}}
+@keyframes vase-art-aurora{0%,100%{transform:skewX(0deg);scale:1 1;opacity:.75}50%{transform:skewX(5deg);scale:1.06 .96;opacity:1}}
+@keyframes vase-art-ink{0%,100%{scale:.96;rotate:-2deg}50%{scale:1.04;rotate:3deg}}
+@keyframes vase-art-ink-drop{0%,100%{translate:0 0;opacity:.35}50%{translate:0 -7px;opacity:.85}}
+@keyframes vase-art-crown{0%,68%,100%{rotate:0deg;translate:0 0}75%{rotate:8deg;translate:2px 2px}82%{rotate:8deg;translate:2px 2px}88%{rotate:-2deg;translate:0 -1px}94%{rotate:0deg;translate:0 0}}
+@keyframes vase-art-crown-leaf{0%,76%,100%{rotate:0deg}84%{rotate:-21deg}89%{rotate:-19deg}95%{rotate:0deg}}
+@keyframes vase-art-royal-halo{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes vase-art-coronation{0%{translate:0 -77px;rotate:-9deg;opacity:0}30%{opacity:1}80%{translate:0 2px;rotate:1deg}100%{translate:0 0;rotate:0deg;opacity:1}}
+@keyframes vase-art-golden-reveal{0%{opacity:0;scale:.5;transform-origin:282px 200px}35%{opacity:1;scale:1.7}100%{opacity:.7;scale:1}}
+@keyframes vase-art-gold-reveal{0%{opacity:0;scale:.1}25%{opacity:1;scale:1.6}100%{opacity:.65;scale:1}}
+@media(prefers-reduced-motion:reduce){.vase-artwork *{animation:none!important;transition:none!important}.vase-artwork .vase-art-raindrop,.vase-artwork .vase-art-dew,.vase-artwork .vase-art-rainbow-drop{opacity:.65}.vase-artwork .vase-art-spark{opacity:.75}.vase-artwork .vase-art-crown{opacity:1;translate:none;rotate:none}}

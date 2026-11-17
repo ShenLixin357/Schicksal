@@ -46,7 +46,11 @@
       "sha256": "c21b315bb42988b5992772bd5138f785aeb23820d2cac08d710ec127565c8b4a"
     },
     {
-      "name": "0011_explicit_parliament_bootstrap.sql",
+      "name": "0011_committee_vase_history.sql",
+      "sha256": "213f8aa8e05c67becae37cf30e9f307af54192a6d3c61b7437e2cc3789846d88"
+    },
+    {
+      "name": "0012_explicit_parliament_bootstrap.sql",
       "sha256": "65041b183e3d111cdecaa8d1efef12bc549633d25254fd1b099a3276c1f08c8a"
     }
   ]

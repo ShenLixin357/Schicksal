@@ -14,7 +14,7 @@ const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier 
 const { ensureParliamentSchema } = await import("../db/parliament-schema.ts"), { ensurePhotoSchema } = await import("../db/photo-schema.ts");
 hooks.deregister();
 after(() => { delete globalThis.__schemaCheckEnv; });
-test("fresh migrations apply and all query-model columns/types match", async () => { assert.equal((await checkMigrations(root)).length, 12); });
+test("fresh migrations apply and all query-model columns/types match", async () => { assert.equal((await checkMigrations(root)).length, 13); });
 test("bootstrap is idempotent and cannot replace an edited proposal", async () => {
     const files = await migrationFiles(root), db = new DatabaseSync(":memory:");
     try {
@@ -60,7 +60,7 @@ test("sealed SQL cannot change and new migrations require sealing", async () => 
         await writeFile(path, original + "\n-- changed");
         await assert.rejects(checkHistory(directory), /cannot be rewritten/);
         await writeFile(path, original);
-        await writeFile(join(directory, "drizzle/0012_future.sql"), "--new\n");
+        await writeFile(join(directory, "drizzle/0013_future.sql"), "--new\n");
         await assert.rejects(checkHistory(directory), /seal/);
     }
     finally {
