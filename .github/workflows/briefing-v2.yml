@@ -1,0 +1,32 @@
+name: Briefing V2 checks
+
+on:
+  pull_request:
+    paths:
+      - "app/briefing/**"
+      - "app/page.tsx"
+      - "app/api/member-session/route.ts"
+      - "tests/briefing-data.test.mjs"
+      - ".github/workflows/briefing-v2.yml"
+  push:
+    branches:
+      - "feature/briefing-v2-shell-20261118"
+
+permissions:
+  contents: read
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Briefing data regression
+        run: node --experimental-transform-types --test tests/briefing-data.test.mjs
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
