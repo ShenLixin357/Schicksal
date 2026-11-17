@@ -1,4 +1,4 @@
-export type BriefingTarget = "home" | "parliament" | "archives" | "photos" | "club" | "profile" | "honors" | "calendar" | "market" | "citizens" | "emblem";
+export type BriefingTarget = "home" | "parliament" | "archives" | "photos" | "club" | "games" | "referendum" | "profile" | "honors" | "calendar" | "market" | "citizens" | "emblem";
 
 export type BriefingTask = {
   id: string;
