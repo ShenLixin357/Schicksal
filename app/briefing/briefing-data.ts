@@ -46,15 +46,15 @@ export const foundingNews: readonly BriefingNews[] = [
 export const briefingDateTime = (date: string | null): number => {
   if (!date) return Number.POSITIVE_INFINITY;
   // YYYY-MM-DD is a calendar-day deadline in Schicksal's UTC+8 local time.
-  const value = /^\\d{4}-\\d{2}-\\d{2}$/.test(date) ? date + "T23:59:59.999+08:00" : date;
+  const value = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date + "T23:59:59.999+08:00" : date;
   const time = Date.parse(value);
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
 };
 
 export function briefingDeadlineInfo(date: string | null, now = Date.now()) {
   if (!date || !Number.isFinite(briefingDateTime(date))) return { label: "无指定日期", passed: false };
-  const day = /^\\d{4}-\\d{2}-\\d{2}$/.test(date);
-  const label = day ? date.replace(/^(\\d{4})-(\\d{2})-(\\d{2})$/, (_, y: string, m: string, d: string) => y + "年" + Number(m) + "月" + Number(d) + "日") :
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(date);
+  const label = day ? date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (_, y: string, m: string, d: string) => y + "年" + Number(m) + "月" + Number(d) + "日") :
     new Date(date).toLocaleString("zh-CN", { timeZone: "Asia/Singapore" });
   return { label, passed: briefingDateTime(date) < now };
 }
