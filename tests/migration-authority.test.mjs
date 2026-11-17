@@ -15,6 +15,23 @@ const { ensureParliamentSchema } = await import("../db/parliament-schema.ts"), {
 hooks.deregister();
 after(() => { delete globalThis.__schemaCheckEnv; });
 test("fresh migrations apply and all query-model columns/types match", async () => { assert.equal((await checkMigrations(root)).length, 13); });
+test("merged release preserves vase migration 0011 and appends parliament bootstrap as 0012", async () => {
+    const files = await migrationFiles(root);
+    assert.equal(files[11].name, "0011_committee_vase_history.sql");
+    assert.equal(files[12].name, "0012_explicit_parliament_bootstrap.sql");
+    const db = new DatabaseSync(":memory:");
+    try {
+        for (const file of files.slice(0, 12)) db.exec(file.sql);
+        const vase = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='committee_vase_history'").get();
+        assert.equal(vase?.name, "committee_vase_history");
+        db.exec(files[12].sql);
+        const law = db.prepare("SELECT title,stage FROM parliament_items WHERE id='lesson-1-state'").get();
+        assert.equal(law?.stage, "proposal", "bootstrap inserts a proposal, not an enacted law");
+    } finally {
+        db.close();
+    }
+});
+
 test("bootstrap is idempotent and cannot replace an edited proposal", async () => {
     const files = await migrationFiles(root), db = new DatabaseSync(":memory:");
     try {
