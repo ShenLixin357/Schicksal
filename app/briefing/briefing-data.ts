@@ -5,6 +5,7 @@ export type BriefingTask = {
   title: string;
   detail: string;
   deadline: string | null;
+  deadlineKind?: "expected" | "deadline";
   actionable: boolean;
   completed: boolean;
   target: BriefingTarget;
@@ -42,25 +43,35 @@ export const foundingNews: readonly BriefingNews[] = [
   },
 ];
 
-const dateValue = (date: string | null) => {
+export const briefingDateTime = (date: string | null): number => {
   if (!date) return Number.POSITIVE_INFINITY;
-  const time = Date.parse(date);
+  // YYYY-MM-DD is a calendar-day deadline in Schicksal's UTC+8 local time.
+  const value = /^\\d{4}-\\d{2}-\\d{2}$/.test(date) ? date + "T23:59:59.999+08:00" : date;
+  const time = Date.parse(value);
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
 };
+
+export function briefingDeadlineInfo(date: string | null, now = Date.now()) {
+  if (!date || !Number.isFinite(briefingDateTime(date))) return { label: "无指定日期", passed: false };
+  const day = /^\\d{4}-\\d{2}-\\d{2}$/.test(date);
+  const label = day ? date.replace(/^(\\d{4})-(\\d{2})-(\\d{2})$/, (_, y: string, m: string, d: string) => y + "年" + Number(m) + "月" + Number(d) + "日") :
+    new Date(date).toLocaleString("zh-CN", { timeZone: "Asia/Singapore" });
+  return { label, passed: briefingDateTime(date) < now };
+}
 
 // Ineligible, completed, or already-closed actions never appear as live tasks.
 // The future authenticated task API remains authoritative for eligibility.
 export function orderedBriefingTasks(tasks: readonly BriefingTask[]): BriefingTask[] {
   return tasks.filter((task) => task.actionable && !task.completed)
-    .sort((a, b) => dateValue(a.deadline) - dateValue(b.deadline) || a.id.localeCompare(b.id));
+    .sort((a, b) => briefingDateTime(a.deadline) - briefingDateTime(b.deadline) || a.id.localeCompare(b.id));
 }
 
 export function latestUnreadMessages(messages: readonly BriefingMessage[]): BriefingMessage[] {
-  return [...messages].sort((a, b) => dateValue(b.receivedAt) - dateValue(a.receivedAt)).slice(0, 2);
+  return [...messages].sort((a, b) => briefingDateTime(b.receivedAt) - briefingDateTime(a.receivedAt)).slice(0, 2);
 }
 
 export function latestNews(news: readonly BriefingNews[]): BriefingNews[] {
-  return [...news].sort((a, b) => dateValue(b.publishedAt) - dateValue(a.publishedAt));
+  return [...news].sort((a, b) => briefingDateTime(b.publishedAt) - briefingDateTime(a.publishedAt));
 }
 
 // A per-login, non-authentication fingerprint is supplied only for a verified
