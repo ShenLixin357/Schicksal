@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  foundingNews, latestNews, latestUnreadMessages, orderedBriefingTasks,
+  briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages, orderedBriefingTasks,
   type BriefingMessage, type BriefingNews, type BriefingTarget, type BriefingTask,
 } from "./briefing-data";
 import "./briefing.css";
@@ -75,9 +75,10 @@ function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
     {state !== "ready" ? <p className="imperial-briefing-empty">{state === "error" ? "政务同步暂时失败，请稍后重试。" : state === "loading" ? "正在查询你的待办…" : "政务同步功能待接入；目前不显示未经核实的个人待办。"}</p> :
       displayed.length === 0 ? <p className="imperial-briefing-empty">目前没有待处理政务。</p> :
       <div className="imperial-briefing-rows">{displayed.map((task) => <div className="imperial-briefing-task-row" key={task.id}>
-        <div><strong>{task.title}</strong><small>{task.detail}</small><span>{task.deadline ? "截止：" + new Date(task.deadline).toLocaleString("zh-CN") : "无截止日期"}</span></div>
+        <div><strong>{task.title}</strong><small>{task.detail}</small><span>{task.deadline ? `${task.deadlineKind === "expected" ? "议案预期日期" : "截止"}：${briefingDeadlineInfo(task.deadline).label}${briefingDeadlineInfo(task.deadline).passed ? task.deadlineKind === "expected" ? " · 已过预期日期" : " · 已逾期（仍可处理）" : ""}` : "无指定日期"}</span></div>
         <button type="button" onClick={() => onNavigate(task.target, task.targetId)}>处理 →</button>
       </div>)}</div>}
+    {state === "ready" && <p className="imperial-briefing-footnote">目前已接入议会投票提醒；其他政务职责将在后续接入。</p>}
     {!full && state === "ready" && ordered.length > 3 && onOpenDesk && <button type="button" className="imperial-briefing-more" onClick={onOpenDesk}>还有 {ordered.length - 3} 项，前往简报台查看全部 →</button>}
   </section>;
 }
