@@ -12,6 +12,7 @@ const hooks = registerHooks({
     if (specifier === "cloudflare:workers") {
       return { url: "data:text/javascript,export const env = globalThis.__schicksalBriefingApiTestEnv;", shortCircuit: true };
     }
+    if (specifier.endsWith("/db")) return nextResolve(specifier + "/index.ts", context);
     if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier)) return nextResolve(specifier + ".ts", context);
     return nextResolve(specifier, context);
   },
