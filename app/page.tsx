@@ -1893,10 +1893,10 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
         // The display marker (not the authentication token) is shared between tabs.
         // It changes on each new login and survives refresh in that login session.
         try {
-          if (markBriefingViewed(window.localStorage, session.briefingSessionKey)) {
-            // A returning mini-game should not be interrupted by a full-screen overlay.
-            if (new URLSearchParams(window.location.search).get("lounge") !== "game-room") setBriefingOpen(true);
-          }
+          // A returning mini-game should not be interrupted by a full-screen overlay.
+          // Do not mark the briefing as viewed until it actually appears.
+          if (new URLSearchParams(window.location.search).get("lounge") === "game-room") return;
+          if (markBriefingViewed(window.localStorage, session.briefingSessionKey)) setBriefingOpen(true);
         } catch {
           try {
             if (markBriefingViewed(window.sessionStorage, session.briefingSessionKey)) setBriefingOpen(true);
