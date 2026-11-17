@@ -7,10 +7,10 @@ import {
 } from "./briefing-data";
 import "./briefing.css";
 
-type FeedState = "ready" | "not-connected" | "error";
+type FeedState = "loading" | "ready" | "not-connected" | "error";
 
 export type BriefingProps = {
-  onNavigate: (target: BriefingTarget) => void;
+  onNavigate: (target: BriefingTarget, targetId?: string) => void;
   canEnterLounge: boolean;
   sharedMark?: ReactNode;
   heroMark?: ReactNode;
@@ -19,6 +19,7 @@ export type BriefingProps = {
   messages?: readonly BriefingMessage[];
   messageState?: FeedState;
   news?: readonly BriefingNews[];
+  newsState?: "loading" | "ready" | "error";
 };
 
 function Today() {
@@ -28,10 +29,11 @@ function Today() {
   </time>;
 }
 
-function NewsList({ items, onNavigate, compact = false }: {
+function NewsList({ items, onNavigate, compact = false, state = "ready" }: {
   items: readonly BriefingNews[];
-  onNavigate: (target: BriefingTarget) => void;
+  onNavigate: (target: BriefingTarget, targetId?: string) => void;
   compact?: boolean;
+  state?: "loading" | "ready" | "error";
 }) {
   const [expanded, setExpanded] = useState(false);
   const ordered = latestNews(items);
@@ -46,19 +48,20 @@ function NewsList({ items, onNavigate, compact = false }: {
         <div className="imperial-briefing-news-line"><span className="imperial-briefing-news-symbol" aria-hidden="true">✧</span><span>{item.category}</span><time>{new Date(item.publishedAt).toLocaleDateString("zh-CN")}</time></div>
         <h3>{item.title}</h3>
         <p>{item.summary}</p>
-        {item.target && <button type="button" className="imperial-briefing-text-button" onClick={() => onNavigate(item.target!)}>查看记录 <span aria-hidden="true">→</span></button>}
+        {item.target && <button type="button" className="imperial-briefing-text-button" onClick={() => onNavigate(item.target!, item.targetId)}>查看记录 <span aria-hidden="true">→</span></button>}
       </article>)}
       {shown.length === 0 && <p className="imperial-briefing-empty">尚无已发布的新闻记录。</p>}
     </div>
     {compact && ordered.length > 3 && <button type="button" className="imperial-briefing-more" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>{expanded ? "收起新闻" : "展开全部新闻（" + ordered.length + "）"} <span aria-hidden="true">{expanded ? "↑" : "↓"}</span></button>}
-    <p className="imperial-briefing-footnote">目前仅展示已有的复辟纪事；自动新闻与公告系统将在后续阶段接入。</p>
+    {state === "loading" && <p className="imperial-briefing-footnote">正在同步最新国家动态…</p>}
+    {state === "error" && <p className="imperial-briefing-footnote" role="status">新闻同步暂时失败，以下是已保存的历史记录。</p>}
   </section>;
 }
 
 function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
   tasks: readonly BriefingTask[];
   state: FeedState;
-  onNavigate: (target: BriefingTarget) => void;
+  onNavigate: (target: BriefingTarget, targetId?: string) => void;
   onOpenDesk?: () => void;
   full?: boolean;
 }) {
@@ -69,11 +72,11 @@ function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
       <div><span className="imperial-briefing-eyebrow">MY AFFAIRS</span><h2>我的政务</h2></div>
       {state === "ready" && <span className="imperial-briefing-count">{ordered.length} 项</span>}
     </header>
-    {state !== "ready" ? <p className="imperial-briefing-empty">{state === "error" ? "政务信息读取失败，请稍后重试。" : "政务同步功能待接入；目前不显示未经核实的个人待办。"}</p> :
+    {state !== "ready" ? <p className="imperial-briefing-empty">{state === "error" ? "政务同步暂时失败，请稍后重试。" : state === "loading" ? "正在查询你的待办…" : "政务同步功能待接入；目前不显示未经核实的个人待办。"}</p> :
       displayed.length === 0 ? <p className="imperial-briefing-empty">目前没有待处理政务。</p> :
       <div className="imperial-briefing-rows">{displayed.map((task) => <div className="imperial-briefing-task-row" key={task.id}>
         <div><strong>{task.title}</strong><small>{task.detail}</small><span>{task.deadline ? "截止：" + new Date(task.deadline).toLocaleString("zh-CN") : "无截止日期"}</span></div>
-        <button type="button" onClick={() => onNavigate(task.target)}>处理 →</button>
+        <button type="button" onClick={() => onNavigate(task.target, task.targetId)}>处理 →</button>
       </div>)}</div>}
     {!full && state === "ready" && ordered.length > 3 && onOpenDesk && <button type="button" className="imperial-briefing-more" onClick={onOpenDesk}>还有 {ordered.length - 3} 项，前往简报台查看全部 →</button>}
   </section>;
@@ -118,7 +121,7 @@ function QuickAccess({ onNavigate, canEnterLounge }: Pick<BriefingProps, "onNavi
 
 export function BriefingOverlay({
   onClose, onOpenDesk, onNavigate, canEnterLounge, sharedMark, heroMark,
-  tasks = [], taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews,
+  tasks = [], taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews, newsState = "ready",
 }: BriefingProps & { onClose: () => void; onOpenDesk: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -147,7 +150,7 @@ export function BriefingOverlay({
             <Messages messages={messages} state={messageState}/>
           </div>
         </section>
-        <NewsList compact items={news} onNavigate={onNavigate}/>
+        <NewsList compact items={news} onNavigate={onNavigate} state={newsState}/>
         <QuickAccess canEnterLounge={canEnterLounge} onNavigate={onNavigate}/>
       </div>
       <footer className="imperial-briefing-footer"><span>SCHICKSAL · EIGHT CITIZENS · ONE COMMUNITY</span><span>BRIEFING / NATIONAL NEWS</span></footer>
@@ -157,7 +160,7 @@ export function BriefingOverlay({
 
 export function BriefingDesk({
   onOpenBriefing, onNavigate, canEnterLounge, sharedMark,
-  tasks = [], taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews,
+  tasks = [], taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews, newsState = "ready",
 }: BriefingProps & { onOpenBriefing: () => void }) {
   return <div className="imperial-briefing-desk">
     <header className="imperial-briefing-desk-header">
@@ -168,7 +171,7 @@ export function BriefingDesk({
       <Tasks full tasks={tasks} state={taskState} onNavigate={onNavigate}/>
       <Messages full messages={messages} state={messageState}/>
     </div>
-    <NewsList items={news} onNavigate={onNavigate}/>
+    <NewsList items={news} onNavigate={onNavigate} state={newsState}/>
     <QuickAccess canEnterLounge={canEnterLounge} onNavigate={onNavigate}/>
     <div className="imperial-briefing-desk-signature">{sharedMark}<span>SCHICKSAL · 天命</span></div>
   </div>;
