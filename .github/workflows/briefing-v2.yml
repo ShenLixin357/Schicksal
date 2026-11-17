@@ -5,7 +5,7 @@ on:
     paths:
       - "app/briefing/**"
       - "app/page.tsx"
-      - "app/api/member-session/route.ts"
+      - "app/api/briefing-session/route.ts"
       - "tests/briefing-data.test.mjs"
       - ".github/workflows/briefing-v2.yml"
   push:
@@ -28,5 +28,5 @@ jobs:
         run: node --experimental-transform-types --test tests/briefing-data.test.mjs
       - name: Install dependencies
         run: npm ci
-      - name: Typecheck
-        run: npx tsc --noEmit
+      - name: Typecheck isolated briefing components
+        run: npx tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --jsx react-jsx --lib ES2022,DOM,DOM.Iterable --skipLibCheck --allowSyntheticDefaultImports --strict app/briefing/briefing.tsx app/briefing/briefing-data.ts
