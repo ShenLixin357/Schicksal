@@ -47,6 +47,7 @@ export function parliamentVotingTasks(
     title: item.title,
     detail: item.serialCode + " · 正式表决尚未投票",
     deadline: item.deadline || null,
+    deadlineKind: "expected" as const,
     actionable: true,
     completed: false,
     target: "parliament",
