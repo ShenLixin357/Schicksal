@@ -2,14 +2,8 @@ import { env } from "cloudflare:workers";
 import { cookieToken, currentMember, digest, MEMBER_SESSION_SECONDS, sameOrigin, sessionCookie, verifyMemberPassword } from "../../member-session";
 
 export async function GET(request: Request) {
-  try {
-    const citizenId = await currentMember(request);
-    const token = citizenId ? cookieToken(request) : null;
-    // A non-secret display marker: never return the cookie or stored session hash.
-    // It changes on each successful login and is shared across the user's tabs.
-    const briefingSessionKey = token ? await digest("briefing-ui-v2:" + token) : null;
-    return Response.json({ citizenId, briefingSessionKey }, { headers: { "Cache-Control": "no-store" } });
-  } catch { return Response.json({ error: "登录服务暂时未能回应。" }, { status: 503 }); }
+  try { return Response.json({ citizenId: await currentMember(request) }, { headers: { "Cache-Control": "no-store" } }); }
+  catch { return Response.json({ error: "登录服务暂时未能回应。" }, { status: 503 }); }
 }
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "请从本站登录。" }, { status: 403 });
