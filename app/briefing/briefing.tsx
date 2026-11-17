@@ -130,7 +130,7 @@ export function BriefingOverlay({
   return <div className="imperial-briefing-overlay" role="dialog" aria-modal="true" aria-label="帝国简报">
     <div className="imperial-briefing-paper">
       <header className="imperial-briefing-topbar">
-        <div className="imperial-briefing-brand"><span className="imperial-briefing-logo-slot">{sharedMark}</span><div><strong>SCHICKSAL</strong><small>IMPERIAL BRIEFING · 帝国简报</small></div></div>
+        <div className="imperial-briefing-brand"><div className="imperial-briefing-logo-slot">{sharedMark}</div><div><strong>SCHICKSAL</strong><small>IMPERIAL BRIEFING · 帝国简报</small></div></div>
         <div className="imperial-briefing-topbar-right"><Today/><button ref={closeRef} className="imperial-briefing-close" type="button" aria-label="关闭帝国简报，返回天命首页" onClick={onClose}>×</button></div>
       </header>
       <div className="imperial-briefing-content">
