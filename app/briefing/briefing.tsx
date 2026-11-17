@@ -6,6 +6,7 @@ import {
   type BriefingMessage, type BriefingNews, type BriefingTarget, type BriefingTask,
 } from "./briefing-data";
 import "./briefing.css";
+import "./briefing-palette.css";
 import { BriefingBackdrop } from "./briefing-backdrop";
 
 type FeedState = "loading" | "ready" | "not-connected" | "error";
