@@ -364,3 +364,11 @@
  .imperial-briefing-lead-copy { width:84%; }
  .imperial-briefing-hero-art { opacity:.45; }
 }
+
+/* Desktop first-screen fit: keep the headline, news and shortcuts visible.
+   Only the independent information panels scroll when there are many items. */
+@media (min-width:981px) {
+ .imperial-briefing-overlay .imperial-briefing-lead { min-height:380px; }
+ .imperial-briefing-overlay .imperial-briefing-right { height:380px; min-height:0; grid-template-rows:minmax(0,1.22fr) minmax(0,.88fr); }
+ .imperial-briefing-overlay .imperial-briefing-panel { min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(173,188,198,.5) transparent; }
+}
