@@ -45,6 +45,31 @@ export type BriefingProps = {
   newsState?: "loading" | "ready" | "error";
 };
 
+/**
+ * Decorative hairline wave embroidery: colours follow the canonical eight-member
+ * sequence. Never use an image of an emblem here: the live homepage sculpture
+ * is mounted separately and left unaltered.
+ */
+function BriefingWaveEmbroidery() {
+  const paths = [
+    { color: "#e3bf61", d: "M-30 190 C160 152 224 255 390 198 S680 82 910 164 S1060 219 1190 142" },
+    { color: "#679ad3", d: "M-30 200 C152 157 235 268 397 205 S690 98 910 171 S1062 232 1190 150" },
+    { color: "#d98486", d: "M-30 210 C152 167 240 275 407 214 S702 107 924 180 S1062 244 1190 160" },
+    { color: "#76ae94", d: "M-30 220 C152 177 246 285 419 223 S712 116 940 190 S1070 253 1190 169" },
+    { color: "#b3d6e3", d: "M-30 230 C152 187 250 294 431 232 S720 128 948 200 S1070 261 1190 181" },
+    { color: "#dba4bf", d: "M-30 240 C152 197 260 304 440 242 S732 141 960 210 S1070 268 1190 189" },
+    { color: "#dea46c", d: "M-30 250 C152 207 270 314 454 252 S742 148 974 220 S1085 273 1190 199" },
+    { color: "#9987ba", d: "M-30 260 C152 217 280 324 463 261 S752 159 987 229 S1090 280 1190 208" },
+  ];
+  return <svg className="imperial-briefing-wave-embroidery" viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <g fill="none" strokeLinecap="round">
+      {paths.map(({ color, d }) => <path key={color} d={d} stroke={color} strokeWidth="1.8"/>)}
+      <path d="M-30 140 C180 78 250 177 411 132 S763 38 1180 84" stroke="#b69a67" strokeWidth="1.05" strokeDasharray="2 10" opacity=".42"/>
+    </g>
+    <g fill="#fbf9f4" stroke="#d2b176" strokeWidth="1.2"><circle cx="410" cy="134" r="3"/><circle cx="920" cy="172" r="2.5"/></g>
+  </svg>;
+}
+
 function Today() {
   const now = new Date();
   return <time dateTime={now.toISOString().slice(0, 10)} suppressHydrationWarning>
@@ -170,7 +195,8 @@ export function BriefingOverlay({
               <p>天命帝国复辟，国家制度建设开启新的篇章。</p>
               <button type="button" className="imperial-briefing-primary" onClick={() => onNavigate("archives")}>查看详情 <span aria-hidden="true">→</span></button>
             </div>
-            <div className="imperial-briefing-hero-art" aria-hidden="true"><div className="imperial-briefing-arcade"/><div className="imperial-briefing-orbital-frame"><i/><i/><i/></div><div className="imperial-briefing-emblem-art">{heroMark}</div><div className="imperial-briefing-banner"/></div>
+            <BriefingWaveEmbroidery/>
+            <div className="imperial-briefing-hero-art" aria-hidden="true"><div className="imperial-briefing-arcade"/><div className="imperial-briefing-emblem-art">{heroMark}</div></div>
           </article>
           <div className="imperial-briefing-right">
             <Tasks tasks={tasks} state={taskState} onNavigate={onNavigate} onOpenDesk={onOpenDesk}/>
