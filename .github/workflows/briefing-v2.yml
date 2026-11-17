@@ -27,9 +27,9 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-      - name: Briefing data regression
-        run: node --experimental-transform-types --test tests/briefing-data.test.mjs tests/briefing-feed.test.mjs tests/briefing-api.test.mjs
       - name: Install dependencies
         run: npm ci
+      - name: Briefing data and authenticated API regression
+        run: node --experimental-transform-types --test tests/briefing-data.test.mjs tests/briefing-feed.test.mjs tests/briefing-api.test.mjs
       - name: Typecheck isolated briefing components
         run: npx tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --jsx react-jsx --lib ES2022,DOM,DOM.Iterable --skipLibCheck --allowSyntheticDefaultImports --strict app/briefing/briefing.tsx app/briefing/briefing-data.ts app/briefing/briefing-feed.ts app/briefing/use-briefing-feed.ts
