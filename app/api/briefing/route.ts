@@ -1,11 +1,9 @@
-import { desc, eq } from "drizzle-orm";
-import { getDb } from "../../../db";
+import { env } from "cloudflare:workers";
 import { ensureParliamentSchema } from "../../../db/parliament-schema";
-import { parliamentAuditEvents, parliamentItems, parliamentVotes } from "../../../db/schema";
 import { currentMember } from "../../member-session";
 import { foundingNews, latestNews, orderedBriefingTasks } from "../../briefing/briefing-data";
 import { verifiedReleaseNews } from "../../briefing/feature-news";
-import { parliamentAuditNews, parliamentVotingTasks } from "../../briefing/briefing-feed";
+import { parliamentAuditNews, parliamentVotingTasks, type ParliamentItemForBriefing, type VoteForBriefing, type AuditForBriefing } from "../../briefing/briefing-feed";
 
 const headers = { "Cache-Control": "private, no-store" };
 
@@ -18,25 +16,21 @@ export async function GET(request: Request) {
       return Response.json({ error: "请先登录天命成员身份。" }, { status: 401, headers });
     }
     await ensureParliamentSchema();
-    const db = getDb();
-    const [items, ownVotes, events] = await Promise.all([
-      db.select({
-        id: parliamentItems.id, serialCode: parliamentItems.serialCode,
-        title: parliamentItems.title, summary: parliamentItems.summary,
-        stage: parliamentItems.stage, votingVersion: parliamentItems.votingVersion,
-        version: parliamentItems.version, deadline: parliamentItems.deadline,
-        createdAt: parliamentItems.createdAt, updatedAt: parliamentItems.updatedAt,
-      }).from(parliamentItems),
-      db.select({
-        itemId: parliamentVotes.itemId, citizenId: parliamentVotes.citizenId,
-        documentVersion: parliamentVotes.documentVersion,
-      }).from(parliamentVotes).where(eq(parliamentVotes.citizenId, citizenId)),
-      db.select({
-        id: parliamentAuditEvents.id, itemId: parliamentAuditEvents.itemId,
-        eventType: parliamentAuditEvents.eventType, description: parliamentAuditEvents.description,
-        createdAt: parliamentAuditEvents.createdAt,
-      }).from(parliamentAuditEvents).orderBy(desc(parliamentAuditEvents.createdAt)),
+    const [itemRows, voteRows, eventRows] = await Promise.all([
+      env.DB.prepare(`SELECT id, serial_code AS serialCode, title, summary, stage,
+          voting_version AS votingVersion, version, deadline,
+          created_at AS createdAt, updated_at AS updatedAt
+        FROM parliament_items`).all<ParliamentItemForBriefing>(),
+      env.DB.prepare(`SELECT item_id AS itemId, citizen_id AS citizenId,
+          document_version AS documentVersion
+        FROM parliament_votes WHERE citizen_id = ?`).bind(citizenId).all<VoteForBriefing>(),
+      env.DB.prepare(`SELECT id, item_id AS itemId, event_type AS eventType,
+          description, created_at AS createdAt
+        FROM parliament_audit_events ORDER BY created_at DESC`).all<AuditForBriefing>(),
     ]);
+    const items = itemRows.results;
+    const ownVotes = voteRows.results;
+    const events = eventRows.results;
     const tasks = orderedBriefingTasks(parliamentVotingTasks(items, ownVotes, citizenId));
     const news = latestNews([...foundingNews, ...verifiedReleaseNews, ...parliamentAuditNews(events, items)]);
     return Response.json({ tasks, news, messageState: "not-connected" }, { headers });
