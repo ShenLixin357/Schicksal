@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const memberCredentials = sqliteTable("member_credentials", {
   citizenId: text("citizen_id").primaryKey(),
@@ -331,3 +331,16 @@ export const memberInsaniquariumSaves = sqliteTable("member_insaniquarium_saves"
   updatedAt: text("updated_at").notNull(),
 });
 
+// Query models for existing 0010 SQL; ordered SQL is deployment authority.
+export const emeraldMusicEditors = sqliteTable("emerald_music_editors", {
+    citizenId: text("citizen_id").primaryKey(), grantedBy: text("granted_by").notNull(), updatedAt: text("updated_at").notNull(),
+}, t => [check("emerald_music_editor_member", sql `${t.citizenId} IN ('truth')`)]);
+export const emeraldMusicScores = sqliteTable("emerald_music_scores", {
+    id: text("id").primaryKey(), title: text("title").notNull(), composer: text("composer").notNull().default(""), content: text("content").notNull().default(""), privateNote: text("private_note").notNull().default(""), revision: integer("revision").notNull().default(1), writeToken: text("write_token").notNull(), createdBy: text("created_by").notNull(), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(), deletedAt: text("deleted_at"),
+});
+export const emeraldMusicAssets = sqliteTable("emerald_music_assets", {
+    id: text("id").primaryKey(), scoreId: text("score_id").notNull().references(() => emeraldMusicScores.id, { onDelete: "cascade" }), kind: text("kind").notNull(), objectKey: text("object_key").notNull().unique(), originalName: text("original_name").notNull(), mime: text("mime").notNull(), size: integer("size").notNull(), createdAt: text("created_at").notNull(), deletedAt: text("deleted_at"),
+}, t => [index("emerald_music_assets_score").on(t.scoreId, t.deletedAt), check("emerald_music_asset_kind", sql `${t.kind} IN ('image','audio')`)]);
+export const emeraldMusicMelodies = sqliteTable("emerald_music_melodies", {
+    id: text("id").primaryKey(), creatorId: text("creator_id").notNull(), clientId: text("client_id").notNull(), notesJson: text("notes_json").notNull(), tempo: integer("tempo").notNull(), message: text("message").notNull().default(""), createdAt: text("created_at").notNull(),
+}, t => [uniqueIndex("emerald_music_melody_creator_client").on(t.creatorId, t.clientId), index("emerald_music_melodies_time").on(t.createdAt, t.id), check("emerald_music_melody_member", sql `${t.creatorId} IN ('amberina','zxy','truth')`)]);

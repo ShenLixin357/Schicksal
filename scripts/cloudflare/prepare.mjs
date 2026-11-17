@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { deploymentBinding } from "./binding.mjs";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,5 +28,6 @@ const config = { name: target.workerName || "schicksal-first-empire", account_id
   d1_databases: [{ binding: "DB", database_name: target.databaseName || "schicksal-data", database_id: target.databaseId, migrations_dir: "../drizzle" }],
   ...(storageProvider === "r2" ? { r2_buckets: [{ binding: "BUCKET", bucket_name: target.bucketName }] } : {}), observability: { enabled: true },
 };
+deploymentBinding(config, {});
 await writeFile(resolve(output, "server/wrangler.json"), JSON.stringify(config, null, 2));
 console.log(JSON.stringify({ config: resolve(output, "server/wrangler.json"), workerName: config.name, standaloneAuth: true, secretRequired: "SCHICKSAL_MEMBER_PASSWORDS" }));

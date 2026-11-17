@@ -8,9 +8,9 @@
   "scripts": {
     "install:ci": "bash scripts/install-ci.sh",
     "dev": "vite",
-    "build": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && node scripts/insaniquarium/check-resources.mjs && vinext build",
+    "build": "npm run check && npm run build:app && node scripts/cloudflare/lock-built-binding.mjs",
     "start": "vinext start",
-    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase",
+    "test": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/*.test.mjs tests/*.test.ts",
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
     "test:minigames": "node --experimental-transform-types --test tests/potion-sort-engine.test.ts tests/merge-game-engine.test.ts tests/chryser-games.test.ts",
     "test:mafraer": "node --experimental-transform-types --test tests/mafraer-magic.test.ts tests/mafraer-observatory.test.ts",
@@ -19,9 +19,9 @@
     "cloudflare:prepare": "node scripts/cloudflare/prepare.mjs",
     "validate:artifact": "bash scripts/validate-artifact.sh",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate",
+    "db:generate": "node --experimental-transform-types scripts/migrations.mjs new",
     "deploy": "node scripts/cloudflare/deploy-build.mjs",
-    "db:migrate": "wrangler d1 migrations apply DB --remote --config dist/server/wrangler.json",
+    "db:migrate": "node scripts/cloudflare/deploy-build.mjs --migrate-only",
     "test:deployment": "node --test tests/cloudflare-deploy.test.mjs",
     "test:parliament": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/parliament-speaker-api.test.mjs",
     "test:photos": "node --experimental-transform-types --test tests/photo-storage.test.mjs",
@@ -33,7 +33,17 @@
     "test:insaniquarium": "node --experimental-transform-types --test tests/insaniquarium-api.test.mjs tests/insaniquarium-client.test.mjs tests/insaniquarium-runtime.test.mjs tests/insaniquarium-zip.test.mjs tests/insaniquarium-hosted-assets.test.mjs",
     "test:vase": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/vase-experience.test.mjs",
     "test:lounge": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/lounge-chat-history.test.mjs",
-    "test:cello": "node --experimental-strip-types --test tests/emerald-cello.test.mjs tests/cello-audio.test.mjs"
+    "test:cello": "node --experimental-strip-types --test tests/emerald-cello.test.mjs tests/cello-audio.test.mjs",
+    "typecheck": "node scripts/check-types.mjs",
+    "check": "npm run typecheck && npm run db:check && npm test",
+    "db:check": "node --experimental-transform-types scripts/migrations.mjs check",
+    "db:new": "node --experimental-transform-types scripts/migrations.mjs new",
+    "db:seal": "node --experimental-transform-types scripts/migrations.mjs seal",
+    "build:app": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && node scripts/insaniquarium/check-resources.mjs && vinext build",
+    "deploy:check": "node scripts/cloudflare/deploy-build.mjs --check",
+    "backup:capture": "node --experimental-transform-types scripts/cloudflare/backup.mjs capture",
+    "backup:verify": "node --experimental-transform-types scripts/cloudflare/backup.mjs verify",
+    "backup:restore-local": "node --experimental-transform-types scripts/cloudflare/backup.mjs restore-local"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
@@ -60,6 +70,5 @@
     "wrangler": "4.92.0"
   },
   "type": "module",
-  "displayName": "Schicksal \u2014 \u5929\u547d\u7b2c\u4e00\u5e1d\u56fd"
+  "displayName": "Schicksal — 天命第一帝国"
 }
-

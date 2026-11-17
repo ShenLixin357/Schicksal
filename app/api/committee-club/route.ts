@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { committeeClubMessages, committeeClubProfiles, committeeClubRoom } from "../../../db/schema";
-import { standaloneMember } from "../../standalone-access";
+import { requireMember } from "../../../server/auth/member.ts";
+import { readJson, apiFailure } from "../../../server/http.ts";
 import { readHistoryQuery, type ChatCursor } from "../../club/chat-history";
 import { changeVase } from "../../club/vase/vase-server";
 
@@ -34,7 +35,7 @@ async function getLoungeSeats() {
 
 export async function GET(request: Request) {
   try {
-    const citizenId = standaloneMember(request, env) || cleanText(new URL(request.url).searchParams.get("citizenId"), 40);
+    const citizenId = await requireMember(request);
     const denied = denyUnlessMember(citizenId);
     if (denied) return denied;
 
@@ -75,16 +76,14 @@ export async function GET(request: Request) {
       seats,
     });
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Committee Lounge 暂时没有回应。" },
-      { status: 500 },
-    );
+    return apiFailure(error, "Committee Lounge 暂时没有回应。");
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json() as {
+    const citizenId = await requireMember(request);
+    const payload = await readJson<{
       action?: unknown;
       citizenId?: unknown;
       body?: unknown;
@@ -94,8 +93,7 @@ export async function POST(request: Request) {
       vaseSelection?: unknown;
       requestId?: unknown;
       seatIndex?: unknown;
-    };
-    const citizenId = standaloneMember(request, env) || cleanText(payload.citizenId, 40);
+    }>(request, 8000);
     const action = cleanText(payload.action, 40);
     const denied = denyUnlessMember(citizenId);
     if (denied) return denied;
@@ -157,10 +155,7 @@ export async function POST(request: Request) {
 
     return Response.json({ error: "未知的 Lounge 动作。" }, { status: 400 });
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Committee Lounge 暂时无法保存这次动作。" },
-      { status: 500 },
-    );
+    return apiFailure(error, "Committee Lounge 暂时无法保存这次动作。");
   }
 }
 
