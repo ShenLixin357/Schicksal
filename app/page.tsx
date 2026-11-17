@@ -550,7 +550,7 @@ const AGE_BAND_META: Record<ProposerAgeBand, string> = {
   unknown: "尚未确认",
 };
 
-function PersistentParliamentSection({ citizen, requestedItemId = "" }: { citizen: Citizen; requestedItemId?: string }) {
+function PersistentParliamentSection({ citizen, requestedItemId = "", focusReferendums = false }: { citizen: Citizen; requestedItemId?: string; focusReferendums?: boolean }) {
   const [items, setItems] = useState<ParliamentItem[]>([]);
   const [activeId, setActiveId] = useState("");
   const [comments, setComments] = useState<ParliamentComment[]>([]);
@@ -564,11 +564,11 @@ function PersistentParliamentSection({ citizen, requestedItemId = "" }: { citize
   const [floorRequests, setFloorRequests] = useState<ParliamentFloorRequest[]>([]);
   const [resultReactions, setResultReactions] = useState<ParliamentResultReaction[]>([]);
   const [session, setSession] = useState<ParliamentSession>({ citizenId: citizen.id, stageManager: false, speakerManager: false, meetingSpeaker: false, platformAuthenticated: false });
-  const [filter, setFilter] = useState<"all" | ParliamentStage>("all");
+  const [filter, setFilter] = useState<"all" | ParliamentStage>(focusReferendums ? "resolved" : "all");
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [casePanel, setCasePanel] = useState<"stage" | "text" | "procedure" | "history">("stage");
   const [liveRecordOpen, setLiveRecordOpen] = useState(false);
-  const [resolvedShelf, setResolvedShelf] = useState<"all" | "passed" | "rejected" | "referendum">("all");
+  const [resolvedShelf, setResolvedShelf] = useState<"all" | "passed" | "rejected" | "referendum">(focusReferendums ? "referendum" : "all");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -1404,7 +1404,7 @@ function AmberinaLounge({ visitor, ownerProfile, onBack }: { visitor: Citizen; o
   return <MafraerLounge onBack={onBack} ownerName={loungeMaskName(CITIZENS[0], ownerProfile)} visitorName={loungeMaskName(visitor)} isOwner={visitor.id === "amberina"} ownerAvatar={<ClubAvatar citizen={CITIZENS[0]} profile={ownerProfile} />} />;
 }
 
-function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen; leave: () => void; seatingUnlocked: boolean }) {
+function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom = "committee" }: { citizen: Citizen; leave: () => void; seatingUnlocked: boolean; initialRoom?: "committee" | "game-room" }) {
   const [rankingsOpen, setRankingsOpen] = useState(false);
   const [effect, setEffect] = useState<"idle" | "moon" | "cat" | "pumpkin" | "portrait" | "scroll" | "vase" | "table">("idle");
   const [moonlight, setMoonlight] = useState(false);
@@ -1425,7 +1425,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const [maskAvatar, setMaskAvatar] = useState("sigil");
   const [clubStatus, setClubStatus] = useState("");
   const [saving, setSaving] = useState(false);
-  const [roomView, setRoomView] = useState<"committee" | "amberina" | "chryser" | "truth" | "game-room">("committee");
+  const [roomView, setRoomView] = useState<"committee" | "amberina" | "chryser" | "truth" | "game-room">(initialRoom);
   const [fanTransition, setFanTransition] = useState<"enter" | "exit" | null>(null);
   const [fireplaceOpening, setFireplaceOpening] = useState(false);
   const [globeOpening, setGlobeOpening] = useState(false);
@@ -1900,6 +1900,8 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
   const [parliamentDeepLink, setParliamentDeepLink] = useState("");
+  const [parliamentFocus, setParliamentFocus] = useState<"all" | "referendum">("all");
+  const [loungeLanding, setLoungeLanding] = useState<"committee" | "game-room">("committee");
   const briefingFeed = useBriefingFeed(citizen.id, section);
   useEffect(() => {
     const controller = new AbortController();
@@ -1952,6 +1954,7 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
     }
   }, [citizen.id]);
   const enterLounge = () => {
+    setLoungeLanding("committee");
     setLoungeSeatingUnlocked(false);
     setSection("club");
     announceCommitteeLounge(citizen, () => setLoungeSeatingUnlocked(true));
@@ -1960,24 +1963,33 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const navigateFromBriefing = (target: BriefingTarget, targetId?: string) => {
     setBriefingOpen(false);
     setParliamentDeepLink(target === "parliament" ? targetId || "" : "");
+    setParliamentFocus(target === "referendum" ? "referendum" : "all");
     if (target === "club") { enterLounge(); return; }
+    if (target === "games") {
+      if (!CLUB_MEMBER_IDS.has(citizen.id)) return; // game room currently belongs to Committee Lounge
+      setLoungeLanding("game-room");
+      setLoungeSeatingUnlocked(true);
+      setSection("club");
+      return;
+    }
+    if (target === "referendum") { setSection("parliament"); return; }
     setSection(target);
   };
   const clubOpen = section === "club" && CLUB_MEMBER_IDS.has(citizen.id);
   const active = NAV.find((item) => item.id === section) ?? { id: "club" as const, label: "委员会 Lounge", en: "Committee Lounge" };
   let content: ReactNode;
   switch (section) {
-    case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
+    case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "citizens": content = <CitizensSection />; break;
     case "emblem": content = <EmblemSection />; break;
-    case "parliament": content = <PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} />; break;
+    case "parliament": content = <PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} focusReferendums={parliamentFocus === "referendum"} />; break;
     case "honors": content = <HonorsSection />; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection />; break;
     case "photos": content = <PhotoArchiveSection citizen={citizen} />; break;
     case "archives": content = <ArchivesSection />; break;
     case "profile": content = <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</>; break;
-    case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={() => setSection("home")} seatingUnlocked={loungeSeatingUnlocked} /> : <HomeSection go={setSection} />; break;
+    case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={() => setSection("home")} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
   }
   return (
@@ -1990,11 +2002,11 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
         taskState={briefingFeed.status}
         news={briefingFeed.news}
         newsState={briefingFeed.status}
-        canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)}
+        canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)}
         sharedMark={<Emblem compact />}
         heroMark={<HeroEmblemSculpture blades={EMBLEM_BLADES} />}
       />}
-      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") setParliamentDeepLink(""); setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
+      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); } setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
     </main>
   );
