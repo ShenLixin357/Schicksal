@@ -8,6 +8,7 @@ export type BriefingTask = {
   actionable: boolean;
   completed: boolean;
   target: BriefingTarget;
+  targetId?: string;
 };
 
 export type BriefingMessage = {
@@ -25,6 +26,7 @@ export type BriefingNews = {
   category: string;
   publishedAt: string;
   target: BriefingTarget | null;
+  targetId?: string;
 };
 
 // This is an existing, historically recorded event, not an invented live update.
