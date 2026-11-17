@@ -6,6 +6,7 @@ import {
   type BriefingMessage, type BriefingNews, type BriefingTarget, type BriefingTask,
 } from "./briefing-data";
 import "./briefing.css";
+import { BriefingBackdrop } from "./briefing-backdrop";
 
 type FeedState = "loading" | "ready" | "not-connected" | "error";
 type BriefingIconName = "parliament"|"referendum"|"archives"|"lounge"|"games"|"messenger"|"news"|"affairs";
@@ -182,6 +183,7 @@ export function BriefingOverlay({
   }, [onClose]);
   return <div className="imperial-briefing-overlay" role="dialog" aria-modal="true" aria-label="帝国简报">
     <div className="imperial-briefing-paper">
+      <BriefingBackdrop/>
       <header className="imperial-briefing-topbar">
         <div className="imperial-briefing-brand"><div className="imperial-briefing-logo-slot">{sharedMark}</div><div><strong>SCHICKSAL</strong><small>天命第一帝国</small></div></div>
         <div className="imperial-briefing-topbar-center"><span className="imperial-briefing-header-separator" aria-hidden="true"/><div><h2>帝国简报</h2><small>IMPERIAL BRIEFING</small></div></div><div className="imperial-briefing-topbar-right"><Today/><button ref={closeRef} className="imperial-briefing-close" type="button" aria-label="关闭帝国简报，返回天命首页" onClick={onClose}>×</button></div>
@@ -216,6 +218,7 @@ export function BriefingDesk({
   tasks = [], taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews, newsState = "ready",
 }: BriefingProps & { onOpenBriefing: () => void }) {
   return <div className="imperial-briefing-desk">
+    <BriefingBackdrop/>
     <header className="imperial-briefing-desk-header">
       <div><span className="imperial-briefing-eyebrow">IMPERIAL BRIEFING DESK</span><h1>帝国简报台</h1><p>国家动态、个人事务与快捷通道</p></div>
       <button type="button" className="imperial-briefing-open" onClick={onOpenBriefing} aria-label="打开全屏帝国简报"><span aria-hidden="true">▤</span> 打开简报</button>
