@@ -14,14 +14,19 @@ test("briefing uses the same compact eight-ray mark as the existing website navi
   assert.match(css, /imperial-briefing-emblem-art > \.emblem\.compact/);
 });
 
-test("the milky-ivory canvas contains independent full-page colour lines and translucent geometry", () => {
+test("the milky-ivory canvas keeps eight-colour waves and has only gently tinted ovals", () => {
   assert.match(briefing, /<BriefingBackdrop\/>/);
   assert.match(briefing, /<div className="imperial-briefing-paper">\s*<BriefingBackdrop\/>/);
   assert.match(briefing, /<div className="imperial-briefing-desk">\s*<BriefingBackdrop\/>/);
   assert.match(backdrop, /palette = \[/);
   assert.match(backdrop, /palette\.map\(/);
-  assert.match(backdrop, /<polygon /);
-  assert.match(backdrop, /strokeDasharray/);
+  assert.match(backdrop, /<radialGradient /);
+  assert.match(backdrop, /<ellipse /);
+  assert.match(backdrop, /className="imperial-briefing-oval-group"/);
+  assert.doesNotMatch(backdrop, /<polygon /);
+  assert.doesNotMatch(backdrop, /imperial-briefing-facet-group/);
+  assert.match(briefing, /imperial-briefing-oval-halo/);
+  assert.doesNotMatch(briefing, /imperial-briefing-arcade/);
   assert.match(css, /#faf8f2/);
   assert.match(css, /pointer-events:none/);
 });
