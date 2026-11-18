@@ -99,10 +99,13 @@ export function buildInboxViews(
     const item = byItem.get(meeting.itemId);
     const deadline = meeting.speakerElectionDeadline;
     const cutoff = briefingDateTime(deadline || null);
-    // 'not_configured' covers cancellations; an assigned speaker with no
+    // An overdue election can still be persisted as open until parliamentary
+    // lazy-finalization runs. Deadline alone closes voting; do not keep it in
+    // pending or archived. 'not_configured' covers cancellations.
+    // An assigned speaker with no
     // actual election is never counted as a missed voting opportunity.
     if (!item || !Number.isFinite(cutoff) || cutoff > now ||
-      !["elected", "tie_pending"].includes(meeting.speakerStatus) ||
+      !["open", "elected", "tie_pending"].includes(meeting.speakerStatus) ||
       !candidates.some(candidate => candidate.itemId === item.id) ||
       ownSpeakerVotes.some(v => v.itemId === item.id && v.voterCitizenId === citizenId)) continue;
     missed.push({
