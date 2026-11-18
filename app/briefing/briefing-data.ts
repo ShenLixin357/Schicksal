@@ -88,7 +88,18 @@ export function briefingCountdown(date: string | null, now: number): string {
 // The future authenticated task API remains authoritative for eligibility.
 export function orderedBriefingTasks(tasks: readonly BriefingTask[]): BriefingTask[] {
   return tasks.filter((task) => task.actionable && !task.completed)
-    .sort((a, b) => briefingDateTime(a.deadline) - briefingDateTime(b.deadline) || briefingDateTime(a.createdAt || null) - briefingDateTime(b.createdAt || null) || a.id.localeCompare(b.id));
+    .sort((a, b) => {
+      // Actual enforceable DDL always outranks a merely planned date.
+      // Otherwise an old undeliberated proposal could bury today's speaker
+      // vote outside the three slots on the login briefing.
+      const kind = (t: BriefingTask) => !Number.isFinite(briefingDateTime(t.deadline)) ? 2 :
+        t.deadlineKind === "deadline" ? 0 : 1;
+      return kind(a) - kind(b)
+        || briefingDateTime(a.deadline) - briefingDateTime(b.deadline)
+        || Number(b.participation === "required") - Number(a.participation === "required")
+        || briefingDateTime(a.createdAt || null) - briefingDateTime(b.createdAt || null)
+        || a.id.localeCompare(b.id);
+    });
 }
 
 export function latestUnreadMessages(messages: readonly BriefingMessage[]): BriefingMessage[] {
