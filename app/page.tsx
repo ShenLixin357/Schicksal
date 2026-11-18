@@ -550,7 +550,7 @@ const AGE_BAND_META: Record<ProposerAgeBand, string> = {
   unknown: "尚未确认",
 };
 
-function PersistentParliamentSection({ citizen, requestedItemId = "", focusReferendums = false }: { citizen: Citizen; requestedItemId?: string; focusReferendums?: boolean }) {
+function PersistentParliamentSection({ citizen, requestedItemId = "", requestedFocus = "vote", focusReferendums = false }: { citizen: Citizen; requestedItemId?: string; requestedFocus?: "proposal" | "speaker" | "debate" | "vote"; focusReferendums?: boolean }) {
   const [items, setItems] = useState<ParliamentItem[]>([]);
   const [activeId, setActiveId] = useState("");
   const [comments, setComments] = useState<ParliamentComment[]>([]);
@@ -669,10 +669,11 @@ function PersistentParliamentSection({ citizen, requestedItemId = "", focusRefer
 
   const activeItem = items.find((item) => item.id === activeId) ?? items[0];
   useEffect(() => {
-    if (!requestedItemId || !workspaceOpen || !activeItem || activeItem.id !== requestedItemId || activeItem.stage !== "voting") return;
-    const frame = window.requestAnimationFrame(() => document.getElementById("parliament-vote-actions")?.scrollIntoView({ block: "center", behavior: "auto" }));
+    if (!requestedItemId || !workspaceOpen || !activeItem || activeItem.id !== requestedItemId) return;
+    const anchor = { proposal: "parliament-proposal-discussion", speaker: "parliament-speaker-election", debate: "parliament-debate-session", vote: "parliament-vote-actions" }[requestedFocus];
+    const frame = window.requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: "center", behavior: "auto" }));
     return () => window.cancelAnimationFrame(frame);
-  }, [requestedItemId, workspaceOpen, activeItem?.id, activeItem?.stage]);
+  }, [requestedItemId, requestedFocus, workspaceOpen, activeItem?.id, activeItem?.stage, meeting?.speakerStatus, meeting?.debateStartedAt]);
 
   useEffect(() => {
     if (!activeItem) return;
@@ -988,7 +989,7 @@ function PersistentParliamentSection({ citizen, requestedItemId = "", focusRefer
             {session.stageManager ? <><div className="stage-prerequisites"><span className={activeItem.routing !== "pending_review" ? "ready" : "blocked"}>{activeItem.routing !== "pending_review" ? "✓ 分流已确认" : "! 分流待确认"}</span><span className={activeItem.pendingAmendmentCount === 0 ? "ready" : "blocked"}>{activeItem.pendingAmendmentCount === 0 ? "✓ 无待审修正" : `! ${activeItem.pendingAmendmentCount} 项修正待审`}</span><span className={activeItem.body.length > 12 ? "ready" : "blocked"}>{activeItem.body.length > 12 ? "✓ 正文已存在" : "! 正文未完成"}</span></div><div className="stage-control-row"><label><span>将议案置于</span><select value={stageTarget} onChange={(event) => setStageTarget(event.target.value as ParliamentStage)}>{(Object.keys(PARLIAMENT_STAGE_META) as ParliamentStage[]).map((stage) => <option key={stage} value={stage}>{PARLIAMENT_STAGE_META[stage].cn}</option>)}</select></label>{stageTarget === "resolved" && <label><span>结案结果</span><select value={finalOutcome} onChange={(event) => setFinalOutcome(event.target.value)}><option value="pending">按冻结版本票数自动判定</option><option value="passed">最高领导人裁决：通过</option><option value="rejected">最高领导人裁决：未通过</option></select></label>}<label className="stage-reason"><span>阶段变化理由 *</span><input value={stageReason} onChange={(event) => setStageReason(event.target.value)} maxLength={500} placeholder="理由会进入永久审计记录" /></label><button type="button" onClick={transitionStage} disabled={busy || stageReason.trim().length < 4 || (stageTarget === activeItem.stage && stageTarget !== "resolved")}>确认切换阶段</button></div></> : <p>{citizen.id === "amberina" ? <>你的内部身份是宇宙霸主，但当前浏览器尚未完成最高领导人身份验证。<a href="/signin-with-chatgpt?return_to=%2F">验证身份后启用阶段控制</a></> : "你可以评论、提出修正并在投票阶段表决，但不能改变议案所处阶段。"}</p>}
           </section>}
 
-          {casePanel === "stage" && activeItem.stage === "proposal" && <section className="async-proposal-discussion">
+          {casePanel === "stage" && activeItem.stage === "proposal" && <section className="async-proposal-discussion" id="parliament-proposal-discussion">
             <header><div><p className="eyebrow">Asynchronous Deliberation · 异步沟通</p><h3>引用条文，在提案下继续讨论</h3></div><span>{comments.filter((comment) => comment.commentType !== "system").length} COMMENTS</span></header>
             <form className="comment-composer" onSubmit={addComment}>{replyTo && <div className="replying-to"><span>正在回复：{comments.find((comment) => comment.id === replyTo)?.body.slice(0, 60)}</span><button type="button" onClick={() => setReplyTo("")}>取消</button></div>}<label className="quote-field"><span>引用当前正文（可选，必须逐字一致）</span><textarea value={commentQuote} onChange={(event) => setCommentQuote(event.target.value)} maxLength={1_500} rows={2} placeholder="粘贴你正在评论的具体条文" /></label><textarea value={commentBody} onChange={(event) => setCommentBody(event.target.value)} maxLength={1_500} rows={4} placeholder={`以“${citizen.codename}”身份写下评论…`} required /><footer><small>提案阶段不进入实时议场；评论和引用可以异步完成。</small><button className="primary" type="submit" disabled={busy}>提交评论 <span>→</span></button></footer></form>
             {renderCommentThread()}
@@ -996,12 +997,12 @@ function PersistentParliamentSection({ citizen, requestedItemId = "", focusRefer
 
           {casePanel === "stage" && session.speakerManager && ["proposal", "deferred", "debate", "amendment"].includes(activeItem.stage) && <SpeakerManagement key={activeItem.id} meeting={meeting} stage={activeItem.stage} busy={busy} onAction={(payload, success) => sendAction({ ...payload, itemId: activeItem.id }, success)} />}
 
-          {casePanel === "stage" && ["debate", "amendment"].includes(activeItem.stage) && <section className={`meeting-workspace ${meeting?.speakerStatus === "elected" ? "chamber-ready" : ""} ${meeting?.debateStartedAt ? "session-live" : ""}`}>
+          {casePanel === "stage" && ["debate", "amendment"].includes(activeItem.stage) && <section id="parliament-debate-session" className={`meeting-workspace ${meeting?.speakerStatus === "elected" ? "chamber-ready" : ""} ${meeting?.debateStartedAt ? "session-live" : ""}`}>
             <header><div><p className="eyebrow">The Chamber · 实时议场</p><h3>{meeting?.debateStartedAt ? "面对面辩论正在进行" : "议长选举与议场就座"}</h3></div><span>{meeting?.debateStartedAt ? "CHAMBER LIVE" : "BEFORE DEBATE"}</span></header>
 
             {(!meeting || meeting.speakerStatus === "not_configured") && <div className="speaker-election-empty"><p>本次议场尚未开放议长选举。三位委员可以在议长管理中开放选举，或直接指定本次会议议长。原有讨论和正式发言会保留。</p></div>}
 
-            {meeting?.speakerStatus === "open" && <section className="speaker-election">
+            {meeting?.speakerStatus === "open" && <section className="speaker-election" id="parliament-speaker-election">
               <header><div><small>SPEAKER ELECTION · 实时公开</small><strong>截止 {new Date(meeting.speakerElectionDeadline).toLocaleString("zh-CN")}</strong></div><button type="button" onClick={standForSpeaker} disabled={busy || mySpeakerCandidacy}>{mySpeakerCandidacy ? "你已参选" : "参选本次议长"}</button></header>
               <div className="speaker-candidate-grid">{speakerCandidates.length ? speakerCandidates.map((candidate) => { const candidateCitizen = citizenFor(candidate.citizenId); const candidateVotes = speakerVotes.filter((vote) => vote.candidateCitizenId === candidate.citizenId); return <article key={candidate.id} className={mySpeakerVote === candidate.citizenId ? "selected" : ""}><div>{candidateCitizen && <CitizenMark citizen={candidateCitizen} />}<span><small>CANDIDATE</small><strong>{candidateCitizen?.username ?? candidate.citizenId}</strong></span><b>{candidateVotes.length}</b></div>{renderMarks(candidateVotes.map((vote) => vote.voterCitizenId), "等待第一票")}<button type="button" onClick={() => castSpeakerVote(candidate.citizenId)} disabled={busy}>{mySpeakerVote === candidate.citizenId ? "已投给此人" : "公开投票"}</button></article>; }) : <p className="docket-empty">暂时还没有人参选本次会议议长。</p>}</div>
             </section>}
@@ -1900,6 +1901,7 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
   const [parliamentDeepLink, setParliamentDeepLink] = useState("");
+  const [parliamentDeepLinkFocus, setParliamentDeepLinkFocus] = useState<"proposal" | "speaker" | "debate" | "vote">("vote");
   const [parliamentFocus, setParliamentFocus] = useState<"all" | "referendum">("all");
   const [loungeLanding, setLoungeLanding] = useState<"committee" | "game-room">("committee");
   const briefingFeed = useBriefingFeed(citizen.id, section);
@@ -1960,9 +1962,10 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
     announceCommitteeLounge(citizen, () => setLoungeSeatingUnlocked(true));
   };
   const openBriefingDesk = () => { setBriefingOpen(false); setSection("briefing"); };
-  const navigateFromBriefing = (target: BriefingTarget, targetId?: string) => {
+  const navigateFromBriefing = (target: BriefingTarget, targetId?: string, focus: "proposal" | "speaker" | "debate" | "vote" = "vote") => {
     setBriefingOpen(false);
     setParliamentDeepLink(target === "parliament" ? targetId || "" : "");
+    setParliamentDeepLinkFocus(focus);
     setParliamentFocus(target === "referendum" ? "referendum" : "all");
     if (target === "club") { enterLounge(); return; }
     if (target === "games") {
@@ -1982,7 +1985,7 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
     case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "citizens": content = <CitizensSection />; break;
     case "emblem": content = <EmblemSection />; break;
-    case "parliament": content = <PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} focusReferendums={parliamentFocus === "referendum"} />; break;
+    case "parliament": content = <PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} requestedFocus={parliamentDeepLinkFocus} focusReferendums={parliamentFocus === "referendum"} />; break;
     case "honors": content = <HonorsSection />; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection />; break;
