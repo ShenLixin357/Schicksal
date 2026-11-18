@@ -28,7 +28,16 @@ export async function POST(request: Request) {
 }
 export async function DELETE(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "请求来源不匹配。" }, { status: 403 });
-  try { const token = cookieToken(request); if (token) await env.DB.prepare("DELETE FROM member_sessions WHERE token_hash = ?").bind(await digest(token)).run(); }
+  try {
+    const token = cookieToken(request);
+    if (token) {
+      const tokenHash = await digest(token);
+      await env.DB.prepare("DELETE FROM member_sessions WHERE token_hash = ?").bind(tokenHash).run();
+      // Presence is per session, not per account: other active devices remain online.
+      try { await env.DB.prepare("DELETE FROM member_presence WHERE session_hash = ?").bind(tokenHash).run(); }
+      catch { /* Earlier deployments may not have the optional presence table. */ }
+    }
+  }
   catch { /* Always clear the browser cookie even if storage is unavailable. */ }
   return Response.json({ ok: true }, { headers: { "Set-Cookie": sessionCookie(request, "", 0), "Cache-Control": "no-store" } });
 }
