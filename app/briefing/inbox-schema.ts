@@ -17,6 +17,9 @@ export async function ensureBriefingInboxSchema() {
       citizen_id TEXT NOT NULL,
       last_seen_ms INTEGER NOT NULL
     )`),
-    env.DB.prepare("CREATE INDEX IF NOT EXISTS member_presence_recent_idx ON member_presence (last_seen_ms)"),
+
   ]);
+  // Prepare the index only AFTER the table exists. SQLite-backed tests
+  // compile statements at prepare time; D1 can do the same.
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS member_presence_recent_idx ON member_presence (last_seen_ms)").run();
 }
