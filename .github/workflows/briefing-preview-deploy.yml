@@ -1,0 +1,143 @@
+name: Deploy isolated Schicksal briefing preview
+
+# This workflow NEVER runs on a normal push. A connected coding agent can
+# trigger it only with an explicit [preview-deploy] commit message, after the
+# site owner has set the required GitHub repository secrets.
+on:
+  push:
+    branches:
+      - "feature/briefing-v2-shell-20261118"
+    paths:
+      - ".github/workflows/briefing-preview-deploy.yml"
+      - "docs/briefing-cloudflare-preview.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: schicksal-briefing-preview-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy-preview:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[preview-deploy]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: briefing-preview
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+      SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Verify preview-only authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing SCHICKSAL_PREVIEW_CF_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing SCHICKSAL_PREVIEW_CF_ACCOUNT_ID"; exit 1; }
+          test -n "$SCHICKSAL_PREVIEW_PASSWORDS" || { echo "::error::Missing SCHICKSAL_PREVIEW_PASSWORDS"; exit 1; }
+          node --input-type=module - <<'NODE'
+          const account = process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
+          if (!/^[a-f0-9]{32}$/i.test(account)) throw new Error("Invalid preview Cloudflare account ID");
+          const passwords = JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS ?? "{}");
+          if (typeof passwords.amberina !== "string" || passwords.amberina.length < 12) {
+            throw new Error("Preview passwords JSON must provide a distinct 12+ character password for amberina");
+          }
+          if (Object.keys(passwords).some(k => !["amberina","zxy","truth","kaito","harry"].includes(k))) {
+            throw new Error("Preview password list contains unknown member identity");
+          }
+          NODE
+      - name: Install and build the real React website
+        run: |
+          npm ci
+          npm run build
+          bash scripts/validate-artifact.sh
+      - name: Identify production D1 by name, provision only separate preview D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > "$RUNNER_TEMP/schicksal-d1-inventory.json"
+          node --input-type=module - "$RUNNER_TEMP/schicksal-d1-inventory.json" <<'NODE'
+          import { readFileSync } from "node:fs";
+          import { appendFileSync } from "node:fs";
+          const databases = JSON.parse(readFileSync(process.argv[2], "utf8"));
+          if (!Array.isArray(databases)) throw new Error("Unexpected D1 inventory format");
+          const production = databases.filter(d => d.name === "schicksal-db");
+          if (production.length !== 1 || !production[0].uuid) {
+            throw new Error("Production schicksal-db could not be uniquely identified. Stop; do not deploy.");
+          }
+          const preview = databases.filter(d => d.name === "schicksal-briefing-preview-db");
+          if (preview.length > 1) throw new Error("Ambiguous preview DB. Stop.");
+          appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PROD_D1_ID=" + production[0].uuid + "\n");
+          if (preview[0]) appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PREVIEW_D1_ID=" + preview[0].uuid + "\n");
+          NODE
+          if [ -z "${SCHICKSAL_PREVIEW_D1_ID:-}" ]; then
+            # Env written to GITHUB_ENV is loaded in the next GitHub step.
+            echo "Preview DB not found; provisioning step will create it."
+          fi
+      - name: Create isolated preview D1 if it does not already exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SCHICKSAL_PREVIEW_D1_ID:-}" ]; then
+            npx wrangler d1 create schicksal-briefing-preview-db --no-update-config
+            npx wrangler d1 list --json > "$RUNNER_TEMP/schicksal-d1-inventory-after.json"
+            node --input-type=module - "$RUNNER_TEMP/schicksal-d1-inventory-after.json" <<'NODE'
+          import { readFileSync, appendFileSync } from "node:fs";
+          const dbs = JSON.parse(readFileSync(process.argv[2], "utf8"));
+          const preview = dbs.filter(d => d.name === "schicksal-briefing-preview-db");
+          if (preview.length !== 1 || !preview[0].uuid) throw new Error("Preview database creation could not be verified");
+          if (preview[0].uuid === process.env.SCHICKSAL_PROD_D1_ID) throw new Error("Preview D1 matches production. Stop.");
+          appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PREVIEW_D1_ID=" + preview[0].uuid + "\n");
+          NODE
+          fi
+      - name: Prepare and verify preview-only Worker artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          node --input-type=module - <<'NODE'
+          import { writeFileSync } from "node:fs";
+          writeFileSync("work/briefing-preview-target.json", JSON.stringify({
+            accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+            previewDatabaseId: process.env.SCHICKSAL_PREVIEW_D1_ID,
+            productionDatabaseId: process.env.SCHICKSAL_PROD_D1_ID,
+            previewDatabaseName: "schicksal-briefing-preview-db"
+          }, null, 2));
+          NODE
+          node scripts/cloudflare/prepare-briefing-preview.mjs work/briefing-preview-target.json
+          npx wrangler deploy --dry-run --config work/briefing-preview-dist/server/wrangler.json
+      - name: Apply migrations ONLY to the isolated preview D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 migrations apply DB --remote --config work/briefing-preview-dist/server/wrangler.json
+      - name: Publish separate briefing preview Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --config work/briefing-preview-dist/server/wrangler.json
+      - name: Set separate PREVIEW-ONLY login secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf "%s" "$SCHICKSAL_PREVIEW_PASSWORDS" | npx wrangler secret put SCHICKSAL_MEMBER_PASSWORDS --config work/briefing-preview-dist/server/wrangler.json
+      - name: Final summary
+        shell: bash
+        run: |
+          {
+            echo "### Schicksal briefing preview deployment"
+            echo "- Worker name: `schicksal-briefing-preview`"
+            echo "- Database: `schicksal-briefing-preview-db` (separate from production)"
+            echo "- Version: `$GITHUB_SHA`"
+            echo "- Source: PR #5 briefing V2.6"
+            echo "- Read the actual workers.dev URL from the Wrangler deployment output above."
+            echo "- Check login, daily news and responsive layout manually before claiming acceptance."
+          } >> "$GITHUB_STEP_SUMMARY"
