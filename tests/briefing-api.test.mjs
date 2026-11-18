@@ -68,6 +68,14 @@ test("real briefing API enforces signed-in identity and never trusts a spoofed c
       .run("vote-amber", "lesson-1-state", "amberina", "support", 2, "2026-11-18", "2026-11-18");
     sqlite.prepare("INSERT INTO parliament_votes (id,item_id,citizen_id,choice,document_version,created_at,updated_at) VALUES (?,?,?,?,?,?,?)")
       .run("vote-zxy", "lesson-2-citizenship", "zxy", "support", 3, "2026-11-18", "2026-11-18");
+    // Debate-stage speaker election has its own real hard deadline.
+    sqlite.exec("UPDATE parliament_items SET stage='debate', voting_version=NULL WHERE id='lesson-3-rights'");
+    sqlite.prepare("INSERT INTO parliament_meeting_sessions (item_id,speaker_election_deadline,speaker_status,updated_at) VALUES (?,?,?,?)")
+      .run("lesson-3-rights", "2099-12-31T18:00:00.000Z", "open", "2026-11-19T03:00:00.000Z");
+    sqlite.prepare("INSERT INTO parliament_speaker_candidates (id,item_id,citizen_id,created_at) VALUES (?,?,?,?)")
+      .run("candidate-zxy", "lesson-3-rights", "zxy", "2026-11-19T03:00:00.000Z");
+    sqlite.prepare("INSERT INTO parliament_speaker_votes (id,item_id,voter_citizen_id,candidate_citizen_id,created_at,updated_at) VALUES (?,?,?,?,?,?)")
+      .run("ballot-zxy", "lesson-3-rights", "zxy", "zxy", "2026-11-19T03:05:00.000Z", "2026-11-19T03:05:00.000Z");
     sqlite.prepare("INSERT INTO parliament_audit_events (id,item_id,actor_citizen_id,event_type,description,metadata_json,created_at) VALUES (?,?,?,?,?,?,?)")
       .run("news-1", "lesson-1-state", "amberina", "stage_transition", "正式进入表决阶段", "{}", "2026-11-18T03:00:00+08:00");
     sqlite.prepare("INSERT INTO parliament_audit_events (id,item_id,actor_citizen_id,event_type,description,metadata_json,created_at) VALUES (?,?,?,?,?,?,?)")
@@ -77,15 +85,20 @@ test("real briefing API enforces signed-in identity and never trusts a spoofed c
     assert.equal(amber.status, 200);
     assert.match(amber.headers.get("cache-control"), /no-store/);
     const a = await amber.json();
-    assert.deepEqual(a.tasks.map(x => x.targetId), ["lesson-2-citizenship"]);
-    assert.equal(a.news.some(x => x.id === "parliament-audit:news-1"), true);
+    assert.deepEqual(a.tasks.filter(x => x.category === "parliament-vote").map(x => x.targetId), ["lesson-2-citizenship"]);
+    assert.equal(a.tasks.some(x => x.category === "speaker-election" && x.targetId === "lesson-3-rights"), true);
+    assert.equal(a.tasks.some(x => x.category === "speaker-vote" && x.targetId === "lesson-3-rights"), true);
+    assert.equal(a.tasks.find(x => x.category === "speaker-vote")?.deadlineKind, "deadline");
+    assert.equal(a.news.some(x => x.id === "parliament-audit:news-1"), false, "live stage changes are personal affairs, not news");
     assert.equal(a.news.some(x => x.id === "parliament-audit:private-event"), false);
 
     const zxyCookie = await login("zxy");
     const zxy = await briefing.GET(request("/api/briefing?citizenId=amberina", zxyCookie));
     assert.equal(zxy.status, 200);
     const z = await zxy.json();
-    assert.deepEqual(z.tasks.map(x => x.targetId), ["lesson-1-state"]);
+    assert.deepEqual(z.tasks.filter(x => x.category === "parliament-vote").map(x => x.targetId), ["lesson-1-state"]);
+    assert.equal(z.tasks.some(x => x.category === "speaker-vote" && x.targetId === "lesson-3-rights"), false, "completed speaker vote no longer pending");
+    assert.equal(z.tasks.some(x => x.category === "speaker-election" && x.targetId === "lesson-3-rights"), true);
   } finally {
     sqlite.close();
   }
