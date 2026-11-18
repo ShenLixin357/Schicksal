@@ -19,6 +19,7 @@ const hooks = registerHooks({
 });
 const sessions = await import("../app/api/member-session/route.ts");
 const briefing = await import("../app/api/briefing/route.ts");
+const presence = await import("../app/api/presence/route.ts");
 hooks.deregister();
 after(() => { delete globalThis.__schicksalBriefingApiTestEnv; });
 
@@ -99,6 +100,46 @@ test("real briefing API enforces signed-in identity and never trusts a spoofed c
     assert.deepEqual(z.tasks.filter(x => x.category === "parliament-vote").map(x => x.targetId), ["lesson-1-state"]);
     assert.equal(z.tasks.some(x => x.category === "speaker-vote" && x.targetId === "lesson-2-restoration"), false, "completed speaker vote no longer pending");
     assert.equal(z.tasks.some(x => x.category === "speaker-election" && x.targetId === "lesson-2-restoration"), true);
+    // The personal archive must never modify another member's inbox.
+    const archiveResponse = await briefing.POST(new Request("https://test.schicksal.invalid/api/briefing", {
+      method: "POST", headers: { cookie: amberCookie, origin: "https://test.schicksal.invalid" },
+      body: JSON.stringify({ action: "archive", taskId: "parliament-vote:lesson-2-citizenship" }),
+    }));
+    assert.equal(archiveResponse.status, 200);
+    const archived = await (await briefing.GET(request("/api/briefing", amberCookie))).json();
+    assert.equal(archived.tasks.some(x => x.id === "parliament-vote:lesson-2-citizenship"), false);
+    assert.equal(archived.views.archived.some(x => x.id === "parliament-vote:lesson-2-citizenship"), true);
+    assert.equal(archived.views.archived[0].deadline, "2026-11-23");
+    const other = await (await briefing.GET(request("/api/briefing", zxyCookie))).json();
+    assert.equal(other.views.archived.length, 0);
+
+    const restored = await briefing.POST(new Request("https://test.schicksal.invalid/api/briefing", {
+      method: "POST", headers: { cookie: amberCookie, origin: "https://test.schicksal.invalid" },
+      body: JSON.stringify({ action: "restore", taskId: "parliament-vote:lesson-2-citizenship" }),
+    }));
+    assert.equal(restored.status, 200);
+    assert.equal((await (await briefing.GET(request("/api/briefing", amberCookie))).json())
+      .tasks.some(x => x.id === "parliament-vote:lesson-2-citizenship"), true);
+
+    // No fabricated online identities: only authenticated visible-session
+    // heartbeats appear. Query string spoofing does not change their identity.
+    assert.equal((await presence.GET(request("/api/presence"))).status, 401);
+    assert.equal((await presence.POST(new Request("https://test.schicksal.invalid/api/presence", {
+      method: "POST", headers: { cookie: amberCookie, origin: "https://test.schicksal.invalid" },
+    }))).status, 200);
+    let online = await (await presence.GET(request("/api/presence?citizenId=zxy", amberCookie))).json();
+    assert.deepEqual(online.online, ["amberina"]);
+    assert.equal((await presence.POST(new Request("https://test.schicksal.invalid/api/presence", {
+      method: "POST", headers: { cookie: zxyCookie, origin: "https://test.schicksal.invalid" },
+    }))).status, 200);
+    online = await (await presence.GET(request("/api/presence", amberCookie))).json();
+    assert.deepEqual(online.online, ["amberina", "zxy"]);
+    assert.equal((await sessions.DELETE(new Request("https://test.schicksal.invalid/api/member-session", {
+      method: "DELETE", headers: { cookie: amberCookie, origin: "https://test.schicksal.invalid" },
+    }))).status, 200);
+    online = await (await presence.GET(request("/api/presence", zxyCookie))).json();
+    assert.deepEqual(online.online, ["zxy"]);
+
   } finally {
     sqlite.close();
   }
