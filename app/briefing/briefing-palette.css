@@ -188,3 +188,21 @@
   .imperial-briefing-canvas .imperial-briefing-oval-group { opacity:.36; }
   .imperial-briefing-oval-halo { opacity:.47; }
 }
+
+
+/* Parliament affairs: countdown and deadline labels follow the approved V2.6
+   card language. No changes to the ivory paper, ellipses or emblem. */
+.imperial-briefing-task-details { min-width:0; flex:1 1 auto; }
+.imperial-briefing-task-details > strong { overflow-wrap:anywhere; }
+.imperial-briefing-task-category {
+  display:inline-block; width:max-content; padding:2px 7px; margin-bottom:5px;
+  border:1px solid rgba(146,166,181,.19); border-radius:10px;
+  background:linear-gradient(90deg,rgba(238,227,202,.39),rgba(220,235,242,.42));
+  color:#627d91; font-size:.62rem; letter-spacing:.04em;
+}
+.imperial-briefing-deadline { display:flex; flex-wrap:wrap; gap:3px 12px; padding-top:6px; }
+.imperial-briefing-deadline span,.imperial-briefing-deadline time {
+  display:inline; margin:0; color:#697e8d; font-size:.71rem; font-variant-numeric:tabular-nums;
+}
+.imperial-briefing-deadline time { color:#8d6b41; font-weight:600; }
+.imperial-briefing-task-row > button { align-self:center; }
