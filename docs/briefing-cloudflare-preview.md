@@ -72,3 +72,10 @@
 当前的离线 HTML 预览只能代表视觉方案；不能替代真实 React / Worker 浏览器验收。此文档和准备脚本不会产生真实预览网址：它仍要求经过授权的 Cloudflare 操作和实际成功部署。部署回执产生前不得声明「已上线」。
 
 如果先把 PR #4 部署生产，它的迁移需要**另行**执行生产备份、校验和隔离恢复演练。这与本次隔离预览完全不同，不能复用预览的空 D1 当作生产恢复验证。
+
+
+## 预览首次部署申请
+
+- 2026-11-19：用户已在 Cloudflare 账户创建受限 API Token，并确认已将三个预览专用 Secrets 添加到 GitHub Repository Secrets。
+- 本提交仅请求执行独立 Worker `schicksal-briefing-preview` 的首次部署；任何身份核验、Cloudflare 资源检查或 D1 隔离检查失败都必须中止。
+- 不合并任何 PR，不更新生产 Worker，不连接生产 D1。
