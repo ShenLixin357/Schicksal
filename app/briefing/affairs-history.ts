@@ -95,6 +95,26 @@ export function buildInboxViews(
       "你已登记参选", meeting?.speakerElectionDeadline || null, true));
   }
 
+  // A resolved parliamentary vote is a verified closed opportunity even
+  // when there was no formally configured wall-clock deadline. We state that
+  // explicitly; never invent a DDL from the case's planned date.
+  for (const item of items) {
+    if (item.stage !== "resolved" || item.outcome === "withdrawn" ||
+      !item.votingVersion || item.votingVersion <= 0 ||
+      !["passed", "rejected", "leader_decision_required"].includes(item.outcome || "") ||
+      ownVotes.some(v => v.itemId === item.id && v.citizenId === citizenId &&
+        v.documentVersion === item.votingVersion)) continue;
+    const referendum = item.kind === "referendum";
+    missed.push({
+      id: "missed:parliament-vote:" + item.id + ":v" + item.votingVersion,
+      title: (referendum ? "公投已结束 · " : "正式表决已结束 · ") + item.title,
+      detail: item.serialCode + " · 该轮正式表决已结案，你没有投票",
+      deadline: null, deadlineKind: "deadline",
+      category: referendum ? "referendum" : "parliament-vote",
+      actionable: false, completed: false, target: "parliament",
+      targetId: item.id, focus: "vote",
+    });
+  }
   for (const meeting of meetings) {
     const item = byItem.get(meeting.itemId);
     const deadline = meeting.speakerElectionDeadline;
