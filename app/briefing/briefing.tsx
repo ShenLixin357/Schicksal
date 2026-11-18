@@ -199,7 +199,7 @@ export function BriefingOverlay({
               <button type="button" className="imperial-briefing-primary" onClick={() => onNavigate("archives")}>查看详情 <span aria-hidden="true">→</span></button>
             </div>
             <BriefingWaveEmbroidery/>
-            <div className="imperial-briefing-hero-art" aria-hidden="true"><div className="imperial-briefing-arcade"/><div className="imperial-briefing-emblem-art">{heroMark}</div></div>
+            <div className="imperial-briefing-hero-art" aria-hidden="true"><div className="imperial-briefing-oval-halo"/><div className="imperial-briefing-emblem-art">{heroMark}</div></div>
           </article>
           <div className="imperial-briefing-right">
             <Tasks tasks={tasks} state={taskState} onNavigate={onNavigate} onOpenDesk={onOpenDesk}/>
