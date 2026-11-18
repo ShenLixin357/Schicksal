@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages, orderedBriefingTasks,
+  briefingCountdown, briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages, orderedBriefingTasks,
   type BriefingMessage, type BriefingNews, type BriefingTarget, type BriefingTask,
 } from "./briefing-data";
 import "./briefing.css";
@@ -34,7 +34,7 @@ function categoryIcon(category:string):BriefingIconName {
 
 
 export type BriefingProps = {
-  onNavigate: (target: BriefingTarget, targetId?: string) => void;
+  onNavigate: (target: BriefingTarget, targetId?: string, focus?: BriefingTask["focus"]) => void;
   canEnterLounge: boolean;
   canEnterGames?: boolean;
   sharedMark?: ReactNode;
@@ -81,7 +81,7 @@ function Today() {
 
 function NewsList({ items, onNavigate, compact = false, state = "ready" }: {
   items: readonly BriefingNews[];
-  onNavigate: (target: BriefingTarget, targetId?: string) => void;
+  onNavigate: (target: BriefingTarget, targetId?: string, focus?: BriefingTask["focus"]) => void;
   compact?: boolean;
   state?: "loading" | "ready" | "error";
 }) {
@@ -111,10 +111,19 @@ function NewsList({ items, onNavigate, compact = false, state = "ready" }: {
 function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
   tasks: readonly BriefingTask[];
   state: FeedState;
-  onNavigate: (target: BriefingTarget, targetId?: string) => void;
+  onNavigate: (target: BriefingTarget, targetId?: string, focus?: BriefingTask["focus"]) => void;
   onOpenDesk?: () => void;
   full?: boolean;
 }) {
+  // Date.now() is only read after hydration, so a server render never
+  // produces a misleading or mismatched countdown.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+    const ticker = window.setInterval(update, 1000);
+    return () => window.clearInterval(ticker);
+  }, []);
   const ordered = orderedBriefingTasks(tasks);
   const displayed = full ? ordered : ordered.slice(0, 3);
   return <section className="imperial-briefing-panel imperial-briefing-tasks" aria-label="我的政务">
@@ -124,11 +133,25 @@ function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
     </header>
     {state !== "ready" ? <p className="imperial-briefing-empty">{state === "error" ? "政务同步暂时失败，请稍后重试。" : state === "loading" ? "正在查询你的待办…" : "政务同步功能待接入；目前不显示未经核实的个人待办。"}</p> :
       displayed.length === 0 ? <p className="imperial-briefing-empty">目前没有待处理政务。</p> :
-      <div className="imperial-briefing-rows">{displayed.map((task) => <div className="imperial-briefing-task-row" key={task.id}>
-        <div><strong>{task.title}</strong><small>{task.detail}</small><span>{task.deadline ? `${task.deadlineKind === "expected" ? "议案预期日期" : "截止"}：${briefingDeadlineInfo(task.deadline).label}${briefingDeadlineInfo(task.deadline).passed ? task.deadlineKind === "expected" ? " · 已过预期日期" : " · 已逾期（仍可处理）" : ""}` : "无指定日期"}</span></div>
-        <button type="button" onClick={() => onNavigate(task.target, task.targetId)}>处理 →</button>
-      </div>)}</div>}
-    {state === "ready" && <p className="imperial-briefing-footnote">目前已接入议会投票提醒；其他政务职责将在后续接入。</p>}
+      <div className="imperial-briefing-rows">{displayed.map((task) => {
+        const isExpected = task.deadlineKind === "expected";
+        const dateLabel = task.deadline ? briefingDeadlineInfo(task.deadline).label : "尚未设置";
+        const countdown = task.deadline && now !== null
+          ? briefingCountdown(task.deadline, now) : task.deadline ? "计算中…" : "—";
+        return <div className="imperial-briefing-task-row" key={task.id}>
+          <div className="imperial-briefing-task-details">
+            <span className="imperial-briefing-task-category">{task.participation === "required" ? "待投票" : "可参与"}</span>
+            <strong>{task.title}</strong>
+            <small>{task.detail}</small>
+            <div className="imperial-briefing-deadline" aria-label="政务时间信息">
+              <span>{isExpected ? "预期日期" : "DDL"}：{dateLabel}</span>
+              <time aria-live="off">{isExpected ? "距预期" : "剩余"}：{countdown}</time>
+            </div>
+          </div>
+          <button type="button" onClick={() => onNavigate(task.target, task.targetId, task.focus)}>{task.participation === "required" ? "投票 →" : "进入 →"}</button>
+        </div>;
+      })}</div>}
+    {state === "ready" && <p className="imperial-briefing-footnote">议会开放事项自动同步；未设定真实 DDL 的活动不生成虚构倒计时。预期日期不代表法定截止。</p>}
     {!full && state === "ready" && ordered.length > 3 && onOpenDesk && <button type="button" className="imperial-briefing-more" onClick={onOpenDesk}>还有 {ordered.length - 3} 项，前往简报台查看全部 →</button>}
   </section>;
 }
