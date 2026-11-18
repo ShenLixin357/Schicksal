@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parliamentVotingTasks, parliamentAuditNews } from "../app/briefing/briefing-feed.ts";
+import { parliamentAffairsTasks, parliamentVotingTasks, parliamentAuditNews } from "../app/briefing/briefing-feed.ts";
 import { orderedBriefingTasks, latestNews } from "../app/briefing/briefing-data.ts";
 
 function bill(id, stage = "voting", version = 3, votingVersion = 3, deadline = "2026-12-03") {
@@ -36,17 +36,63 @@ test("after a vote is recorded for the current document version, the pending tas
   assert.equal(parliamentVotingTasks([item], [{ itemId: "v1", citizenId: "zxy", documentVersion: 2 }], "zxy").length, 1);
 });
 
-test("only audited public milestone types are news, linked to their real item", () => {
-  const items = [bill("one", "proposal")];
+test("live parliament milestones belong to my affairs, not Daily News", () => {
+  const now = Date.parse("2026-11-19T05:00:00+08:00");
+  const items = [
+    { ...bill("proposal", "proposal", 1, null), kind: "proposal" },
+    { ...bill("election", "debate", 2, null), kind: "bill" },
+    { ...bill("debate", "debate", 2, null), kind: "bill" },
+    { ...bill("referendum", "voting", 2, 2), kind: "referendum" },
+    { ...bill("resolved", "resolved", 2, 2), kind: "bill" },
+  ];
+  const meetings = [
+    { itemId: "election", speakerStatus: "open", speakerElectionDeadline: "2026-11-20T06:00:00+08:00",
+      speakerCitizenId: "", debateStartedAt: "", updatedAt: "2026-11-19T03:00:00+08:00" },
+    { itemId: "debate", speakerStatus: "elected", speakerElectionDeadline: "",
+      speakerCitizenId: "amberina", debateStartedAt: "2026-11-19T04:00:00+08:00", updatedAt: "2026-11-19T04:00:00+08:00" },
+  ];
+  const candidates = [{ itemId: "election", citizenId: "zxy" }];
+  let tasks = parliamentAffairsTasks(items, [], "amberina", meetings, candidates, [], now);
+  assert.deepEqual(tasks.map(x => x.id), [
+    "parliament-proposal:proposal", "speaker-election:election", "speaker-vote:election",
+    "parliament-debate:debate", "referendum-vote:referendum",
+  ]);
+  const election = tasks.find(x => x.id === "speaker-vote:election");
+  assert.equal(election.deadlineKind, "deadline");
+  assert.equal(election.deadline, meetings[0].speakerElectionDeadline);
+  assert.equal(election.focus, "speaker");
+  assert.equal(tasks.find(x=>x.id==="parliament-proposal:proposal").deadlineKind, "expected");
+  assert.equal(tasks.find(x=>x.id==="parliament-debate:debate").deadlineKind, "expected");
+
+  tasks = parliamentAffairsTasks(items, [], "amberina", meetings, candidates,
+    [{ itemId: "election", voterCitizenId: "amberina" }], now);
+  assert.equal(tasks.some(x => x.id === "speaker-vote:election"), false, "cast ballot clears pending speaker vote");
+  assert.equal(tasks.some(x => x.id === "speaker-election:election"), true, "open nomination still visible");
+
+  const expired = [{ ...meetings[0], speakerElectionDeadline: "2026-11-19T04:00:00+08:00" }];
+  tasks = parliamentAffairsTasks(items, [], "amberina", expired, candidates, [], now);
+  assert.equal(tasks.some(x => x.id.startsWith("speaker-")), false, "expired election is not actionable");
+  assert.equal(parliamentAffairsTasks(items, [], "", meetings, candidates, [], now).length, 0, "anonymous person has no affairs");
+});
+
+test("news contains only final results, not an opening or a live ballot", () => {
+  const items = [
+    { ...bill("active", "debate"), kind: "bill" },
+    { ...bill("done", "resolved"), kind: "bill" },
+  ];
   const events = [
-    { id: "a", itemId: "one", eventType: "submitted", description: "新的提案已提交", createdAt: "2026-11-03T00:00:00Z" },
-    { id: "b", itemId: "one", eventType: "stage_transition", description: "由提案转为讨论", createdAt: "2026-11-04T00:00:00Z" },
-    { id: "secret", itemId: "one", eventType: "speaker_vote_cast", description: "投票细节", createdAt: "2026-11-04T12:00:00Z" },
-    { id: "orphan", itemId: "missing", eventType: "stage_transition", description: "未知议案", createdAt: "2026-11-05T00:00:00Z" },
+    { id: "proposal", itemId: "active", eventType: "submitted", description: "新提案", createdAt: "2026-11-03T00:00:00Z" },
+    { id: "opened", itemId: "active", eventType: "speaker_election_opened", description: "议长选举开放", createdAt: "2026-11-04T00:00:00Z" },
+    { id: "ballot", itemId: "active", eventType: "speaker_vote_cast", description: "议长投票", createdAt: "2026-11-04T02:00:00Z" },
+    { id: "debate", itemId: "active", eventType: "debate_opened", description: "开会辩论", createdAt: "2026-11-05T00:00:00Z" },
+    { id: "stage", itemId: "active", eventType: "stage_transition", metadataJson: '{"to":"voting"}', description: "进入表决", createdAt: "2026-11-06T00:00:00Z" },
+    { id: "outcome", itemId: "done", eventType: "stage_transition", metadataJson: '{"to":"resolved"}', description: "正式结案", createdAt: "2026-11-07T00:00:00Z" },
+    { id: "speaker", itemId: "active", eventType: "speaker_elected", description: "议长已当选", createdAt: "2026-11-08T00:00:00Z" },
+    { id: "unknown", itemId: "missing", eventType: "speaker_elected", description: "不属于现有议案", createdAt: "2026-11-09T00:00:00Z" },
   ];
   const news = latestNews(parliamentAuditNews(events, items));
-  assert.deepEqual(news.map(x => x.id), ["parliament-audit:b", "parliament-audit:a"]);
-  assert.equal(news[0].target, "parliament");
-  assert.equal(news[0].targetId, "one");
-  assert.equal(news.every(x => !x.title.includes("正式通过")), true);
+  assert.deepEqual(news.map(x => x.id), ["parliament-result:speaker", "parliament-result:outcome"]);
+  assert.equal(news[0].targetId, "active");
+  assert.equal(news.every(x => !/开放|投票|辩论/.test(x.title)), true);
+  assert.equal(news.every(x => !x.title.includes("法律已生效")), true);
 });
