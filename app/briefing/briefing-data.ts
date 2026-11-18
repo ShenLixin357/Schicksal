@@ -7,6 +7,10 @@ export type BriefingTask = {
   deadline: string | null;
   deadlineKind?: "expected" | "deadline";
   createdAt?: string;
+  completedAt?: string;
+  archivedAt?: string;
+  cycleKey?: string;
+  priority?: "important" | "standard";
   category?: "proposal" | "speaker-election" | "speaker-vote" | "debate" | "parliament-vote" | "referendum";
   participation?: "required" | "available";
   focus?: "proposal" | "speaker" | "debate" | "vote";
@@ -86,9 +90,16 @@ export function briefingCountdown(date: string | null, now: number): string {
 
 // Ineligible, completed, or already-closed actions never appear as live tasks.
 // The future authenticated task API remains authoritative for eligibility.
-export function orderedBriefingTasks(tasks: readonly BriefingTask[]): BriefingTask[] {
+export function orderedBriefingTasks(tasks: readonly BriefingTask[], now = Date.now()): BriefingTask[] {
   return tasks.filter((task) => task.actionable && !task.completed)
     .sort((a, b) => {
+      const importance = (t: BriefingTask) => {
+        if (t.priority === "important") return 0;
+        const left = briefingDateTime(t.deadline) - now;
+        return t.deadlineKind === "deadline" && left > 0 && left <= 48 * 3600_000 ? 1 : 2;
+      };
+      const weight = importance(a) - importance(b);
+      if (weight) return weight;
       // Actual enforceable DDL always outranks a merely planned date.
       // Otherwise an old undeliberated proposal could bury today's speaker
       // vote outside the three slots on the login briefing.
