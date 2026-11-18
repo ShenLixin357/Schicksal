@@ -76,3 +76,15 @@ test("same deadline is ordered by oldest created first", () => {
   ];
   assert.deepEqual(orderedBriefingTasks(tasks).map(t => t.id), ["older", "later"]);
 });
+
+
+test("a hard speaker election DDL is never hidden behind overdue planned proposal dates", () => {
+  const tasks = [
+    task("old-proposal", "2026-11-01", { deadlineKind: "expected", participation: "available" }),
+    task("speaker-registration", "2026-11-20T18:00:00+08:00", { deadlineKind: "deadline", participation: "available" }),
+    task("speaker-vote", "2026-11-20T18:00:00+08:00", { deadlineKind: "deadline", participation: "required" }),
+    task("no-date", null, { participation: "available" }),
+  ];
+  assert.deepEqual(orderedBriefingTasks(tasks).map(t => t.id),
+    ["speaker-vote", "speaker-registration", "old-proposal", "no-date"]);
+});
