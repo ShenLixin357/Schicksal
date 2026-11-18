@@ -68,7 +68,7 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <label>雪花核心横向位置<input id="coreX" type="range" min="43" max="57" step=".25" value="50"></label>
 <label>雪花核心纵向位置<input id="coreY" type="range" min="43" max="57" step=".25" value="50"></label>
 <label style="flex-direction:row;align-items:center"><input type="checkbox" id="showCore">显示核心定位标记</label>
-</div><label>冰晶晶面强度（仅调整透明冰棱，不改变爆发冲击）<input id="iceStrength" type="range" min=".45" max="1.55" step=".05" value="1.15"></label>
+<label>冰晶晶面强度（不改变爆发冲击）<input id="iceStrength" type="range" min=".45" max="1.55" step=".05" value="1.15"></label></div>
 <div id="assetMsg" class="small">透明晶面 + 冰棱亮边 + 流动焦散 + 分层泛光；保留原画和1.42秒节奏。</div>
 </details></div>
 <script id="vertSrc" type="x-shader/x-vertex">#version 300 es
@@ -113,14 +113,14 @@ void main(){
  // partitioned into irregular tapered transparent facets with independent normals.
  float sector=mod(a+PI/6.0,PI/3.0)-PI/6.0;
  float sectorIndex=floor((a+PI/6.0)/(PI/3.0));
- float along=r*cos(sector),cross=r*sin(sector);
+ float along=r*cos(sector),lateralCoord=r*sin(sector);
  float axisSeed=hash21(vec2(sectorIndex,4.1));
  float axisReach=uMaxR*(.69+.22*axisSeed);
  float u=along/max(axisReach,1.0);
  float taper=1.0-sm(.65,1.03,u);
  float width=(6.0+along*(.11+.035*axisSeed))*taper+2.5;
  float warp=sin(along*.016+axisSeed*6.28)*3.3 + sin(along*.041+axisSeed*11.0)*1.2;
- float lateral=cross-warp;
+ float lateral=lateralCoord-warp;
  float inside=1.0-sm(.0,2.4,abs(lateral)-width);
  float crystal=inside*(1.0-sm(.8,1.08,u))*envelope;
  // Refractive normal field: every triangular microfacet refracts differently.
@@ -147,7 +147,7 @@ void main(){
  float ridge=(bevel*.62+crack*.45+caustic*1.1+secondary*.38)*eruption*uIce;
  float body=facet*eruption*uIce;
  // Small six-branched internal propagation, restricted to the real medallion area.
- float branchLine=exp(-pow(cross/1.3,2.0))*(1.0-sm(20.0,45.0,r));
+ float branchLine=exp(-pow(lateralCoord/1.3,2.0))*(1.0-sm(20.0,45.0,r));
  float branches=branchLine*sm(.014,.10,t)*(1.0-sm(.18,.31,t))*.50;
  // Carry over the strong burst, but the apparent material is no longer just rays.
  float diffraction=pow(abs(cos(a*3.0)),25.0)*exp(-r/(uMaxR*.73))*spread*eruption*.19;
