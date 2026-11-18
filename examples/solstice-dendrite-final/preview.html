@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solstice Dendrite · Rare Card Animation</title>
+<style>
+:root{color-scheme:dark;--cream:#f3e8d2;--slate:#14202e;--line:#e9d5af42}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 0,#2d3b4f 0,#121a27 50%,#0b111b 100%);font-family:Georgia,"Times New Roman",serif;color:#f2e9db}
+.shell{width:min(96vw,1000px);margin:0 auto;padding:24px 0 32px}
+header{text-align:center;padding:5px 0 15px}
+.eyebrow{font:500 10px/1.7 system-ui,sans-serif;letter-spacing:.31em;color:#d8c49e}
+h1{font:italic 400 clamp(21px,3vw,33px)/1.4 Georgia,serif;margin:2px 0 3px;text-shadow:0 0 25px #f0ddbd4a}
+.sub{color:#cfc5b8;font:12px/1.6 system-ui,sans-serif}
+.stage{position:relative;height:min(68vh,660px);min-height:460px;border-radius:19px;overflow:hidden;isolation:isolate;perspective:1300px;background:radial-gradient(ellipse at 50% -8%,#566a8178 0,transparent 54%),radial-gradient(ellipse at 50% 49%,#354254,#1a2537 63%,#121c2b);box-shadow:0 25px 75px #05091399,inset 0 0 90px #0007;border:1px solid #d5b98430;outline:none}
+.stage:focus-visible{outline:2px solid #fff4cb;outline-offset:3px}
+.ambient{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 38%,#ffecbd13,transparent 65%);pointer-events:none}
+.light-origin{position:absolute;left:50%;top:-114px;width:370px;height:260px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,#fffffc 0,#fff4d7a9 17%,#fbdfac56 42%,transparent 70%);filter:blur(17px);opacity:0;pointer-events:none}
+.light-beam{position:absolute;left:50%;top:0;width:min(65vw,465px);height:105%;transform:translateX(-50%) scaleY(0);transform-origin:top center;clip-path:polygon(47% 0,53% 0,100% 100%,0 100%);background:linear-gradient(to bottom,#fffefaed 0,#fff5d9a6 21%,#ffedb64c 58%,transparent 100%);filter:blur(12px);mix-blend-mode:screen;opacity:0;pointer-events:none}
+.light-core{position:absolute;left:50%;top:-10px;width:170px;height:90%;transform:translateX(-50%) scaleY(0);transform-origin:top center;background:linear-gradient(#fffefac7,#fff5d35e 45%,transparent);filter:blur(25px);opacity:0;pointer-events:none}
+.pool{position:absolute;left:50%;bottom:7%;width:min(52vw,350px);height:50px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,#fff8dec9 0,#f9eacc61 37%,transparent 75%);filter:blur(17px);opacity:0;pointer-events:none}
+.snow{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:7}
+.flake{position:absolute;display:block;border-radius:50%;background:#fffdf7;box-shadow:0 0 7px #f5ffff94;opacity:0;will-change:transform}
+.flake.star{background:none;box-shadow:none;border-radius:0;color:#f5faff;font:15px/1 Georgia,serif;text-shadow:0 0 9px #ffffff}
+.flake.frozen{filter:drop-shadow(0 0 2.3px #fff)}
+.card-mover{position:absolute;left:50%;top:49%;width:clamp(160px,21vw,226px);aspect-ratio:2/3;visibility:hidden;opacity:0;z-index:6;transform-style:preserve-3d;will-change:transform}
+.card-spin{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+.face{position:absolute;inset:0;border-radius:7px;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:linear-gradient(135deg,#e5eaf5,#fff9ef 48%,#d5e3f4);box-shadow:0 0 3px 1px #fff8e6aa,0 0 30px #fff1c793,0 10px 40px #101c3280}
+.face::after{content:"";position:absolute;inset:1px;pointer-events:none;border:1px solid #fffefa85;border-radius:6px}
+.face>img.background{position:absolute;width:100%;height:100%;left:0;top:0;object-fit:fill}
+.front{transform:rotate3d(.5547,-.83205,0,180deg)}
+.flower{position:absolute;left:50%;top:22%;width:81%;height:61%;object-fit:contain;transform:translateX(-50%);filter:drop-shadow(0 0 3px #fff4e58c)}
+.title-art{position:absolute;left:12%;bottom:6.6%;width:76%;height:11.2%;transform:scale(var(--title-scale,1));pointer-events:none;filter:drop-shadow(0 0 1px #fff9eb88)}
+.title-original{width:100%;height:100%;object-fit:contain;position:absolute;inset:0;opacity:.24;filter:brightness(1.4) saturate(.6)}
+.title-crystal{position:absolute;inset:0;background:linear-gradient(152deg,#ffe9bf 5%,#ffffff 21%,#c6d4eb 35%,#fff9f0 48%,#e5bddd 63%,#fffaf0 76%,#b4d6ee 91%);-webkit-mask-image:var(--title-mask);mask-image:var(--title-mask);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;filter:brightness(1.1)}
+.title-art::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 0%,#ffffff00 30%,#fff8eaaa 44%,#ffffff00 58%,transparent 75%);mix-blend-mode:screen;-webkit-mask-image:var(--title-mask);mask-image:var(--title-mask);-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.card-sheen{position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,#fff0 25%,#ffffff00 38%,#ffffff7d 43%,#fff0 48%,#ffffff00 70%);mix-blend-mode:screen;opacity:.12}
+.burst{position:absolute;inset:0;width:100%;height:100%;z-index:9;overflow:visible;pointer-events:none;mix-blend-mode:screen;opacity:0}
+.splash{position:absolute;inset:0;background:#fffef2;z-index:10;opacity:0;pointer-events:none}
+.top-caption{position:absolute;top:21px;left:10px;right:10px;z-index:11;text-align:center;color:#fff7eb;text-shadow:0 1px 11px #000a;pointer-events:none;font:italic 16px Georgia,serif}
+.top-caption span{display:block;font:9px system-ui,sans-serif;letter-spacing:.27em;margin-bottom:6px;color:#dfd0b5}
+.status{position:absolute;bottom:15px;left:12px;right:12px;z-index:11;text-align:center;pointer-events:none;font:11px/1.55 system-ui,sans-serif;letter-spacing:.05em;color:#fff6e8;text-shadow:0 1px 7px #000c}
+.loading-note{position:absolute;left:50%;top:50%;z-index:12;transform:translate(-50%,-50%);width:min(84%,370px);border:1px solid #e9cfaa5e;border-radius:13px;background:#142032cf;backdrop-filter:blur(7px);padding:19px 22px;text-align:center;font:12px/1.9 system-ui,sans-serif;color:#efe6dc}
+.controls{display:flex;align-items:center;justify-content:center;gap:9px;margin:15px 0 10px;flex-wrap:wrap}
+button,.upload-button{appearance:none;display:inline-flex;align-items:center;justify-content:center;font:12px/1.3 system-ui,sans-serif;letter-spacing:.015em;border:1px solid #ebd0a05e;background:#e9d7b312;color:#eee3d3;border-radius:9px;cursor:pointer;min-height:39px;padding:10px 17px}
+button.primary{background:linear-gradient(130deg,#fff4d7,#e5cfa8);border-color:#fff2d5;color:#273044;font-weight:700;box-shadow:0 0 20px #fff0c427}
+button:disabled{opacity:.38;cursor:default}
+button:focus-visible,.upload-button:focus-within{outline:2px solid #fff0c5;outline-offset:2px}
+.asset-panel{margin:17px auto 0;max-width:850px;background:#101b29a9;border:1px solid #eed5aa32;border-radius:13px;padding:15px 20px;font:12px/1.75 system-ui,sans-serif}
+.asset-panel summary{font-weight:600;cursor:pointer;color:#efe0c8}
+.asset-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-top:12px}
+.asset-grid label{display:flex;flex-direction:column;gap:5px;color:#e6d8c6}
+.asset-grid input[type=file]{font:11px system-ui,sans-serif;width:100%;max-width:100%;color:#bfb8ae}
+.asset-grid input[type=range]{width:100%;accent-color:#edddba}
+.asset-message{color:#a5d8d2;min-height:20px;font-size:11px;margin-top:9px}
+.note{text-align:center;color:#b9b4ac;font:11px/1.8 system-ui,sans-serif;margin-top:10px}
+@media(max-width:600px){.shell{width:97vw;padding:10px 0 30px}.stage{height:63vh;min-height:450px}.card-mover{width:min(47vw,205px)}.asset-grid{grid-template-columns:1fr}.top-caption{font-size:14px}.light-beam{width:95vw}}
+</style>
+</head>
+<body>
+<div class="shell">
+ <header>
+  <div class="eyebrow">SCHICKSAL · THE ENCHANTED VASE · RARE</div>
+  <h1>Solstice Dendrite</h1>
+  <div class="sub">Bruma — 光降临，冰雪随之起舞</div>
+ </header>
+ <section id="stage" class="stage" tabindex="0" role="button" aria-label="点击卡牌揭晓">
+  <div class="ambient"></div><div id="origin" class="light-origin"></div><div id="beam" class="light-beam"></div><div id="core" class="light-core"></div><div id="pool" class="pool"></div>
+  <div id="snow" class="snow"></div>
+  <div id="mover" class="card-mover">
+   <div id="spin" class="card-spin">
+    <div class="face back"><img id="backImage" class="background" alt=""/></div>
+    <div class="face front">
+     <img id="frontImage" class="background" alt=""/>
+     <img id="flower" class="flower" alt=""/>
+     <div id="titleArt" class="title-art"><img id="titleImage" class="title-original" alt=""/><div id="titleCrystal" class="title-crystal"></div></div>
+     <div class="card-sheen"></div>
+    </div>
+   </div>
+  </div>
+  <svg id="burst" class="burst" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><filter id="rayBlur"><feGaussianBlur stdDeviation="5"/></filter></defs>
+    <g id="rayLines"></g>
+    <circle id="haloSoft" stroke="#fffbe9" stroke-width="19" opacity=".7" fill="none" filter="url(#rayBlur)"></circle>
+    <circle id="haloSharp" stroke="#fffefa" stroke-width="3" fill="none"></circle>
+    <circle id="lightCenter" fill="#fffefa"></circle>
+  </svg>
+  <div id="white" class="splash"></div>
+  <div class="top-caption"><span>THE WINTER SUN</span>Solstice Dendrite</div>
+  <div id="status" class="status" aria-live="polite">导入已定稿素材包，即可体验完整动画</div>
+  <div id="missing" class="loading-note">请在下方「素材与精修」中导入<br><strong>四件套 ZIP</strong> 和最新的 <strong>珍珠暖白 Bruma PNG</strong>。<br>画面将直接使用你的原始卡牌图片。</div>
+ </section>
+ <div class="controls">
+  <button class="primary" id="start" disabled>✦ Guess What?</button>
+  <button id="skip" disabled>跳到悬停</button>
+  <button id="replay" disabled>重播</button>
+ </div>
+ <details class="asset-panel" open>
+  <summary>素材与精修 · 使用已定稿 PNG，不重画</summary>
+  <div class="asset-grid">
+   <label>① 四件套 ZIP（Card_Back / Card_Front / Title / Flower）
+    <input id="zipFile" type="file" accept=".zip,application/zip">
+   </label>
+   <label>② 珍珠暖白 Bruma 透明 PNG（覆盖旧蓝花）
+    <input id="brumaFile" type="file" accept="image/png,.png">
+   </label>
+   <label>标题尺寸（保留原字形）
+    <input id="titleSize" type="range" min=".72" max="1.17" step=".01" value=".94">
+   </label>
+   <label>花材尺寸
+    <input id="flowerSize" type="range" min=".80" max="1.16" step=".01" value="1">
+   </label>
+  </div>
+  <div id="assetMessage" class="asset-message">可使用旧四件套 ZIP；加载珍珠暖白 Bruma PNG 后会自动替换其中的蓝色花材。</div>
+ </details>
+ <div class="note">光束先投下；牌与雪同时出现；对角线与水平夹角 70°；落下最后阶段回正；悬停后点击揭晓。所有雪粒都在光波触及后才停止。</div>
+</div>
+<script>
+(function(){
+'use strict';
+const q=id=>document.getElementById(id);
+const stage=q('stage'),origin=q('origin'),beam=q('beam'),core=q('core'),pool=q('pool'),snowLayer=q('snow');
+const mover=q('mover'),spin=q('spin'),burst=q('burst'),lines=q('rayLines'),haloSoft=q('haloSoft'),haloSharp=q('haloSharp'),lightCenter=q('lightCenter'),white=q('white');
+const start=q('start'),skip=q('skip'),replay=q('replay'),status=q('status'),assetMessage=q('assetMessage'),missing=q('missing');
+const backImage=q('backImage'),frontImage=q('frontImage'),flowerImage=q('flower'),titleImage=q('titleImage'),titleArt=q('titleArt');
+const ZIP_KEYS=['Card_Back.png','Card_Front.png','Flower_Bruma.png','Title_Solstice_Dendrite.png'];
+const assets={};const urls={};const TAU=Math.PI*2,NS='http://www.w3.org/2000/svg';
+const LIGHT=.95,DROP=3.85,FLIP=1.42,WAVE=.78,START_TILT=-13.7,END_TILT=-4.8;
+const clamp=t=>Math.min(1,Math.max(0,t));
+const ease=t=>1-Math.pow(1-clamp(t),3);
+const smooth=t=>{t=clamp(t);return t*t*(3-2*t);};
+let mode='idle',request=0,last=0,entryTime=0,snowTime=0,flipTime=0,flakes=[],rays=[],seed=138929;
+const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+function dimension(){return {w:stage.clientWidth,h:stage.clientHeight,cx:stage.clientWidth*.5,cy:stage.clientHeight*.49};}
+function setMessage(msg){assetMessage.textContent=msg;}
+function assign(name,blob){
+ if(urls[name])URL.revokeObjectURL(urls[name]);
+ const url=URL.createObjectURL(blob);assets[name]=true;urls[name]=url;
+ if(name==='Card_Back.png')backImage.src=url;
+ if(name==='Card_Front.png')frontImage.src=url;
+ if(name==='Flower_Bruma.png')flowerImage.src=url;
+ if(name==='Title_Solstice_Dendrite.png'){
+  titleImage.src=url;
+  titleArt.style.setProperty('--title-mask','url("'+url+'")');
+ }
+ updateReady();
+}
+function updateReady(){
+ const ready=assets['Card_Back.png']&&assets['Card_Front.png'];
+ start.disabled=!ready;replay.disabled=!ready;
+ missing.hidden=!!ready;
+ if(ready){
+   if(mode==='idle')status.textContent='已载入原始牌面与牌背 · 点击 Guess What 开始';
+   setMessage('牌背、牌面已载入。Bruma：'+(assets['Flower_Bruma.png']?'已载入':'未载入')+'；标题：'+(assets['Title_Solstice_Dendrite.png']?'已载入':'未载入')+'。');
+ }
+}
+async function unzipNative(file){
+ const buffer=await file.arrayBuffer(),bytes=new Uint8Array(buffer),view=new DataView(buffer);
+ let eocd=-1;
+ for(let p=bytes.length-22;p>=Math.max(0,bytes.length-65558);p--){
+  if(view.getUint32(p,true)===0x06054b50){eocd=p;break;}
+ }
+ if(eocd<0)throw new Error('找不到 ZIP 中央目录');
+ const num=view.getUint16(eocd+10,true);
+ let p=view.getUint32(eocd+16,true);
+ const result={};
+ for(let i=0;i<num;i++){
+  if(view.getUint32(p,true)!==0x02014b50)throw new Error('ZIP 目录结构损坏');
+  const method=view.getUint16(p+10,true),size=view.getUint32(p+20,true);
+  const nameLength=view.getUint16(p+28,true),extraLength=view.getUint16(p+30,true),commentLength=view.getUint16(p+32,true);
+  const local=view.getUint32(p+42,true);
+  const name=new TextDecoder().decode(bytes.subarray(p+46,p+46+nameLength)).split('/').pop();
+  if(ZIP_KEYS.includes(name)){
+   if(view.getUint32(local,true)!==0x04034b50)throw new Error('ZIP 文件头损坏');
+   const localName=view.getUint16(local+26,true),localExtra=view.getUint16(local+28,true);
+   const raw=bytes.slice(local+30+localName+localExtra,local+30+localName+localExtra+size);
+   let blob;
+   if(method===0)blob=new Blob([raw],{type:'image/png'});
+   else if(method===8){
+    const stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    blob=new Blob([await new Response(stream).arrayBuffer()],{type:'image/png'});
+   }else throw new Error('不支持的 ZIP 压缩方法 '+method);
+   result[name]=blob;
+  }
+  p+=46+nameLength+extraLength+commentLength;
+ }
+ return result;
+}
+async function loadZip(file){
+ try{
+   setMessage('正在读取原始素材包…');
+   const result=await unzipNative(file);
+   for(const name of ZIP_KEYS){if(result[name])assign(name,result[name]);}
+   if(!assets['Card_Back.png']||!assets['Card_Front.png'])throw new Error('ZIP 必须包含 Card_Back.png 与 Card_Front.png');
+   setMessage('原始素材包读取成功。建议额外载入最新珍珠暖白 Bruma，以替换 ZIP 中的旧花材。');
+ }catch(err){
+   setMessage('读取 ZIP 失败：'+err.message+'。可改用本目录的 assets/ 文件夹，或在支持 DecompressionStream 的浏览器打开。');
+ }
+}
+q('zipFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)loadZip(f);});
+q('brumaFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f){assign('Flower_Bruma.png',f);setMessage('已用珍珠暖白 Bruma 覆盖旧花材。');}});
+q('titleSize').addEventListener('input',e=>titleArt.style.setProperty('--title-scale',e.target.value));
+q('flowerSize').addEventListener('input',e=>{flowerImage.style.transform='translateX(-50%) scale('+e.target.value+')';});
+titleArt.style.setProperty('--title-scale','.94');
+async function autoLoad(){
+ for(const name of ZIP_KEYS){
+  try{
+   const r=await fetch('./assets/'+name,{cache:'no-store'});
+   if(r.ok){const b=await r.blob();if(b.type.startsWith('image/'))assign(name,b);}
+  }catch(e){}
+ }
+}
+function addSnow(){
+ seed=138929;snowLayer.replaceChildren();flakes=[];
+ const {w,h}=dimension();
+ for(let i=0;i<110;i++){
+  const el=document.createElement('i'),star=i%14===0;
+  el.className='flake'+(star?' star':'');
+  if(star)el.textContent='✧';
+  const size=1.2+random()*3.2;
+  if(!star){el.style.width=size+'px';el.style.height=size+'px';}
+  snowLayer.appendChild(el);
+  flakes.push({el,x:random()*w,y:-12-random()*35,speed:40+random()*95,delay:random()*1.55,drift:3+random()*13,phase:random()*TAU,clock:0,opacity:.29+random()*.67,active:false,frozen:false});
+ }
+}
+function initializeRays(){
+ lines.replaceChildren();rays=[];seed=33299;
+ for(let i=0;i<42;i++){
+  const ray=document.createElementNS(NS,'line');
+  ray.setAttribute('stroke',i%4===0?'#fff9e4':i%4===1?'#e5f5ff':'#fffefb');
+  ray.setAttribute('stroke-width',i%6===0?'3.8':i%4===0?'2.3':'1.2');
+  ray.setAttribute('stroke-linecap','round');lines.appendChild(ray);
+  rays.push({el:ray,angle:TAU*i/42,variation:.9+random()*.19});
+ }
+}
+function updateSnow(dt,spawn,radius){
+ const {w,h,cx,cy}=dimension();
+ for(const f of flakes){
+  if(!f.active){
+   if(!spawn||snowTime<f.delay){f.el.style.opacity='0';continue;}
+   f.active=true;f.y=-8-random()*16;f.clock=0;
+  }
+  if(!f.frozen){
+   f.clock+=dt;f.y+=dt*f.speed;
+   if(f.y>h+10){
+    if(spawn){f.y=-10;f.x=random()*w;}
+    else f.y=h-2;
+   }
+  }
+  const x=f.x+Math.sin(f.clock*.9+f.phase)*f.drift;
+  const y=f.y;
+  if(radius!==null&&!f.frozen&&y>=-4&&Math.hypot(x-cx,y-cy)<=radius){
+   f.frozen=true;f.el.classList.add('frozen');
+  }
+  f.el.style.left=x.toFixed(2)+'px';f.el.style.top=y.toFixed(2)+'px';
+  f.el.style.opacity=f.opacity.toFixed(3);
+ }
+}
+function pose(degrees,tilt,y,scale,opacity){
+ mover.style.visibility='visible';mover.style.opacity=String(opacity);
+ mover.style.transform='translate(-50%,-50%) translateY('+y.toFixed(3)+'px) scale('+scale.toFixed(4)+')';
+ spin.style.transform='rotateZ('+tilt.toFixed(3)+'deg) rotate3d(.5547,-.83205,0,'+degrees.toFixed(3)+'deg)';
+}
+function light(p){
+ p=ease(p);
+ origin.style.opacity=String(.93*p);
+ beam.style.opacity=String(.79*p);
+ beam.style.transform='translateX(-50%) scaleY('+Math.max(.0001,p)+')';
+ core.style.opacity=String(.75*p);
+ core.style.transform='translateX(-50%) scaleY('+Math.max(.0001,p)+')';
+ pool.style.opacity=String(.7*p);
+}
+function wave(t){
+ const {w,h,cx,cy}=dimension(),rmax=Math.hypot(w/2,h/2)+58;
+ const radius=rmax*ease(t/WAVE);
+ const strength=Math.pow(1-t,1.23);
+ burst.setAttribute('viewBox','0 0 '+w+' '+h);
+ burst.style.opacity=t>=1?'0':String(Math.min(1,1.25*strength));
+ for(const ray of rays){
+  const radiusRay=radius*ray.variation,inner=5;
+  ray.el.setAttribute('x1',cx+Math.cos(ray.angle)*inner);
+  ray.el.setAttribute('y1',cy+Math.sin(ray.angle)*inner);
+  ray.el.setAttribute('x2',cx+Math.cos(ray.angle)*radiusRay);
+  ray.el.setAttribute('y2',cy+Math.sin(ray.angle)*radiusRay);
+  ray.el.setAttribute('opacity',String(.4+.6*strength));
+ }
+ for(const r of [haloSharp,haloSoft]){
+  r.setAttribute('cx',String(cx));r.setAttribute('cy',String(cy));r.setAttribute('r',String(radius));
+  r.setAttribute('opacity',String(strength*.9));
+ }
+ lightCenter.setAttribute('cx',String(cx));lightCenter.setAttribute('cy',String(cy));
+ lightCenter.setAttribute('r',String(2+24*Math.pow(1-t,1.6)));
+ lightCenter.setAttribute('opacity',String(Math.pow(1-t,2.8)));
+ white.style.opacity=String(.22*Math.exp(-15*t)*(1-t));
+ return radius;
+}
+function reset(){
+ cancelAnimationFrame(request);request=0;mode='idle';last=0;entryTime=0;snowTime=0;flipTime=0;
+ addSnow();initializeRays();
+ mover.style.visibility='hidden';mover.style.opacity='0';
+ origin.style.opacity='0';beam.style.opacity='0';core.style.opacity='0';pool.style.opacity='0';
+ beam.style.transform='translateX(-50%) scaleY(0)';core.style.transform='translateX(-50%) scaleY(0)';
+ burst.style.opacity='0';white.style.opacity='0';
+ skip.disabled=true;start.disabled=!(assets['Card_Back.png']&&assets['Card_Front.png']);
+ status.textContent=start.disabled?'导入已定稿素材包，即可体验完整动画':'点击 Guess What，光从上方降临';
+}
+function begin(){
+ if(start.disabled)return;
+ reset();mode='entrance';start.disabled=true;skip.disabled=false;
+ status.textContent='圣光自上方逐渐投射';
+ request=requestAnimationFrame(frame);
+}
+function hover(){
+ mode='hover';light(1);pose(720,END_TILT,0,1,1);
+ skip.disabled=true;
+ status.textContent='牌背悬停 · 雪仍在落下，点击卡牌揭晓';
+}
+function flip(){
+ if(mode!=='hover')return;
+ mode='flip';flipTime=0;skip.disabled=true;
+ status.textContent='雪花核心放射强光 · 光照到哪里，雪就停在哪里';
+}
+function frame(now){
+ const dt=last?Math.min(.045,(now-last)/1000):0;last=now;
+ if(mode==='entrance'){
+  entryTime+=dt;
+  if(entryTime<LIGHT)light(entryTime/LIGHT);
+  else{
+   light(1);snowTime+=dt;updateSnow(dt,true,null);
+   const p=clamp((entryTime-LIGHT)/DROP),ep=ease(p),recover=smooth((p-.72)/.28);
+   const tilt=START_TILT+(END_TILT-START_TILT)*recover;
+   pose(720*ep,tilt,-195*(1-ep),.78+.22*ep,clamp(p*3.7));
+   status.textContent=p<.2?'卡牌与雪同时从上方出现':'沿对角轴旋舞下降 · 接近悬停时逐渐回正';
+   if(p>=1)hover();
+  }
+ }else if(mode==='hover'){
+  snowTime+=dt;updateSnow(dt,true,null);
+ }else if(mode==='flip'){
+  flipTime+=dt;
+  const t=clamp(flipTime/FLIP);
+  const radius=wave(t);
+  updateSnow(dt,false,radius);
+  pose(720+180*smooth(t),END_TILT,0,1,1);
+  const intensity=1-smooth(t);
+  origin.style.opacity=String(.1+.83*intensity);
+  beam.style.opacity=String(.08+.71*intensity);
+  core.style.opacity=String(.06+.69*intensity);
+  pool.style.opacity=String(.2+.5*intensity);
+  if(t>=1){
+   for(const f of flakes)if(f.active&&!f.frozen){f.frozen=true;f.el.classList.add('frozen');}
+   mode='front';burst.style.opacity='0';white.style.opacity='0';
+   status.textContent='Solstice Dendrite · 强光散尽，雪悬停，牌面揭晓';
+   start.disabled=false;
+  }
+ }
+ if(mode==='entrance'||mode==='hover'||mode==='flip')request=requestAnimationFrame(frame);
+}
+function stageAction(){
+ if(mode==='hover'){flip();}
+ else if(mode==='entrance'){
+  cancelAnimationFrame(request);light(1);snowTime=DROP;
+  for(let i=0;i<52;i++)updateSnow(.075,true,null);
+  hover();last=0;request=requestAnimationFrame(frame);
+ }
+ else if(mode==='front'||mode==='idle'){begin();}
+}
+stage.addEventListener('click',stageAction);
+stage.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stageAction();}});
+start.addEventListener('click',begin);
+replay.addEventListener('click',begin);
+skip.addEventListener('click',()=>{
+ if(mode!=='entrance')return;
+ cancelAnimationFrame(request);light(1);snowTime=DROP;
+ for(let i=0;i<52;i++)updateSnow(.075,true,null);
+ hover();last=0;request=requestAnimationFrame(frame);
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='entrance'){cancelAnimationFrame(request);light(1);hover();}else if(!document.hidden&&mode==='hover'){cancelAnimationFrame(request);last=0;request=requestAnimationFrame(frame);}});
+reset();autoLoad();
+})();
+</script>
+</body></html>
