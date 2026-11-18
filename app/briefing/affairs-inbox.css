@@ -43,3 +43,16 @@
   .imperial-affairs-inbox .imperial-affair-card { transition:none; }
   .imperial-affairs-undo-row { animation:none; }
 }
+
+/* Login summary: the same three semantic tones, without reworking artwork. */
+.imperial-briefing-overlay .imperial-briefing-tasks .imperial-briefing-rows { gap:6px; }
+.imperial-briefing-overlay .imperial-briefing-tasks .imperial-briefing-task-row {
+  padding:8px 9px; border:1px solid rgba(172,182,190,.15); border-radius:7px;
+  background:rgba(255,254,252,.49);
+}
+.imperial-briefing-overlay .imperial-briefing-tasks .imperial-briefing-task-row.affair-urgent {
+  background:rgba(255,242,211,.68); border-color:rgba(201,162,78,.3);
+}
+.imperial-briefing-overlay .imperial-briefing-tasks .imperial-briefing-task-row.affair-important {
+  background:rgba(248,222,225,.72); border-color:rgba(182,98,108,.3);
+}
