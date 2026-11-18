@@ -330,7 +330,8 @@ function frame(now){
    light(1);snowTime+=dt;updateSnow(dt,true,null);
    const p=clamp((entryTime-LIGHT)/DROP),ep=ease(p),recover=smooth((p-.72)/.28);
    const tilt=START_TILT+(END_TILT-START_TILT)*recover;
-   pose(720*ep,tilt,-195*(1-ep),.78+.22*ep,clamp(p*3.7));
+   const dropProgress=1-Math.pow(1-p,1.7);
+   pose(720*ep,tilt,-195*(1-dropProgress),.78+.22*dropProgress,clamp(p*3.7));
    status.textContent=p<.2?'卡牌与雪同时从上方出现':'沿对角轴旋舞下降 · 接近悬停时逐渐回正';
    if(p>=1)hover();
   }
