@@ -21,8 +21,9 @@ h1{font:italic 400 clamp(21px,3vw,33px)/1.4 Georgia,serif;margin:2px 0 3px;text-
 .light-core{position:absolute;left:50%;top:-10px;width:170px;height:90%;transform:translateX(-50%) scaleY(0);transform-origin:top center;background:linear-gradient(#fffefac7,#fff5d35e 45%,transparent);filter:blur(25px);opacity:0;pointer-events:none}
 .pool{position:absolute;left:50%;bottom:7%;width:min(52vw,350px);height:50px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,#fff8dec9 0,#f9eacc61 37%,transparent 75%);filter:blur(17px);opacity:0;pointer-events:none}
 .snow{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:7}
-.flake{position:absolute;display:block;border-radius:50%;background:#fffdf7;box-shadow:0 0 7px #f5ffff94;opacity:0;will-change:transform}
-.flake.star{background:none;box-shadow:none;border-radius:0;color:#f5faff;font:15px/1 Georgia,serif;text-shadow:0 0 9px #ffffff}
+.flake{position:absolute;display:block;border-radius:50%;background:#fffdf7;box-shadow:0 0 5px #f5ffff82;opacity:0;pointer-events:none;will-change:transform}
+.flake.crystal{background:none;box-shadow:none;border-radius:0}
+.flake.crystal svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 2px #ecf8ff8a)}
 .flake.frozen{filter:drop-shadow(0 0 2.3px #fff)}
 .card-mover{position:absolute;left:50%;top:49%;width:clamp(160px,21vw,226px);aspect-ratio:2/3;visibility:hidden;opacity:0;z-index:6;transform-style:preserve-3d;will-change:transform}
 .card-spin{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
@@ -211,17 +212,33 @@ async function autoLoad(){
   }catch(e){}
  }
 }
+// Real six-armed dendritic snow crystals: no diamond/star glyphs.
+function snowCrystalMarkup(detail){
+ const arms=Array.from({length:6},(_,i)=>
+  '<g transform="rotate('+(i*60)+')">'+
+   '<path d="M0 0V-22" stroke-width="1.55"/>'+
+   '<path d="M0-8L-5-13M0-8L5-13M0-15L-4-19M0-15L4-19" stroke-width="1.12"/>'+
+   (detail?'<path d="M0-4L-3-8M0-4L3-8" stroke-width=".92"/>':'')+
+  '</g>').join('');
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-25 -25 50 50" aria-hidden="true"><g fill="none" stroke="#f7fcff" stroke-linecap="round" stroke-linejoin="round">'+arms+'</g><circle cx="0" cy="0" r="1.35" fill="#fffef8"/></svg>';
+}
 function addSnow(){
  seed=138929;snowLayer.replaceChildren();flakes=[];
  const {w,h}=dimension();
  for(let i=0;i<110;i++){
-  const el=document.createElement('i'),star=i%14===0;
-  el.className='flake'+(star?' star':'');
-  if(star)el.textContent='✧';
-  const size=1.2+random()*3.2;
-  if(!star){el.style.width=size+'px';el.style.height=size+'px';}
+  const el=document.createElement('i');
+  const crystal=i%7===0||i%11===0;
+  el.className='flake'+(crystal?' crystal':'');
+  if(crystal)el.innerHTML=snowCrystalMarkup(i%3===0);
+  const size=crystal?11+random()*10:.9+random()*2.25;
+  el.style.width=size+'px';el.style.height=size+'px';
   snowLayer.appendChild(el);
-  flakes.push({el,x:random()*w,y:-12-random()*35,speed:40+random()*95,delay:random()*1.55,drift:3+random()*13,phase:random()*TAU,clock:0,opacity:.29+random()*.67,active:false,frozen:false});
+  flakes.push({el,crystal,x:random()*w,y:-12-random()*35,
+    speed:crystal?29+random()*53:41+random()*76,
+    delay:random()*1.55,drift:crystal?2+random()*8:3+random()*12,
+    phase:random()*TAU,clock:0,angle:random()*360,spin:(random()-.5)*14,
+    opacity:crystal?.59+random()*.34:.27+random()*.58,
+    active:false,frozen:false});
  }
 }
 function initializeRays(){
@@ -250,10 +267,14 @@ function updateSnow(dt,spawn,radius){
   }
   const x=f.x+Math.sin(f.clock*.9+f.phase)*f.drift;
   const y=f.y;
+  // The crystal's position AND rotation freeze only when the outward light front reaches it.
   if(radius!==null&&!f.frozen&&y>=-4&&Math.hypot(x-cx,y-cy)<=radius){
    f.frozen=true;f.el.classList.add('frozen');
   }
   f.el.style.left=x.toFixed(2)+'px';f.el.style.top=y.toFixed(2)+'px';
+  f.el.style.transform=f.crystal
+   ?'translate(-50%,-50%) rotate('+(f.angle+f.clock*f.spin).toFixed(2)+'deg)'
+   :'translate(-50%,-50%)';
   f.el.style.opacity=f.opacity.toFixed(3);
  }
 }
