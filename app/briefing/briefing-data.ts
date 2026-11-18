@@ -6,6 +6,10 @@ export type BriefingTask = {
   detail: string;
   deadline: string | null;
   deadlineKind?: "expected" | "deadline";
+  createdAt?: string;
+  category?: "proposal" | "speaker-election" | "speaker-vote" | "debate" | "parliament-vote" | "referendum";
+  participation?: "required" | "available";
+  focus?: "proposal" | "speaker" | "debate" | "vote";
   actionable: boolean;
   completed: boolean;
   target: BriefingTarget;
@@ -59,11 +63,32 @@ export function briefingDeadlineInfo(date: string | null, now = Date.now()) {
   return { label, passed: briefingDateTime(date) < now };
 }
 
+
+/**
+ * UI countdowns are computed in real time, never written to D1 or inferred
+ * from audit timestamps. The server still determines if an action is open.
+ */
+export function briefingCountdown(date: string | null, now: number): string {
+  const target = briefingDateTime(date);
+  if (!Number.isFinite(target)) return "—";
+  if (target <= now) return "已到期";
+  const seconds = Math.ceil((target - now) / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return days > 0
+    ? `${days}天 ${hours}小时 ${minutes}分`
+    : hours > 0
+      ? `${hours}小时 ${minutes}分 ${remainingSeconds}秒`
+      : `${minutes}分 ${remainingSeconds}秒`;
+}
+
 // Ineligible, completed, or already-closed actions never appear as live tasks.
 // The future authenticated task API remains authoritative for eligibility.
 export function orderedBriefingTasks(tasks: readonly BriefingTask[]): BriefingTask[] {
   return tasks.filter((task) => task.actionable && !task.completed)
-    .sort((a, b) => briefingDateTime(a.deadline) - briefingDateTime(b.deadline) || a.id.localeCompare(b.id));
+    .sort((a, b) => briefingDateTime(a.deadline) - briefingDateTime(b.deadline) || briefingDateTime(a.createdAt || null) - briefingDateTime(b.createdAt || null) || a.id.localeCompare(b.id));
 }
 
 export function latestUnreadMessages(messages: readonly BriefingMessage[]): BriefingMessage[] {
