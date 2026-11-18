@@ -1,0 +1,16 @@
+.schicksal-presence { display:flex; flex-wrap:wrap; align-items:center; gap:7px 13px; color:#617789; font:400 .7rem/1.5 ui-sans-serif,system-ui,sans-serif; }
+.schicksal-presence-caption { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; letter-spacing:.04em; }
+.schicksal-presence-caption > i { width:7px; height:7px; background:#b9c1c7; border-radius:50%; box-shadow:0 0 0 3px rgba(147,156,163,.09); }
+.schicksal-presence-caption > i.live { background:#60a17f; box-shadow:0 0 0 3px rgba(96,161,127,.11); }
+.schicksal-presence-list { display:inline-flex; gap:5px; flex-wrap:wrap; align-items:center; }
+.schicksal-presence-member { display:inline-flex; align-items:center; gap:5px; padding:2px 7px; max-width:170px; border:1px solid rgba(120,149,164,.22); border-radius:999px; background:rgba(255,255,255,.60); color:#415b6d; font-size:.68rem; white-space:nowrap; }
+.schicksal-presence-member > i { width:7px; height:7px; flex:none; border-radius:50%; background:var(--member-accent); box-shadow:0 0 0 2px rgba(255,255,255,.9); }
+.schicksal-presence-empty { color:#8c9aa5; font-style:italic; }
+.schicksal-presence-compact { font-size:.67rem; gap:5px; }
+.schicksal-presence-compact .schicksal-presence-member { font-size:.63rem; padding:1px 6px; }
+.imperial-briefing-online-row { padding:7px 22px 5px; background:rgba(255,255,255,.2); border-bottom:1px solid rgba(126,150,166,.11); }
+.imperial-briefing-online-row .schicksal-presence { justify-content:center; }
+.imperial-briefing-desk-status { margin:10px 0 6px; }
+.system .topbar .schicksal-presence { justify-content:flex-end; }
+@media(max-width:680px) { .imperial-briefing-online-row { padding:7px 14px; } .imperial-briefing-online-row .schicksal-presence { justify-content:flex-start; } .system .topbar .schicksal-presence-list { max-width:200px; } }
+@media(prefers-reduced-motion:reduce) { .schicksal-presence * { transition:none!important; animation:none!important; } }
