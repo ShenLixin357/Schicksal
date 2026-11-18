@@ -116,6 +116,16 @@ jobs:
         run: |
           set -euo pipefail
           npx wrangler d1 migrations apply DB --remote --config work/briefing-preview-dist/server/wrangler.json
+      - name: Inspect preview-only D1 schema used by briefing (no member data)
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG="work/briefing-preview-dist/server/wrangler.json"
+          npx wrangler d1 execute DB --remote --config "$CONFIG" --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('parliament_items','parliament_votes','parliament_meeting_sessions','parliament_speaker_candidates','parliament_speaker_votes','parliament_audit_events','briefing_archives','member_presence') ORDER BY name;"
+          for table in parliament_items parliament_votes parliament_meeting_sessions parliament_speaker_candidates parliament_speaker_votes parliament_audit_events briefing_archives; do
+            echo "Columns for $table"
+            npx wrangler d1 execute DB --remote --config "$CONFIG" --command "SELECT name, type FROM pragma_table_info('$table') ORDER BY cid;"
+          done
       - name: Publish separate briefing preview Worker
         shell: bash
         run: |
