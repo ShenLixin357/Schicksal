@@ -6,6 +6,7 @@ import {
   orderedBriefingTasks, type BriefingTarget, type BriefingTask,
 } from "./briefing-data";
 import type { InboxViews } from "./affairs-history";
+import "./affairs-inbox.css";
 
 type Tab = "pending" | "participated" | "missed" | "archived";
 type Action = "archive" | "restore";
@@ -103,7 +104,7 @@ export function AffairsInbox({ views, status, onArchiveChange, onNavigate }: {
         const countdown = task.deadline ? now !== null ? briefingCountdown(task.deadline, now) : "计算中…" : "—";
         const label = tab === "participated" ? "已参与" : tab === "missed" ? "已错过" :
           task.participation === "required" ? "尚未投票" : "可参与";
-        return <article key={task.id} className={`imperial-briefing-task-row imperial-affair-card ${tone} ${tab === "missed" ? "affair-past" : ""}`}>
+        return <article key={task.id} className={`imperial-briefing-task-row imperial-affair-card ${tone} ${tab === "missed" ? "affair-past" : busy === task.id ? "affair-folding" : ""}`}>
           <div className="imperial-briefing-task-details">
             <span className="imperial-briefing-task-category">{important ? "重要政务 · " : ""}{label}</span>
             <strong>{task.title}</strong>
