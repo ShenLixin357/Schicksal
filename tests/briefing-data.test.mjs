@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  BRIEFING_SEEN_SESSION_KEY, briefingDateTime, briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages,
+  BRIEFING_SEEN_SESSION_KEY, briefingCountdown, briefingDateTime, briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages,
   markBriefingViewed, orderedBriefingTasks,
 } from "../app/briefing/briefing-data.ts";
 
@@ -60,4 +60,19 @@ test("date-only expected dates use the end of the UTC+8 calendar day", () => {
   assert.equal(briefingDeadlineInfo("2026-11-18", Date.parse("2026-11-18T12:00:00+08:00")).passed, false);
   assert.equal(briefingDeadlineInfo("2026-11-18", Date.parse("2026-11-19T00:00:00+08:00")).passed, true);
   assert.match(briefingDeadlineInfo("2026-11-18").label, /2026年11月18日/);
+});
+
+test("countdown is based on real deadline time, never on an inferred number of days", () => {
+  const from = Date.parse("2026-11-19T10:00:00.000+08:00");
+  assert.equal(briefingCountdown("2026-11-19T10:01:29.000+08:00", from), "1分 29秒");
+  assert.equal(briefingCountdown("2026-11-20T11:00:00.000+08:00", from), "1天 1小时 0分");
+  assert.equal(briefingCountdown("2026-11-18T10:00:00.000+08:00", from), "已到期");
+  assert.equal(briefingCountdown(null, from), "—");
+});
+test("same deadline is ordered by oldest created first", () => {
+  const tasks = [
+    task("later", "2026-11-25", { createdAt: "2026-11-18" }),
+    task("older", "2026-11-25", { createdAt: "2026-11-17" }),
+  ];
+  assert.deepEqual(orderedBriefingTasks(tasks).map(t => t.id), ["older", "later"]);
 });
