@@ -1,56 +1,53 @@
 /**
- * Briefing decorative construction system — a cream-paper field with two
- * intentional concentrations of colour at the margins. All text stays HTML.
- *
- * The *actual* Schicksal mark comes from the existing <Emblem compact />
- * component, not from the paper artwork; this file draws no new emblem.
+ * Schicksal briefing paper decoration: warm ivory with two small concentrations
+ * of softly tinted ellipses at the margins. No faceted/crystalline geometry.
+ * The eight-colour fine waves remain separate from both the editorial content
+ * and the authentic <Emblem compact /> rendered by app/page.tsx.
  */
 export function BriefingBackdrop() {
-  const palette = ["#e0b95b","#7ca7d4","#d8878a","#78b29c","#abd2dd","#d7a1c1","#d9a26d","#9887bd"] as const;
+  const palette = ["#e0b95b", "#7ca7d4", "#d8878a", "#78b29c", "#abd2dd", "#d7a1c1", "#d9a26d", "#9887bd"] as const;
   return <div className="imperial-briefing-canvas" aria-hidden="true">
     <svg viewBox="0 0 1440 960" preserveAspectRatio="xMidYMid slice" fill="none" focusable="false">
-      {/* Edge embroidery: a single ribbon family at the right margin.
-          The news and affairs remain on an uninterrupted ivory surface. */}
+      <defs>
+        <radialGradient id="briefing-oval-pearl" cx="38%" cy="35%" r="76%">
+          <stop offset="0%" stopColor="#f2d8e4" stopOpacity=".46"/>
+          <stop offset="48%" stopColor="#dcebf2" stopOpacity=".31"/>
+          <stop offset="100%" stopColor="#e8f1ec" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="briefing-oval-ivory" cx="40%" cy="40%" r="72%">
+          <stop offset="0%" stopColor="#e5e4f5" stopOpacity=".40"/>
+          <stop offset="50%" stopColor="#e9d6bd" stopOpacity=".25"/>
+          <stop offset="100%" stopColor="#f7f3e9" stopOpacity="0"/>
+        </radialGradient>
+      </defs>
+
+      {/* Two matching families of eight-colour fine waves at the edges. */}
       <g className="imperial-briefing-edge-ribbon" strokeWidth="1.18" strokeLinecap="round">
         {palette.map((color, i) => (
           <path key={color} stroke={color}
-            d={`M 1488 ${326+i*9} C 1436 ${286+i*8} 1419 ${394+i*8} 1374 ${365+i*9} S 1328 ${300+i*9} 1274 ${358+i*9}`}/>
+            d={`M 1488 ${326 + i * 9} C 1436 ${286 + i * 8} 1419 ${394 + i * 8} 1374 ${365 + i * 9} S 1328 ${300 + i * 9} 1274 ${358 + i * 9}`}/>
         ))}
       </g>
       <g className="imperial-briefing-edge-ribbon" strokeWidth="1.14" strokeLinecap="round">
         {palette.map((color, i) => (
           <path key={color} stroke={color}
-            d={`M -65 ${785+i*8} C 48 ${743+i*7} 87 ${818+i*7} 154 ${775+i*8} S 237 ${751+i*8} 302 ${789+i*8}`}/>
+            d={`M -65 ${785 + i * 8} C 48 ${743 + i * 7} 87 ${818 + i * 7} 154 ${775 + i * 8} S 237 ${751 + i * 8} 302 ${789 + i * 8}`}/>
         ))}
       </g>
 
-      {/* One crystalline facet assembly, repeated at a reduced scale in the
-          opposing margin. Three tones only per cluster. */}
-      <g className="imperial-briefing-facet-group" transform="translate(1450 230) rotate(17)" strokeLinejoin="round">
-        <polygon points="0,-80 60,-29 51,62 -4,89 -68,29 -56,-41"
-          fill="#b9d5e1" fillOpacity=".12" stroke="#8cabc5" strokeWidth="1.15"/>
-        <polygon points="0,-80 12,3 -4,89 -23,0" fill="#c1dfe6" fillOpacity=".15" stroke="#87b1c9" strokeWidth=".9"/>
-        <polygon points="0,-80 60,-29 12,3" fill="#e5b5c9" fillOpacity=".14" stroke="#cfa2bd" strokeWidth=".85"/>
-        <polygon points="12,3 51,62 -4,89" fill="#e9d39e" fillOpacity=".14" stroke="#c7a66a" strokeWidth=".85"/>
-        <path d="M-56-41 12 3 60-29M-68 29 12 3 51 62M0-80 -23 0 -4 89"
-          stroke="#c4a9bf" strokeWidth=".8" opacity=".75"/>
-        <circle cx="12" cy="3" r="3.2" fill="#fffaf2" stroke="#c7ab76" strokeWidth="1"/>
+      {/* Soft, translucent ellipses replace all pointed facet polygons.
+          The forms are clipped naturally by the paper edge, not by hard masks. */}
+      <g className="imperial-briefing-oval-group" transform="translate(1418 230) rotate(-24)">
+        <ellipse cx="0" cy="0" rx="165" ry="103" fill="url(#briefing-oval-pearl)"/>
+        <ellipse cx="-13" cy="8" rx="125" ry="73" fill="#d6e7ef" fillOpacity=".12"/>
+        <ellipse cx="10" cy="-5" rx="153" ry="94" stroke="#aac6d7" strokeWidth=".9" strokeOpacity=".28"/>
+        <ellipse cx="10" cy="-5" rx="116" ry="68" stroke="#d4b2c8" strokeWidth=".8" strokeOpacity=".21"/>
       </g>
-      <g className="imperial-briefing-facet-group" transform="translate(67 858) rotate(-16) scale(.7)" strokeLinejoin="round">
-        <polygon points="0,-80 60,-29 51,62 -4,89 -68,29 -56,-41"
-          fill="#e3c4d5" fillOpacity=".12" stroke="#c0a1b8" strokeWidth="1.3"/>
-        <polygon points="0,-80 12,3 -4,89" fill="#b3d5d8" fillOpacity=".15" stroke="#87b9bd" strokeWidth=".95"/>
-        <path d="M-56-41 12 3 60-29M-68 29 12 3 51 62" stroke="#93b2cf" strokeWidth="1"/>
-      </g>
-
-      {/* Fine coordinate details use the same faceted geometry, not
-          unrelated stars, flowers, planets, and ornamental objects. */}
-      <g className="imperial-briefing-construction-lines" strokeWidth=".9" strokeLinecap="round">
-        <path d="M 126 896 H 226 M 176 867 V 924" stroke="#c3a9be" strokeDasharray="2 8"/>
-        <circle cx="176" cy="896" r="18" stroke="#a0c1cc"/>
-      </g>
-      <g className="imperial-briefing-paper-dots">
-        <circle cx="215" cy="783" r="2.6" fill="#fffaf3" stroke="#a1bbd5" strokeWidth="1"/>
+      <g className="imperial-briefing-oval-group" transform="translate(57 854) rotate(21)">
+        <ellipse cx="0" cy="0" rx="139" ry="90" fill="url(#briefing-oval-ivory)"/>
+        <ellipse cx="12" cy="-5" rx="107" ry="67" fill="#cfe6e0" fillOpacity=".11"/>
+        <ellipse cx="2" cy="1" rx="130" ry="84" stroke="#cbb7d5" strokeWidth=".85" strokeOpacity=".27"/>
+        <ellipse cx="2" cy="1" rx="92" ry="56" stroke="#b9d5d4" strokeWidth=".75" strokeOpacity=".20"/>
       </g>
     </svg>
   </div>;
