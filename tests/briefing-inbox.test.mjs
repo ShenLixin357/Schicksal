@@ -1,8 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildInboxViews, affairCycleKey } from "../app/briefing/affairs-history.ts";
-import { parliamentAffairsTasks } from "../app/briefing/briefing-feed.ts";
-import { orderedBriefingTasks } from "../app/briefing/briefing-data.ts";
+import { registerHooks } from "node:module";
+const hooks = registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier))
+      return nextResolve(specifier + ".ts", context);
+    return nextResolve(specifier, context);
+  },
+});
+const { buildInboxViews, affairCycleKey } = await import("../app/briefing/affairs-history.ts");
+const { parliamentAffairsTasks } = await import("../app/briefing/briefing-feed.ts");
+const { orderedBriefingTasks } = await import("../app/briefing/briefing-data.ts");
+hooks.deregister();
 
 const now = Date.parse("2026-11-19T08:00:00+08:00");
 function item(id, stage, extras = {}) {
