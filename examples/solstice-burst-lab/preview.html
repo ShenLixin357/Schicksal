@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solstice Dendrite · Crystal Burst Lab</title>
+<style>
+:root{color-scheme:dark;--warm:#f3e7d5}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#0e1623;color:var(--warm);font-family:Georgia,serif}
+.wrap{width:min(96vw,840px);margin:auto;padding:18px 0 32px}
+header{text-align:center;padding:0 0 12px}
+.kicker{font:10px/1.8 system-ui,sans-serif;letter-spacing:.28em;color:#d7c5a2}
+h1{font:italic 400 clamp(24px,4vw,32px)/1.4 Georgia,serif;margin:3px 0}
+.stage{position:relative;isolation:isolate;height:min(72vh,650px);min-height:450px;border:1px solid #d9c6a73d;border-radius:16px;overflow:hidden;perspective:1300px;cursor:pointer;box-shadow:0 18px 66px #0208138a;background:radial-gradient(ellipse at 50% 3%,#71839c69,transparent 46%),linear-gradient(#26384e,#111c2d 80%)}
+.stage:focus-visible{outline:2px solid #ffe9c2;outline-offset:3px}
+.ambient{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 53%,#fff0cc2d 0%,#fff1d20e 43%,transparent 69%)}
+.beam{position:absolute;z-index:2;left:50%;top:-3%;height:110%;width:min(115vw,900px);transform:translateX(-50%);clip-path:polygon(32% 0%,68% 0%,96% 100%,4% 100%);background:linear-gradient(#fffdf3a1,#fff0ca72 25%,#f5e4c331 75%,transparent);filter:blur(17px);mix-blend-mode:screen;pointer-events:none}
+.pool{position:absolute;z-index:2;left:50%;top:56%;width:min(88vw,550px);height:94%;transform:translate(-50%,-50%);background:radial-gradient(ellipse,#fffae263,transparent 67%);filter:blur(25px);pointer-events:none}
+.card{position:absolute;z-index:5;left:50%;top:54%;width:clamp(165px,25vw,226px);aspect-ratio:2/3;transform:translate(-50%,-50%);transform-style:preserve-3d;pointer-events:none}
+.spin{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateZ(-4.8deg)}
+.face{position:absolute;inset:0;border-radius:7px;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:linear-gradient(140deg,#dfeaf8,#fff9ea,#d4e3f1);box-shadow:0 0 14px #fff7dc83,0 0 30px #ffefc64f,0 16px 35px #0a14267e}
+.front{transform:rotate3d(.5547,-.83205,0,180deg)}
+.face>img.background{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+.flower{position:absolute;left:50%;top:22%;width:81%;height:61%;object-fit:contain;transform:translateX(-50%);filter:drop-shadow(0 0 3px #fff8ec96)}
+.title-art{position:absolute;left:12%;bottom:6.6%;width:76%;height:11.2%;pointer-events:none}
+.title-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.85}
+.core-anchor{position:absolute;width:2px;height:2px;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
+#snowCanvas,#fxCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#snowCanvas{z-index:6}
+#fxCanvas{z-index:8;mix-blend-mode:screen}
+#coreGuide{display:none;position:absolute;z-index:9;pointer-events:none;width:16px;height:16px;transform:translate(-50%,-50%);border:1px solid #fbe1aa;border-radius:50%;box-shadow:0 0 10px #fff}
+#coreGuide:before,#coreGuide:after{content:"";position:absolute;background:#fff}
+#coreGuide:before{height:24px;width:1px;left:7px;top:-5px}
+#coreGuide:after{width:24px;height:1px;top:7px;left:-5px}
+.missing{position:absolute;z-index:10;top:50%;left:50%;transform:translate(-50%,-50%);background:#101b2be8;border:1px solid #f7d9a74f;border-radius:12px;padding:17px 21px;min-width:250px;text-align:center;font:12px/1.8 system-ui,sans-serif}
+.missing[hidden]{display:none}
+.controls{display:flex;justify-content:center;gap:10px;margin:13px 0;flex-wrap:wrap}
+button{cursor:pointer;border-radius:9px;background:#ffebc915;color:#f9e9d3;border:1px solid #ffdfb054;font:12px system-ui,sans-serif;padding:12px 16px;min-width:95px}
+button.primary{background:linear-gradient(130deg,#fff6df,#e4c895);color:#253044;border-color:#fff9e9;font-weight:700}
+button:disabled{opacity:.43;cursor:default}
+.settings{margin:16px auto 0;border:1px solid #ffe5b333;background:#121f30b9;border-radius:12px;padding:13px 18px;font:12px/1.8 system-ui,sans-serif}
+.settings summary{cursor:pointer;color:#f8e5c3}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.grid label{display:flex;flex-direction:column;gap:4px;min-width:0}
+input[type=file]{max-width:100%;font-size:11px}
+input[type=range]{width:100%;accent-color:#e8cda0}
+.small{font:11px/1.7 system-ui,sans-serif;color:#d7c4a6;margin-top:8px}
+.status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:550px){.stage{height:65vh;min-height:430px}.grid{grid-template-columns:1fr}.wrap{width:98vw}.card{width:min(46vw,204px)}}
+</style></head>
+<body><div class="wrap">
+<header><div class="kicker">SCHICKSAL · RARE CARD · EFFECT STUDY</div><h1>Solstice Dendrite</h1></header>
+<section class="stage" id="stage" role="button" tabindex="0" aria-label="点击开启1.42秒冰晶爆发，点击再次重播">
+<div class="ambient"></div><div class="beam"></div><div class="pool"></div>
+<div class="card"><div class="spin" id="spin">
+<div class="face back"><img id="back" class="background" alt=""><span id="anchor" class="core-anchor"></span></div>
+<div class="face front"><img id="front" class="background" alt=""><img id="flower" class="flower" alt=""><div class="title-art"><img id="title" alt=""></div></div>
+</div></div>
+<canvas id="snowCanvas"></canvas>
+<canvas id="fxCanvas"></canvas>
+<span id="coreGuide"></span>
+<div id="missing" class="missing">导入已定稿四件套 ZIP<br>即可查看真实卡牌的爆发演示</div>
+<div id="status" class="status" role="status" aria-live="polite"></div>
+</section>
+<div class="controls"><button id="play" class="primary" disabled>✦ 点击爆发</button><button id="reset" disabled>重播 / 重置</button></div>
+<details class="settings"><summary>素材与定位 · 只用于调试</summary>
+<div class="grid">
+<label>① 四件套原画 ZIP<input type="file" id="zipFile" accept=".zip,application/zip"></label>
+<label>② 珍珠暖白 Bruma PNG<input type="file" id="brumaFile" accept="image/png,.png"></label>
+<label>雪花核心横向位置<input id="coreX" type="range" min="43" max="57" step=".25" value="50"></label>
+<label>雪花核心纵向位置<input id="coreY" type="range" min="43" max="57" step=".25" value="50"></label>
+<label style="flex-direction:row;align-items:center"><input type="checkbox" id="showCore">显示核心定位标记</label>
+</div><div id="assetMsg" class="small">保留原始牌面、牌背与 Bruma，不重新绘制素材。首次导入后可反复点击重播。</div>
+</details></div>
+<script id="vertSrc" type="x-shader/x-vertex">#version 300 es
+precision highp float;
+out vec2 vUV;
+void main(){
+vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));
+vUV=p*.5;
+gl_Position=vec4(p-1.,0.,1.);
+}
+</script>
+<script id="effectSrc" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+in vec2 vUV;
+out vec4 frag;
+uniform vec2 uRes;
+uniform vec2 uCenter;
+uniform float uTime;
+uniform float uMaxR;
+float sat(float x){return clamp(x,0.,1.);}
+float sm(float a,float b,float x){return smoothstep(a,b,x);}
+float hash(float x){return fract(sin(x*127.1)*43758.5453);}
+void main(){
+vec2 p=gl_FragCoord.xy-uCenter;
+float r=length(p);
+float a=atan(p.y,p.x);
+float t=uTime;
+float ign=sm(0.015,.12,t)*(1.-sm(.22,.53,t));
+float eruption=sm(.105,.26,t)*(1.-sm(.40,1.28,t));
+float glow=sm(.08,.19,t)*(1.-sm(.75,1.42,t));
+float spread=sm(.105,.52,t);
+float radius=30.+uMaxR*.9*spread;
+float x=r/(radius+1.);
+float d=sat(1.-x);
+float six=abs(cos(a*3.0+sin(a*6.0)*.03));
+float sixSharp=pow(six,30.);
+float side=pow(max(0.,cos(a*10.7+sin(a*6.)*.9+sin(a*15.3)*.22)),28.);
+float glint=pow(max(0.,cos(a*22.3+sin(a*6.)*.52)),75.);
+float envelope=sm(0.0,.14,x)*(1.-sm(.48,1.04,x));
+float broken=.63+.37*sin(a*17.3+sin(a*7.2)*1.7);
+float caustic=pow(abs(sin(a*5.8+sin(r*.015-t*2.)*.18)),13.)*(.55+.45*cos(a*11.));
+float prism=(sixSharp*.94+side*.43+glint*.12+caustic*.27)*envelope*broken;
+float farShard=pow(six,66.)*exp(-r/(uMaxR*.70))*spread;
+float core=exp(-pow(r/(12.+spread*17.),1.18))*ign;
+float hot=exp(-pow(r/(15.+spread*57.),1.38))*eruption;
+float halo=exp(-pow(r/(90.+spread*205.),1.37))*glow;
+float facets=(prism*.92+farShard*.29)*eruption;
+float warm=hot*.84+halo*.23+facets*.25;
+float cold=halo*.40+facets*.53;
+vec3 rgb=vec3(1.,.985,.946)*(hot*.85+core*1.15)+vec3(.98,.9,.76)*warm+vec3(.67,.86,1.)*cold;
+rgb+=vec3(.97,.98,1.)*facets*.66;
+float waveStart=sm(.18,.205,t);
+float waveProgress=sm(.19,1.02,t);
+float waveR=uMaxR*waveProgress;
+float distort=1.+.016*sin(a*6.0)+.008*sin(a*13.0+1.);
+float edge=abs(r-waveR*distort);
+float rim=exp(-pow(edge/13.,2.0))*.12*waveStart*(1.-sm(.98,1.32,t));
+rgb+=vec3(.77,.91,1.)*rim;
+float alpha=sat(core*.8+hot*.83+halo*.41+facets*.84+rim);
+float end=1.-sm(1.24,1.42,t);
+frag=vec4(rgb*end,alpha*end);
+}
+</script>
+<script id="bloomSrc" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+in vec2 vUV;
+out vec4 frag;
+uniform sampler2D uTex;
+uniform vec2 uTexel;
+void main(){
+vec4 c=texture(uTex,vUV);
+vec4 b=vec4(0.);
+float w=0.;
+for(int i=-3;i<=3;i++){
+ for(int j=-3;j<=3;j++){
+  float f=exp(-float(i*i+j*j)/5.0);
+  b+=texture(uTex,vUV+vec2(float(i),float(j))*uTexel*3.3)*f;
+  w+=f;
+ }
+}
+b/=w;
+vec3 col=c.rgb+b.rgb*.58;
+float a=clamp(c.a+b.a*.37,0.,1.);
+frag=vec4(col,a);
+}
+</script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const stage=$('stage'),spin=$('spin'),back=$('back'),front=$('front'),flower=$('flower'),title=$('title'),anchor=$('anchor'),guide=$('coreGuide'),missing=$('missing'),play=$('play'),resetBtn=$('reset'),assetMsg=$('assetMsg'),status=$('status');
+const snowCanvas=$('snowCanvas'),fxCanvas=$('fxCanvas'),snow=snowCanvas.getContext('2d',{alpha:true});
+const assets={},files={},URLs={};
+const names=['Card_Back.png','Card_Front.png','Flower_Bruma.png','Title_Solstice_Dendrite.png'];
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const fade=(a,b,x)=>smooth((x-a)/(b-a));
+let mode='idle',t=0,last=0,startAt=0,raf=0,W=0,H=0,flakes=[],origin={x:0,y:0},maxRadius=1,glow=null,seed=3127541;
+function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
+function ready(){let ok=!!assets[names[0]]&&!!assets[names[1]];play.disabled=!ok;resetBtn.disabled=!ok;missing.hidden=ok}
+function applyImage(name,blob){
+ if(URLs[name])URL.revokeObjectURL(URLs[name]);
+ URLs[name]=URL.createObjectURL(blob);assets[name]=true;
+ if(name===names[0])back.src=URLs[name];
+ if(name===names[1])front.src=URLs[name];
+ if(name===names[2])flower.src=URLs[name];
+ if(name===names[3])title.src=URLs[name];
+ ready();
+}
+async function unzip(file){
+ const bytes=new Uint8Array(await file.arrayBuffer()),view=new DataView(bytes.buffer);
+ let e=-1;
+ for(let p=bytes.length-22;p>=Math.max(0,bytes.length-65558);p--)if(view.getUint32(p,true)===0x06054b50){e=p;break}
+ if(e<0)throw Error('ZIP中央目录无法读取');
+ let p=view.getUint32(e+16,true),n=view.getUint16(e+10,true),out={};
+ for(let i=0;i<n;i++){
+  if(view.getUint32(p,true)!==0x02014b50)throw Error('ZIP条目异常');
+  const method=view.getUint16(p+10,true),size=view.getUint32(p+20,true),len=view.getUint16(p+28,true),extra=view.getUint16(p+30,true),comm=view.getUint16(p+32,true),local=view.getUint32(p+42,true);
+  const name=new TextDecoder().decode(bytes.subarray(p+46,p+46+len)).split('/').pop();
+  if(names.includes(name)){
+   const a=local+30+view.getUint16(local+26,true)+view.getUint16(local+28,true),raw=bytes.slice(a,a+size);
+   if(method===0)out[name]=new Blob([raw],{type:'image/png'});
+   else if(method===8){
+    let stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    out[name]=new Blob([await new Response(stream).arrayBuffer()],{type:'image/png'});
+   }else throw Error('不支持ZIP压缩方法: '+method);
+  }
+  p+=46+len+extra+comm;
+ }
+ return out;
+}
+$('zipFile').onchange=async e=>{
+ const file=e.target.files[0];if(!file)return;
+ assetMsg.textContent='读取原始素材中…';
+ try{
+  const result=await unzip(file);
+  for(const name of names)if(result[name])applyImage(name,result[name]);
+  assetMsg.textContent='原画已载入。可以点击爆发，也可以另选珍珠暖白 Bruma。';
+ }catch(err){assetMsg.textContent='素材读取失败：'+err.message+'（也可以用Chrome打开此文件重试）'}
+};
+$('brumaFile').onchange=e=>{let f=e.target.files[0];if(f){applyImage(names[2],f);assetMsg.textContent='已经换成珍珠暖白 Bruma。'}};
+for(const [id,prop] of [['coreX','left'],['coreY','top']])$(id).oninput=()=>{anchor.style[prop]=$(id).value+'%';refreshGuide()};
+$('showCore').onchange=refreshGuide;
+function getOrigin(){
+ const a=anchor.getBoundingClientRect(),b=stage.getBoundingClientRect();
+ return{x:a.left+a.width/2-b.left,y:a.top+a.height/2-b.top};
+}
+function refreshGuide(){
+ if(!$('showCore').checked||mode==='burst'){guide.style.display='none';return}
+ const p=getOrigin();guide.style.display='block';guide.style.left=p.x+'px';guide.style.top=p.y+'px';
+}
+function resize(){
+ const rect=stage.getBoundingClientRect();W=rect.width;H=rect.height;
+ const sr=Math.min(window.devicePixelRatio||1,1.5);
+ snowCanvas.width=Math.max(1,Math.round(W*sr));
+ snowCanvas.height=Math.max(1,Math.round(H*sr));
+ snow.setTransform(sr,0,0,sr,0,0);
+ initGL();
+ if(mode==='idle')drawSnow(0,true);
+ refreshGuide();
+}
+function sixflake(ctx,x,y,size,rot,alpha){
+ ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.strokeStyle='rgba(245,252,255,'+alpha+')';
+ ctx.lineWidth=.85;ctx.lineCap='round';ctx.beginPath();
+ for(let i=0;i<6;i++){
+  const theta=i*Math.PI/3;
+  const ux=Math.cos(theta),uy=Math.sin(theta),px=-uy,py=ux;
+  ctx.moveTo(0,0);ctx.lineTo(ux*size,uy*size);
+  for(let j=1;j<=2;j++){
+   const dist=size*(j===1?.48:.74),k=size*(j===1?.26:.17);
+   ctx.moveTo(ux*dist+px*k,uy*dist+py*k);ctx.lineTo(ux*(dist+k*.76),uy*(dist+k*.76));
+   ctx.moveTo(ux*dist-px*k,uy*dist-py*k);ctx.lineTo(ux*(dist+k*.76),uy*(dist+k*.76));
+  }
+ }
+ ctx.stroke();ctx.restore();
+}
+function initSnow(){
+ seed=3127541;flakes=[];
+ for(let i=0;i<103;i++){
+  const crystal=i%7===0||i%13===0;
+  flakes.push({x:rand()*W,y:rand()*H,vy:crystal?16+rand()*31:28+rand()*61,
+   dx:3+rand()*11,period:.5+rand(),phase:rand()*6.283,
+   crystal,angle:rand()*6.283,omega:(rand()-.5)*.26,
+   size:crystal?4.5+rand()*5.8:.55+rand()*1.5,opacity:.25+rand()*.65,
+   frozen:false,freezeX:0,freezeY:0,freezeAngle:0,time:0});
+ }
+}
+function snowStep(dt,radius){
+ for(const f of flakes){
+  if(f.frozen)continue;
+  f.time+=dt;f.y+=f.vy*dt;f.angle+=f.omega*dt;
+  if(f.y>H+13){f.y=-13;f.x=rand()*W}
+  const x=f.x+Math.sin(f.time*f.period+f.phase)*f.dx;
+  if(radius>=0&&Math.hypot(x-origin.x,f.y-origin.y)<=radius){
+   f.frozen=true;f.freezeX=x;f.freezeY=f.y;f.freezeAngle=f.angle;
+  }
+ }
+}
+function drawSnow(dt,still){
+ if(!snow)return;
+ snow.clearRect(0,0,W,H);
+ for(const f of flakes){
+  const x=f.frozen?f.freezeX:f.x+Math.sin(f.time*f.period+f.phase)*f.dx;
+  const y=f.frozen?f.freezeY:f.y;
+  const rot=f.frozen?f.freezeAngle:f.angle;
+  if(f.crystal)sixflake(snow,x,y,f.size,rot,f.opacity);
+  else{
+   snow.fillStyle='rgba(255,254,248,'+f.opacity+')';
+   snow.beginPath();snow.arc(x,y,f.size,0,Math.PI*2);snow.fill();
+  }
+ }
+}
+function shader(gl,type,src){
+ const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);
+ if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(sh));
+ return sh;
+}
+function program(gl,vert,frag){
+ const p=gl.createProgram();
+ gl.attachShader(p,shader(gl,gl.VERTEX_SHADER,vert));
+ gl.attachShader(p,shader(gl,gl.FRAGMENT_SHADER,frag));
+ gl.linkProgram(p);
+ if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));
+ return p;
+}
+function initGL(){
+ if(glow&&glow.gl){const g=glow.gl;g.deleteTexture(glow.texture);g.deleteFramebuffer(glow.fbo);g.deleteProgram(glow.effect);g.deleteProgram(glow.bloom)}
+ let gl;
+ try{gl=fxCanvas.getContext('webgl2',{alpha:true,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false});}
+ catch(err){gl=null}
+ if(!gl){glow={gl:null};assetMsg.textContent='本浏览器不支持 WebGL2：可尝试最新Safari或Chrome。';return}
+ const dpr=Math.min(window.devicePixelRatio||1,1.5)*.72;
+ const width=Math.max(1,Math.round(W*dpr)),height=Math.max(1,Math.round(H*dpr));
+ fxCanvas.width=width;fxCanvas.height=height;
+ gl.viewport(0,0,width,height);
+ try{
+  const effect=program(gl,$('vertSrc').textContent,$('effectSrc').textContent);
+  const bloom=program(gl,$('vertSrc').textContent,$('bloomSrc').textContent);
+  const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,width,height,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  const fbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,texture,0);
+  if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw Error('Framebuffer failed');
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  glow={gl,effect,bloom,texture,fbo,width,height};
+ }catch(err){glow={gl:null};assetMsg.textContent='GPU着色器启动失败：'+err.message}
+}
+function paintGlow(time){
+ if(!glow||!glow.gl)return;
+ const {gl,effect,bloom,fbo,texture,width,height}=glow;
+ const sx=width/W,sy=height/H,ox=origin.x*sx,oy=(H-origin.y)*sy;
+ const mr=maxRadius*Math.max(sx,sy);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.viewport(0,0,width,height);
+ gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.useProgram(effect);
+ gl.uniform2f(gl.getUniformLocation(effect,'uRes'),width,height);
+ gl.uniform2f(gl.getUniformLocation(effect,'uCenter'),ox,oy);
+ gl.uniform1f(gl.getUniformLocation(effect,'uTime'),time);
+ gl.uniform1f(gl.getUniformLocation(effect,'uMaxR'),mr);
+ gl.drawArrays(gl.TRIANGLES,0,3);
+ gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+ gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.useProgram(bloom);
+ gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);
+ gl.uniform1i(gl.getUniformLocation(bloom,'uTex'),0);
+ gl.uniform2f(gl.getUniformLocation(bloom,'uTexel'),1/width,1/height);
+ gl.drawArrays(gl.TRIANGLES,0,3);
+}
+function pose(t){
+ const k=smooth((t-.22)/(1.42-.22));
+ spin.style.transform='rotateZ(-4.8deg) rotate3d(.5547,-.83205,0,'+(180*k).toFixed(3)+'deg)';
+}
+function idle(){
+ cancelAnimationFrame(raf);mode='idle';t=0;last=0;startAt=0;
+ spin.style.transform='rotateZ(-4.8deg)';
+ if(!W||!H)resize();
+ initSnow();origin=getOrigin();
+ paintGlow(1.42);drawSnow(0,true);refreshGuide();
+ status.textContent='牌背悬停，可点击进行1.42秒冰晶爆发';
+ raf=requestAnimationFrame(tick);
+}
+function freezeRadius(t){
+ if(t<.19)return -1;
+ const p=smooth((t-.19)/(.98-.19));
+ return maxRadius*p;
+}
+function explode(){
+ if(play.disabled||mode==='burst')return;
+ cancelAnimationFrame(raf);mode='burst';t=0;last=0;startAt=0;
+ origin=getOrigin();
+ maxRadius=Math.max(Math.hypot(origin.x,origin.y),Math.hypot(W-origin.x,origin.y),Math.hypot(origin.x,H-origin.y),Math.hypot(W-origin.x,H-origin.y))+30;
+ guide.style.display='none';status.textContent='冰晶爆发';
+ raf=requestAnimationFrame(tick);
+}
+function tick(now){
+ if(!last)last=now;
+ const dt=Math.min(.04,Math.max(0,(now-last)/1000));last=now;
+ if(mode==='burst'){
+  t+=dt;
+  if(t>=1.42)t=1.42;
+  snowStep(dt,freezeRadius(t));
+  pose(t);paintGlow(t);drawSnow(dt,false);
+  if(t>=1.42){for(const f of flakes){if(!f.frozen){f.frozen=true;f.freezeX=f.x+Math.sin(f.time*f.period+f.phase)*f.dx;f.freezeY=f.y;f.freezeAngle=f.angle}}
+   drawSnow(0,true);mode='done';status.textContent='冰晶爆发结束，雪已悬停';return;}
+ }else if(mode==='idle'){
+  snowStep(dt,-1);drawSnow(dt,false);
+ }else return;
+ raf=requestAnimationFrame(tick);
+}
+function stageAction(){
+ if(play.disabled)return;
+ if(mode==='burst')return;
+ if(mode==='done')idle();
+ explode();
+}
+stage.onclick=stageAction;
+stage.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stageAction()}};
+play.onclick=stageAction;resetBtn.onclick=()=>{idle();};
+window.addEventListener('resize',()=>{resize();if(mode!=='burst')idle()});
+resize();idle();
+})();
+</script></body></html>
