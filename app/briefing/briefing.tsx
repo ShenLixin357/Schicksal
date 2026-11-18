@@ -134,7 +134,7 @@ function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
     {state !== "ready" ? <p className="imperial-briefing-empty">{state === "error" ? "政务同步暂时失败，请稍后重试。" : state === "loading" ? "正在查询你的待办…" : "政务同步功能待接入；目前不显示未经核实的个人待办。"}</p> :
       displayed.length === 0 ? <p className="imperial-briefing-empty">目前没有待处理政务。</p> :
       <div className="imperial-briefing-rows">{displayed.map((task) => {
-        const isExpected = task.deadlineKind === "expected";
+        const isExpected = task.deadlineKind === "expected" && Boolean(task.deadline);
         const dateLabel = task.deadline ? briefingDeadlineInfo(task.deadline).label : "尚未设置";
         const countdown = task.deadline && now !== null
           ? briefingCountdown(task.deadline, now) : task.deadline ? "计算中…" : "—";
@@ -145,7 +145,7 @@ function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
             <small>{task.detail}</small>
             <div className="imperial-briefing-deadline" aria-label="政务时间信息">
               <span>{isExpected ? "预期日期" : "DDL"}：{dateLabel}</span>
-              <time aria-live="off">{isExpected ? "距预期" : "剩余"}：{countdown}</time>
+              <time aria-live="off">{isExpected ? "距预期" : "剩余"}：{isExpected && countdown === "已到期" ? "预期已过" : countdown}</time>
             </div>
           </div>
           <button type="button" onClick={() => onNavigate(task.target, task.targetId, task.focus)}>{task.participation === "required" ? "投票 →" : "进入 →"}</button>
