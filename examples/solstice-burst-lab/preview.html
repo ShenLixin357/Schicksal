@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Solstice Dendrite · Crystal Burst Lab</title>
+<title>Solstice Dendrite · Ice Refraction Study v2</title>
 <style>
 :root{color-scheme:dark;--warm:#f3e7d5}
 *{box-sizing:border-box}
@@ -47,7 +47,7 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 @media(max-width:550px){.stage{height:65vh;min-height:430px}.grid{grid-template-columns:1fr}.wrap{width:98vw}.card{width:min(46vw,204px)}}
 </style></head>
 <body><div class="wrap">
-<header><div class="kicker">SCHICKSAL · RARE CARD · EFFECT STUDY</div><h1>Solstice Dendrite</h1></header>
+<header><div class="kicker">SCHICKSAL · RARE CARD · CRYSTALLINE REFRACTION V2</div><h1>Solstice Dendrite</h1></header>
 <section class="stage" id="stage" role="button" tabindex="0" aria-label="点击开启1.42秒冰晶爆发，点击再次重播">
 <div class="ambient"></div><div class="beam"></div><div class="pool"></div>
 <div class="card"><div class="spin" id="spin">
@@ -68,7 +68,8 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <label>雪花核心横向位置<input id="coreX" type="range" min="43" max="57" step=".25" value="50"></label>
 <label>雪花核心纵向位置<input id="coreY" type="range" min="43" max="57" step=".25" value="50"></label>
 <label style="flex-direction:row;align-items:center"><input type="checkbox" id="showCore">显示核心定位标记</label>
-</div><div id="assetMsg" class="small">保留原始牌面、牌背与 Bruma，不重新绘制素材。首次导入后可反复点击重播。</div>
+</div><label>冰晶晶面强度（仅调整透明冰棱，不改变爆发冲击）<input id="iceStrength" type="range" min=".45" max="1.55" step=".05" value="1.15"></label>
+<div id="assetMsg" class="small">透明晶面 + 冰棱亮边 + 流动焦散 + 分层泛光；保留原画和1.42秒节奏。</div>
 </details></div>
 <script id="vertSrc" type="x-shader/x-vertex">#version 300 es
 precision highp float;
@@ -87,48 +88,88 @@ uniform vec2 uRes;
 uniform vec2 uCenter;
 uniform float uTime;
 uniform float uMaxR;
-float sat(float x){return clamp(x,0.,1.);}
+uniform float uIce;
+const float PI=3.14159265359;
+float sat(float x){return clamp(x,0.0,1.0);}
 float sm(float a,float b,float x){return smoothstep(a,b,x);}
-float hash(float x){return fract(sin(x*127.1)*43758.5453);}
+float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
 void main(){
-vec2 p=gl_FragCoord.xy-uCenter;
-float r=length(p);
-float a=atan(p.y,p.x);
-float t=uTime;
-float ign=sm(0.015,.12,t)*(1.-sm(.22,.53,t));
-float eruption=sm(.105,.26,t)*(1.-sm(.40,1.28,t));
-float glow=sm(.08,.19,t)*(1.-sm(.75,1.42,t));
-float spread=sm(.105,.52,t);
-float radius=30.+uMaxR*.9*spread;
-float x=r/(radius+1.);
-float d=sat(1.-x);
-float six=abs(cos(a*3.0+sin(a*6.0)*.03));
-float sixSharp=pow(six,30.);
-float side=pow(max(0.,cos(a*10.7+sin(a*6.)*.9+sin(a*15.3)*.22)),28.);
-float glint=pow(max(0.,cos(a*22.3+sin(a*6.)*.52)),75.);
-float envelope=sm(0.0,.14,x)*(1.-sm(.48,1.04,x));
-float broken=.63+.37*sin(a*17.3+sin(a*7.2)*1.7);
-float caustic=pow(abs(sin(a*5.8+sin(r*.015-t*2.)*.18)),13.)*(.55+.45*cos(a*11.));
-float prism=(sixSharp*.94+side*.43+glint*.12+caustic*.27)*envelope*broken;
-float farShard=pow(six,66.)*exp(-r/(uMaxR*.70))*spread;
-float core=exp(-pow(r/(12.+spread*17.),1.18))*ign;
-float hot=exp(-pow(r/(15.+spread*57.),1.38))*eruption;
-float halo=exp(-pow(r/(90.+spread*205.),1.37))*glow;
-float facets=(prism*.92+farShard*.29)*eruption;
-float warm=hot*.84+halo*.23+facets*.25;
-float cold=halo*.40+facets*.53;
-vec3 rgb=vec3(1.,.985,.946)*(hot*.85+core*1.15)+vec3(.98,.9,.76)*warm+vec3(.67,.86,1.)*cold;
-rgb+=vec3(.97,.98,1.)*facets*.66;
-float waveStart=sm(.18,.205,t);
-float waveProgress=sm(.19,1.02,t);
-float waveR=uMaxR*waveProgress;
-float distort=1.+.016*sin(a*6.0)+.008*sin(a*13.0+1.);
-float edge=abs(r-waveR*distort);
-float rim=exp(-pow(edge/13.,2.0))*.12*waveStart*(1.-sm(.98,1.32,t));
-rgb+=vec3(.77,.91,1.)*rim;
-float alpha=sat(core*.8+hot*.83+halo*.41+facets*.84+rim);
-float end=1.-sm(1.24,1.42,t);
-frag=vec4(rgb*end,alpha*end);
+ vec2 p=gl_FragCoord.xy-uCenter;
+ float r=max(length(p),.0001),a=atan(p.y,p.x),t=uTime;
+ // Keep the previously approved sharp energy impulse and 1.42s total length.
+ float ignition=sm(.015,.12,t)*(1.0-sm(.22,.53,t));
+ float eruption=sm(.105,.26,t)*(1.0-sm(.40,1.28,t));
+ float after=sm(.08,.19,t)*(1.0-sm(.75,1.42,t));
+ float spread=sm(.105,.52,t);
+ float life=1.0-sm(1.22,1.42,t);
+ float radius=30.0+uMaxR*.90*spread;
+ float x=r/max(radius,1.0);
+ float envelope=sm(.02,.13,x)*(1.0-sm(.63,1.04,x));
+ // Pearl-white energetic core, retained from v1 rather than weakening the burst.
+ float charge=exp(-pow(r/(12.0+spread*18.0),1.20))*ignition;
+ float hot=exp(-pow(r/(15.0+spread*58.0),1.38))*eruption;
+ float mist=exp(-pow(r/(90.0+spread*190.0),1.37))*after;
+ // Six-axis crystalline reference frame. Unlike a simple radial star, light is
+ // partitioned into irregular tapered transparent facets with independent normals.
+ float sector=mod(a+PI/6.0,PI/3.0)-PI/6.0;
+ float sectorIndex=floor((a+PI/6.0)/(PI/3.0));
+ float along=r*cos(sector),cross=r*sin(sector);
+ float axisSeed=hash21(vec2(sectorIndex,4.1));
+ float axisReach=uMaxR*(.69+.22*axisSeed);
+ float u=along/max(axisReach,1.0);
+ float taper=1.0-sm(.65,1.03,u);
+ float width=(6.0+along*(.11+.035*axisSeed))*taper+2.5;
+ float warp=sin(along*.016+axisSeed*6.28)*3.3 + sin(along*.041+axisSeed*11.0)*1.2;
+ float lateral=cross-warp;
+ float inside=1.0-sm(.0,2.4,abs(lateral)-width);
+ float crystal=inside*(1.0-sm(.8,1.08,u))*envelope;
+ // Refractive normal field: every triangular microfacet refracts differently.
+ // Low-cost triangular lattice instead of per-pixel geometry/DOM paths.
+ vec2 uv=vec2(along/(22.0+uMaxR*.064),lateral/(8.0+width*.41));
+ vec2 cell=floor(uv);
+ vec2 tile=fract(uv);
+ float triangle=step(tile.x+tile.y,1.0);
+ float id=hash21(cell+triangle*vec2(9.17,3.31));
+ float seamDist=min(min(tile.x,1.0-tile.x),min(tile.y,1.0-tile.y));
+ seamDist=min(seamDist,abs(tile.x+tile.y-1.0)*.7071);
+ float crack=(1.0-sm(.014,.068,seamDist))*crystal;
+ // The two sides of a facet deliberately receive different brightness.
+ float facet=crystal*(.15+.32*id+.25*triangle);
+ float normalX=sin(id*6.283+triangle*1.5);
+ float normalY=cos(id*6.283+triangle*1.5);
+ float glancing=pow(max(0.0,.55*normalX + .32*normalY + .45),6.0);
+ // Travelling caustic highlight on each ice face; not just uniform scaling.
+ float phase=along*.039-lateral*.079-t*20.5 + id*3.6;
+ float caustic=pow(max(0.0,cos(phase)),22.0)*crystal*(.45+.55*glancing);
+ float secondary=pow(max(0.0,cos(along*.017+lateral*.051-t*10.0+id*4.0)),32.0)*crystal;
+ // Thin optically sharp boundary: keep it separate from broad bloom.
+ float bevel=exp(-pow((abs(lateral)-width)/1.9,2.0))*taper;
+ float ridge=(bevel*.62+crack*.45+caustic*1.1+secondary*.38)*eruption*uIce;
+ float body=facet*eruption*uIce;
+ // Small six-branched internal propagation, restricted to the real medallion area.
+ float branchLine=exp(-pow(cross/1.3,2.0))*(1.0-sm(20.0,45.0,r));
+ float branches=branchLine*sm(.014,.10,t)*(1.0-sm(.18,.31,t))*.50;
+ // Carry over the strong burst, but the apparent material is no longer just rays.
+ float diffraction=pow(abs(cos(a*3.0)),25.0)*exp(-r/(uMaxR*.73))*spread*eruption*.19;
+ float cold=body*.48+ridge*.33+mist*.22;
+ float champagne=body*.17+caustic*.11;
+ vec3 radiance=
+    vec3(1.0,.984,.936)*(hot*.91+charge*1.28)
+   +vec3(.99,.95,.87)*(mist*.25+champagne*.27)
+   +vec3(.71,.86,.99)*(cold*.81)
+   +vec3(.98,.995,1.0)*(ridge*1.20+branches+diffraction);
+ // Edge-on thin spectral split: ivory on one bevel, blue on the opposite.
+ float sideTint=sat(.5+.5*sign(lateral));
+ radiance+=vec3(.95,.90,.80)*bevel*.15*sideTint*eruption*uIce;
+ radiance+=vec3(.71,.91,1.0)*bevel*.18*(1.0-sideTint)*eruption*uIce;
+ // Frozen snow is the most visible evidence of the barely-visible wavefront.
+ float waveP=sm(.19,1.02,t);
+ float waveR=uMaxR*waveP;
+ float warpR=1.0+.013*sin(a*6.0)+.009*sin(a*13.0+1.0);
+ float rim=exp(-pow((r-waveR*warpR)/11.0,2.0))*.09*sm(.19,.24,t)*(1.0-sm(.99,1.31,t));
+ radiance+=vec3(.78,.91,1.0)*rim;
+ float alpha=sat(charge*.90+hot*.86+mist*.30+body*.52+ridge*.74+branches+rim+diffraction*.6);
+ frag=vec4(radiance*life,alpha*life);
 }
 </script>
 <script id="bloomSrc" type="x-shader/x-fragment">#version 300 es
@@ -138,20 +179,20 @@ out vec4 frag;
 uniform sampler2D uTex;
 uniform vec2 uTexel;
 void main(){
-vec4 c=texture(uTex,vUV);
-vec4 b=vec4(0.);
-float w=0.;
-for(int i=-3;i<=3;i++){
- for(int j=-3;j<=3;j++){
-  float f=exp(-float(i*i+j*j)/5.0);
-  b+=texture(uTex,vUV+vec2(float(i),float(j))*uTexel*3.3)*f;
-  w+=f;
- }
-}
-b/=w;
-vec3 col=c.rgb+b.rgb*.58;
-float a=clamp(c.a+b.a*.37,0.,1.);
-frag=vec4(col,a);
+ // Fast, separate sharp + soft compositing: 13 taps rather than old 49-tap blur.
+ vec4 sharp=texture(uTex,vUV);
+ vec4 blur=sharp*.24;
+ vec2 d=uTexel*3.5;
+ blur+=(texture(uTex,vUV+vec2( d.x,0.0))+texture(uTex,vUV-vec2( d.x,0.0))
+       +texture(uTex,vUV+vec2(0.0, d.y))+texture(uTex,vUV-vec2(0.0, d.y)))*.105;
+ blur+=(texture(uTex,vUV+vec2( d.x, d.y))+texture(uTex,vUV+vec2(-d.x, d.y))
+       +texture(uTex,vUV+vec2( d.x,-d.y))+texture(uTex,vUV+vec2(-d.x,-d.y)))*.052;
+ vec2 far=uTexel*8.0;
+ blur+=(texture(uTex,vUV+vec2( far.x,0.0))+texture(uTex,vUV-vec2( far.x,0.0))
+       +texture(uTex,vUV+vec2(0.0, far.y))+texture(uTex,vUV-vec2(0.0, far.y)))*.033;
+ vec3 rgb=sharp.rgb+blur.rgb*.86;
+ float alpha=clamp(sharp.a+blur.a*.56,0.0,1.0);
+ frag=vec4(rgb,alpha);
 }
 </script>
 <script>
@@ -211,6 +252,7 @@ $('zipFile').onchange=async e=>{
 $('brumaFile').onchange=e=>{let f=e.target.files[0];if(f){applyImage(names[2],f);assetMsg.textContent='已经换成珍珠暖白 Bruma。'}};
 for(const [id,prop] of [['coreX','left'],['coreY','top']])$(id).oninput=()=>{anchor.style[prop]=$(id).value+'%';refreshGuide()};
 $('showCore').onchange=refreshGuide;
+$('iceStrength').oninput=()=>{if(mode==='burst')paintGlow(t)};
 function getOrigin(){
  const a=anchor.getBoundingClientRect(),b=stage.getBoundingClientRect();
  return{x:a.left+a.width/2-b.left,y:a.top+a.height/2-b.top};
@@ -299,7 +341,7 @@ function initGL(){
  try{gl=fxCanvas.getContext('webgl2',{alpha:true,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false});}
  catch(err){gl=null}
  if(!gl){glow={gl:null};assetMsg.textContent='本浏览器不支持 WebGL2：可尝试最新Safari或Chrome。';return}
- const dpr=Math.min(window.devicePixelRatio||1,1.5)*.72;
+ const dpr=Math.min(window.devicePixelRatio||1,1.5)*.70;
  const width=Math.max(1,Math.round(W*dpr)),height=Math.max(1,Math.round(H*dpr));
  fxCanvas.width=width;fxCanvas.height=height;
  gl.viewport(0,0,width,height);
@@ -331,6 +373,7 @@ function paintGlow(time){
  gl.uniform2f(gl.getUniformLocation(effect,'uCenter'),ox,oy);
  gl.uniform1f(gl.getUniformLocation(effect,'uTime'),time);
  gl.uniform1f(gl.getUniformLocation(effect,'uMaxR'),mr);
+ gl.uniform1f(gl.getUniformLocation(effect,'uIce'),Number($('iceStrength').value));
  gl.drawArrays(gl.TRIANGLES,0,3);
  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
  gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
