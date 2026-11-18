@@ -78,10 +78,7 @@ jobs:
           appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PROD_D1_ID=" + production[0].uuid + "\n");
           if (preview[0]) appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PREVIEW_D1_ID=" + preview[0].uuid + "\n");
           NODE
-          if [ -z "${SCHICKSAL_PREVIEW_D1_ID:-}" ]; then
-            # Env written to GITHUB_ENV is loaded in the next GitHub step.
-            echo "Preview DB not found; provisioning step will create it."
-          fi
+          # Entries written to GITHUB_ENV are available in the next step.
       - name: Create isolated preview D1 if it does not already exist
         shell: bash
         run: |
@@ -134,9 +131,9 @@ jobs:
         run: |
           {
             echo "### Schicksal briefing preview deployment"
-            echo "- Worker name: `schicksal-briefing-preview`"
-            echo "- Database: `schicksal-briefing-preview-db` (separate from production)"
-            echo "- Version: `$GITHUB_SHA`"
+            echo '- Worker name: `schicksal-briefing-preview`'
+            echo '- Database: `schicksal-briefing-preview-db` (separate from production)'
+            echo "- Version: $GITHUB_SHA"
             echo "- Source: PR #5 briefing V2.6"
             echo "- Read the actual workers.dev URL from the Wrangler deployment output above."
             echo "- Check login, daily news and responsive layout manually before claiming acceptance."
