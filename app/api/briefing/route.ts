@@ -64,8 +64,7 @@ export async function GET(request: Request) {
     const citizenId = await currentMember(request);
     if (!citizenId) return Response.json({ error: "请先登录天命成员身份。" }, { status: 401, headers });
     return Response.json(await loadBriefing(citizenId), { headers });
-  } catch (error) {
-    if (new URL(request.url).hostname === "test.schicksal.invalid") console.error("[briefing-api-test]", error);
+  } catch {
     return Response.json({ error: "简报暂时无法同步，请稍后重试。" }, { status: 503, headers });
   }
 }
