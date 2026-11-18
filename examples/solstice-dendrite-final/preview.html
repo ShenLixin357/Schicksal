@@ -266,7 +266,8 @@ function initializeRays(){
  }
 }
 function updateSnow(dt,spawn,radius){
- const {w,h,cx,cy}=dimension();
+ const {w,h}=dimension();
+ const {cx,cy}=radius===null?dimension():(burstFocus||actualSnowflakeCore());
  for(const f of flakes){
   if(!f.active){
    if(!spawn||snowTime<f.delay){f.el.style.opacity='0';continue;}
