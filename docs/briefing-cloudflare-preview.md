@@ -79,3 +79,11 @@
 - 2026-11-19：用户已在 Cloudflare 账户创建受限 API Token，并确认已将三个预览专用 Secrets 添加到 GitHub Repository Secrets。
 - 本提交仅请求执行独立 Worker `schicksal-briefing-preview` 的首次部署；任何身份核验、Cloudflare 资源检查或 D1 隔离检查失败都必须中止。
 - 不合并任何 PR，不更新生产 Worker，不连接生产 D1。
+
+## 2026-11-19：V3 议会分类修复预览更新
+
+- 按 `docs/briefing-classification-v3.md`，将开放提案、议长选举报名/投票、正式辩论和议案/公投表决归入「我的政务」。
+- Daily News 仅保留已结束的公共结果、既有国家纪事与功能公告，不显示正在进行的投票。
+- 议长选举的真实 DDL 与每秒更新的倒计时优先出现在三项政务预览；预期日期明确不冒充硬截止。
+- 修正政务卡深链，点击前往对应提案、议长选举、议场或表决区域。
+- 此次更新仅部署既有隔离预览 Worker + D1，用户授权的预览密码保持使用原 Secrets；不涉及生产环境。
