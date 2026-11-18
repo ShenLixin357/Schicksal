@@ -533,7 +533,7 @@
 
 /* V2.3 refinement — one visual grammar, not miscellaneous ornaments.
    BASE: unbleached ivory; ACCENTS: eight hairline colours;
-   GEOMETRY: two airy faceted assemblies located only in the margins.
+   ELLIPSES: two very faint pastel washes in the paper margins.
    The original flat compact emblem remains the only Schicksal symbol. */
 .imperial-briefing-overlay .imperial-briefing-paper {
   background:
@@ -544,8 +544,8 @@
 .imperial-briefing-paper::before { opacity:.025; }
 .imperial-briefing-paper > .imperial-briefing-canvas { opacity:.9; }
 .imperial-briefing-canvas .imperial-briefing-edge-ribbon { opacity:.69; }
-.imperial-briefing-canvas .imperial-briefing-facet-group { opacity:.72; }
-.imperial-briefing-canvas .imperial-briefing-construction-lines { opacity:.45; }
+.imperial-briefing-canvas .imperial-briefing-oval-group { opacity:.72; }
+.imperial-briefing-canvas .imperial-briefing-oval-group { opacity:.45; }
 .imperial-briefing-canvas .imperial-briefing-paper-dots { opacity:.62; }
 
 /* Concentrate the eight-colour flow behind the actual emblem instead of
@@ -576,7 +576,7 @@
 @media (max-width:980px) {
   .imperial-briefing-overlay .imperial-briefing-wave-embroidery { width:80%; opacity:.55; }
   .imperial-briefing-canvas .imperial-briefing-edge-ribbon { opacity:.48; }
-  .imperial-briefing-canvas .imperial-briefing-facet-group { opacity:.48; }
+  .imperial-briefing-canvas .imperial-briefing-oval-group { opacity:.48; }
 }
 @media (max-width:680px) {
   .imperial-briefing-paper > .imperial-briefing-canvas { opacity:.37; }
