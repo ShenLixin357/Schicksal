@@ -1,0 +1,68 @@
+name: Deploy independent Schicksal Atlas design lab
+on:
+  push:
+    branches: ["preview/atlas-design-lab-20261119"]
+    paths:
+      - "preview/atlas-design-lab/**"
+      - ".github/workflows/atlas-design-lab-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: schicksal-atlas-design-lab
+  cancel-in-progress: false
+
+jobs:
+  deploy-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Confirm preview-only authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing preview Cloudflare API token"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing preview Cloudflare account ID"; exit 1; }
+          node --input-type=module - <<'NODE'
+          const account=process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
+          if(!/^[a-f0-9]{32}$/i.test(account.trim())) throw new Error("Bad preview Cloudflare account ID format");
+          NODE
+      - name: Validate that preview does not reference live data
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from "node:fs";
+          const config=JSON.parse(readFileSync("preview/atlas-design-lab/wrangler.jsonc","utf8"));
+          if(config.name!=="schicksal-atlas-design-lab") throw Error("Unexpected Worker name");
+          if(config.main || config.d1_databases || config.r2_buckets || config.services || config.vars) throw Error("Preview must be static and unbound");
+          for(const file of ["preview/atlas-design-lab/index.html","preview/atlas-design-lab/assets/shared-emblem.webp","preview/atlas-design-lab/assets/avs-bouquet.webp"]) {
+            if(!readFileSync(file).length) throw Error("Missing visual asset: "+file);
+          }
+          NODE
+      - name: Install Wrangler
+        run: npm ci
+      - name: Deploy isolated STATIC assets Worker
+        run: npx wrangler deploy --config preview/atlas-design-lab/wrangler.jsonc
+      - name: Confirm live preview URL and expected HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="https://schicksal-atlas-design-lab.m17686100216.workers.dev"
+          curl --retry 6 --retry-delay 4 --retry-all-errors --fail --location --silent --show-error "$ROOT/" -o /tmp/atlas-live.html
+          grep -q "Schicksal Atlas" /tmp/atlas-live.html
+          curl --retry 4 --retry-delay 2 --retry-all-errors --fail --location --silent --show-error "$ROOT/assets/shared-emblem.webp" -o /tmp/atlas-main-emblem.webp
+          test "$(wc -c </tmp/atlas-main-emblem.webp)" -gt 1000
+          echo "### Atlas visual preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "$ROOT/" >> "$GITHUB_STEP_SUMMARY"
+          echo "Static HTML and art assets verified. No D1 access or production deployment." >> "$GITHUB_STEP_SUMMARY"
