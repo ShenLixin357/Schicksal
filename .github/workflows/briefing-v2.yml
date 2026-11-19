@@ -10,6 +10,7 @@ on:
       - "app/api/presence/route.ts"
       - "app/api/member-session/route.ts"
       - "tests/briefing-data.test.mjs"
+      - "tests/amberina-simple-emblem.test.mjs"
       - "tests/briefing-feed.test.mjs"
       - "tests/briefing-api.test.mjs"
       - "tests/briefing-inbox.test.mjs"
@@ -36,6 +37,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Briefing data and authenticated API regression
-        run: node --experimental-transform-types --test tests/briefing-data.test.mjs tests/briefing-feed.test.mjs tests/briefing-api.test.mjs tests/briefing-inbox.test.mjs tests/briefing-art-contract.test.mjs tests/briefing-preview-config.test.mjs
+        run: node --experimental-transform-types --test tests/amberina-simple-emblem.test.mjs tests/briefing-data.test.mjs tests/briefing-feed.test.mjs tests/briefing-api.test.mjs tests/briefing-inbox.test.mjs tests/briefing-art-contract.test.mjs tests/briefing-preview-config.test.mjs
       - name: Typecheck isolated briefing components
         run: npx tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --jsx react-jsx --lib ES2022,DOM,DOM.Iterable --skipLibCheck --allowSyntheticDefaultImports --strict app/briefing/briefing.tsx app/briefing/briefing-data.ts app/briefing/briefing-feed.ts app/briefing/use-briefing-feed.ts app/briefing/affairs-history.ts app/briefing/affairs-inbox.tsx app/briefing/member-presence-strip.tsx app/briefing/use-member-presence.ts

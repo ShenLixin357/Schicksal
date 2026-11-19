@@ -218,11 +218,11 @@ function Wordmark() {
 }
 
 function CitizenMark({ citizen }: { citizen: Citizen }) {
-  // Official Amberina Simple master: all identity surfaces share this one image.
-  // Do not substitute the Parhelia decorative edition for ordinary citizen marks.
+  // Amberina's official Simple mark is derived from the actual Procreate master preview.
+  // Keep the original citizen-mark circle/halo; never use Parhelia by default.
   if (citizen.id === "amberina") {
-    return <span className="citizen-mark personal-simple" style={{ "--mark": citizen.markColor } as CSSProperties} aria-hidden="true">
-      <Image src="/amberina-personal-simple.png" alt="" width={1470} height={1594} unoptimized className="citizen-simple-image" />
+    return <span className="citizen-mark snow personal-simple" style={{ "--mark": citizen.markColor } as CSSProperties} aria-hidden="true">
+      <Image src="/amberina-personal-simple.png" alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
     </span>;
   }
   let sigil: ReactNode;

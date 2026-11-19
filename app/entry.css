@@ -149,7 +149,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 @media (max-width:760px) { .opening .emblem { transform: scale(.8); } .title-reveal h1 { font-size: 4rem; } .title-reveal h2 { font-size: .88rem; } .kicker { margin-bottom: 1rem; } .entry-header { min-height:72px; } .login-shell { padding: 35px 20px; } .login-copy h1 { font-size:3.6rem; } .identity-grid { grid-template-columns:1fr; } .identity-grid > button { border-right:0; } .access-form > footer { align-items:stretch; flex-direction:column; } .access-form .primary { width:100%; } .entry-footer { display:none; } }
 @media (prefers-reduced-motion:reduce) { .opening *, .login * { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 
-/* Amberina von Schicksal — official Simple identity artwork, not the old snowflake sigil. */
-.citizen-mark.personal-simple { border: 0; background: transparent; box-shadow: none; overflow: visible; }
-.citizen-mark.personal-simple::before,.citizen-mark.personal-simple::after { content: none; display: none; }
-.citizen-mark.personal-simple .citizen-simple-image { display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; filter: none; }
+/* Amberina Simple artwork is the central glyph only. The original citizen-mark border,
+   inner circle and snow halo remain intact wherever this component already appears. */
+.citizen-mark.personal-simple .citizen-simple-image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  filter: none;
+}

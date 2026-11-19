@@ -112,3 +112,12 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - Red important cards read 🚨 重要提醒; yellow cards with a real enforceable deadline within 48 hours read ⏰ 紧急. Ordinary and merely expected dates keep neutral wording.
 - Amberina's personal identity mark uses the exact unchanged Simple_FINAL PNG supplied in AvS_Personal_Emblems_Package.zip; official mark color is #F3ED87. The decorative Parhelia edition is not used. The empire's shared eight-color emblem stays unchanged.
 - Redeploy ONLY the pre-existing isolated Worker schicksal-briefing-preview and its distinct preview D1. No production Worker, D1, migrations or secrets may be touched. Confirm live preview HTTP smoke checks before acceptance.
+
+
+### 2026-11-19 · Re-read official Procreate Simple and preserve old circular UI
+
+- Source is the newly uploaded `AvS_Final_Procreate_Only(1).zip`, explicitly the official `Simple/AvS_Personal_Emblem_Simple_FINAL.procreate`.
+- Replace earlier incorrectly oriented PNG with the crop of the Procreate document's own transparent `QuickLook/Thumbnail.png`: 944×1024 source, cropped 100,128–900,928 to 800×800, **without** rotation or recoloring. Source and artifact details are in `docs/amberina-simple-web-asset.md`.
+- Restore the original `CitizenMark` outer ring, inner ring, and snow-style peripheral accents in locations that already used CitizenMark; do not decorate unrelated art or the shared eight-color emblem.
+- Retain the current sidebar-only actual-online `SidebarPresence` UI and click-to-public-profile behavior; no names, numbers, extra green dots, or topbar online strip.
+- Deploy strictly the existing isolated `schicksal-briefing-preview` Worker and its **separate** `schicksal-briefing-preview-db`. Do not update or access production D1, Worker or secrets. Perform the existing authenticated preview HTTP smoke tests.
