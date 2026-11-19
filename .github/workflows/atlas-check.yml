@@ -1,0 +1,28 @@
+name: Atlas UI validation
+on:
+  push:
+    branches:
+      - design/atlas-rebuild-20261119
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  atlas-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Lint Atlas files
+        run: npx eslint app/atlas app/page.tsx
+      - name: Build worker application
+        run: npm run build
