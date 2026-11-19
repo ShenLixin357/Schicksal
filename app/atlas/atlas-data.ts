@@ -8,7 +8,7 @@ export type CitizenAtlasAppearance = {
   webColor?: string;
 };
 export const CITIZEN_APPEARANCE: Record<string, CitizenAtlasAppearance> = {
-  amberina: { personalColor: "#F3ED87", webColor: "#F0DD7B", ornamentSrc: "/atlas/amberina-crystal-sunflowers.webp" },
+  amberina: { personalColor: "#F3ED87", webColor: "#F1E17E", emblemSrc: "/atlas/amberina-simple-web753.png", ornamentSrc: "/atlas/amberina-crystal-sunflowers.webp" },
 };
 
 export type ImperialOffice = {
@@ -38,7 +38,7 @@ export const YOUTH_COUNCIL_IDS = CITIZENS.map(c=>c.id).filter(id=>!SCHICKSAL_COM
 
 export function officeHolderCodename(id: string): string {
   const citizen = CITIZENS.find(c => c.id === id);
-  return citizen?.codename ?? "身份待确认";
+  return id === "truth" ? "你说真的" : citizen?.codename ?? "身份待确认";
 }
 export function atlasCitizenName(citizen: Citizen): string {
   return citizen.id === "amberina" ? "AvS" : citizen.name;
