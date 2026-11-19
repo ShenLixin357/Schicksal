@@ -7,6 +7,7 @@ import { useBriefingFeed } from "./briefing/use-briefing-feed";
 import { fetchBriefingFeed, type BriefingFeed } from "./briefing/briefing-loader";
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { SidebarPresence } from "./briefing/sidebar-presence";
+import { Messenger } from "./messenger/messenger";
 import { CITIZENS, AMBERINA_OFFICIAL_COLOR, citizenRepresentativeColor, hasLeaderInsignia, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SchicksalAtlas } from "./atlas/schicksal-atlas";
@@ -32,7 +33,7 @@ import { getVase } from "./club/vase/vase-catalogue";
 import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
 
 type Phase = "opening" | "login" | "welcome" | "system";
-type Section = "home" | "briefing" | "atlas" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "club";
+type Section = "home" | "briefing" | "atlas" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "messenger" | "club";
 
 type ArchivePhoto = {
   id: string;
@@ -192,6 +193,7 @@ const CLUB_STICKERS = [
 const NAV: { id: Section; label: string; en: string }[] = [
   { id: "home", label: "天命首页", en: "Home" },
   { id: "briefing", label: "帝国简报台", en: "Briefing" },
+  { id: "messenger", label: "帝国通讯", en: "Correspondence" },
   { id: "atlas", label: "天命图谱", en: "Schicksal Atlas" },
   { id: "parliament", label: "帝国政务", en: "Government" },
   { id: "honors", label: "荣誉与积分", en: "Honors" },
@@ -1945,6 +1947,7 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(initialBriefingOpen);
   const [focusedCitizenId, setFocusedCitizenId] = useState<string | null>(null);
+  const [messengerPeerId, setMessengerPeerId] = useState<string | null>(null);
   const [viewedCitizenId,setViewedCitizenId] = useState(citizen.id);
   const [atlasHandbookOpen,setAtlasHandbookOpen] = useState(false);
   const [parliamentDeepLink, setParliamentDeepLink] = useState("");
@@ -2005,6 +2008,13 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
     if (target === "referendum") { setSection("parliament"); return; }
     setSection(target);
   };
+  const openMessenger = (memberId: string | null) => {
+    if (memberId && !CITIZENS.some(member => member.id === memberId && !member.locked)) return;
+    setMessengerPeerId(memberId);
+    setBriefingOpen(false);
+    setSection("messenger");
+    document.querySelector(".system-main")?.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const openPublicCitizen = (memberId: string) => {
     if (!CITIZENS.some(member => member.id === memberId && !member.locked)) return;
     setFocusedCitizenId(memberId);
@@ -2019,6 +2029,8 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
   const active = NAV.find((item) => item.id === section) ?? (section === "citizens" || section === "emblem" ? NAV.find(item=>item.id==="atlas") : undefined) ?? { id: "club" as const, label: "委员会 Lounge", en: "Committee Lounge" };
   let content: ReactNode;
   switch (section) {
+    case "messenger": content = <Messenger selfId={citizen.id} members={CITIZENS} peerId={messengerPeerId}
+      onSelect={openMessenger} renderMark={(id) => { const member = CITIZENS.find(item => item.id === id); return member ? <CitizenMark citizen={member} /> : null; }} />; break;
     case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "atlas":
     case "citizens":
@@ -2047,9 +2059,9 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
         sharedMark={<Emblem compact />}
         heroMark={<Emblem compact />}
       />}
-      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); } if(item.id==="profile")setViewedCitizenId(citizen.id);if(item.id==="archives")setAtlasHandbookOpen(false);if(item.id==="atlas")setFocusedCitizenId(null);setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="schicksal-sidebar-footer"><SidebarPresence presence={presence} members={CITIZENS} collapsed={sidebarCollapsed} selfId={citizen.id}
+      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); } if(item.id==="profile")setViewedCitizenId(citizen.id);if(item.id==="messenger")setMessengerPeerId(null);if(item.id==="archives")setAtlasHandbookOpen(false);if(item.id==="atlas")setFocusedCitizenId(null);setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="schicksal-sidebar-footer"><SidebarPresence presence={presence} members={CITIZENS} collapsed={sidebarCollapsed} selfId={citizen.id}
         renderMark={(memberId) => { const member = CITIZENS.find(entry => entry.id === memberId); return member ? <CitizenMark citizen={member} display={clubOpen ? "official" : "web"}/> : null; }}
-        onMember={openPublicCitizen}/>
+        onMember={(memberId) => openMessenger(memberId)} onOpenIndex={() => openMessenger(null)}/>
         <button type="button" className="schicksal-sidebar-logout" onClick={logout} title="退出登录" aria-label="退出登录">↗</button>
       </div></aside>
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
