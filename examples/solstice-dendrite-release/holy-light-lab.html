@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Solstice Dendrite — Holy Light Lab</title>
+<style>
+:root{color-scheme:dark;--paper:#f0e7da;--muted:#bfc6cc;--champagne:#f2dcb6}
+*{box-sizing:border-box}
+html,body{min-height:100%;margin:0}
+body{background:radial-gradient(ellipse at 48% -20%,#3a4558,#161f2e 50%,#0b111d 100%);color:var(--paper);font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{width:min(94vw,920px);margin:auto;padding:18px 0 42px}
+header{text-align:center;padding:2px 0 17px}
+header .eyebrow{font-size:10px;letter-spacing:.27em;color:#e3cdaa;text-transform:uppercase}
+header h1{font:italic 400 clamp(26px,4vw,36px)/1.35 Georgia,serif;margin:4px 0}
+header p{font-size:12px;color:#c2c6cf;margin:3px 0}
+.stage{position:relative;height:min(72vh,635px);min-height:450px;background:radial-gradient(ellipse at 50% 4%,#5160773b 0%,transparent 48%),linear-gradient(180deg,#28344a,#192639 58%,#101b2a);border:1px solid #cbb58b35;box-shadow:0 18px 65px #050b15a6,inset 0 0 80px #06101d90;overflow:hidden;border-radius:17px;isolation:isolate;perspective:1300px;cursor:pointer}
+.stage:focus-visible{outline:2px solid #eed9b4;outline-offset:3px}
+#lightCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;mix-blend-mode:screen}
+#dustCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
+.halo-environment{position:absolute;z-index:1;left:50%;top:52%;transform:translate(-50%,-50%);width:85%;height:85%;background:radial-gradient(ellipse,#fff6df27 0%,#f0e4d00e 38%,transparent 73%);opacity:0;filter:blur(28px);pointer-events:none}
+.light-floor{position:absolute;z-index:1;left:50%;top:83%;width:58%;height:27%;transform:translate(-50%,-50%);background:radial-gradient(ellipse,#fff7e54d,#eddbad23 36%,transparent 71%);opacity:0;filter:blur(22px);pointer-events:none}
+#legacyLight{position:absolute;inset:0;z-index:2;display:none;pointer-events:none;mix-blend-mode:screen}
+.legacy-source{position:absolute;left:50%;top:-110px;transform:translateX(-50%);width:380px;height:270px;border-radius:50%;background:radial-gradient(ellipse,#fffef9,#ffefd99d 20%,#f9e1b74e 45%,transparent 71%);filter:blur(18px)}
+.legacy-beam{position:absolute;left:50%;top:0;transform:translateX(-50%);width:85%;height:100%;clip-path:polygon(32% 0,68% 0,98% 100%,2% 100%);background:linear-gradient(#fffef7b5,#ffeccb6f 28%,#f4ebd134 68%,transparent);filter:blur(17px)}
+.legacy-inner{position:absolute;left:50%;top:0;transform:translateX(-50%);width:37%;height:100%;background:linear-gradient(#fffefac2,#fff5d46a 36%,transparent 88%);filter:blur(30px)}
+.card{position:absolute;left:50%;top:54%;width:clamp(166px,24vw,225px);aspect-ratio:2/3;z-index:5;transform:translate(-50%,-50%);transform-style:preserve-3d;will-change:transform,opacity;visibility:hidden;opacity:0}
+.spin{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+.face{position:absolute;inset:0;border-radius:7px;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:linear-gradient(140deg,#dfe9f4,#fff8eb 52%,#d0e1f2);box-shadow:0 0 5px 1px #fffef8ad,0 0 30px #fff1d385,0 12px 39px #0a14237f}
+.face:before{content:"";position:absolute;inset:0;background:linear-gradient(var(--face-angle,120deg),transparent 28%,#fffdf39c 46%,#fff3d13d 58%,transparent 73%);opacity:var(--face-light,0);mix-blend-mode:screen;z-index:3;pointer-events:none}
+.face:after{content:"";position:absolute;inset:1px;border:1px solid #fffefaab;border-radius:6px;box-shadow:inset 1px 0 6px #fff5e24d;pointer-events:none;z-index:4}
+.face>img.background{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:fill}
+.front{transform:rotate3d(.5547,-.83205,0,180deg)}
+.flower{position:absolute;left:50%;top:22%;width:81%;height:61%;object-fit:contain;transform:translateX(-50%);filter:drop-shadow(0 0 3px #fff4e58c)}
+.title-art{position:absolute;left:12%;bottom:6.6%;width:76%;height:11.2%;transform:scale(.94);pointer-events:none;filter:drop-shadow(0 0 1px #fff9eb88)}
+.title-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.24;filter:brightness(1.4) saturate(.6)}
+.title-crystal{position:absolute;inset:0;background:linear-gradient(152deg,#ffe9bf 5%,#fff 21%,#c6d4eb 35%,#fff9f0 48%,#e5bddd 63%,#fffaf0 76%,#b4d6ee 91%);-webkit-mask-image:var(--title-mask);mask-image:var(--title-mask);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.rim-light{position:absolute;inset:-3px;border-radius:9px;border:1px solid #fff5d9c4;filter:drop-shadow(0 0 12px #fbf5e2);opacity:var(--rim,0);pointer-events:none;transform:translateZ(2px)}
+.blank-design{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;flex-direction:column;gap:12px;color:#647488;font:italic 20px Georgia,serif;text-align:center}
+.blank-design:before{content:"";width:58%;aspect-ratio:1;border-radius:50%;border:1px solid #99a7b381;box-shadow:inset 0 0 34px #d2e4f468,0 0 23px #fff9e970}
+.blank-design small{font:10px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.05em}
+#artLoaded .blank-design{display:none}
+.stage[data-has-art="true"] .blank-design{display:none}
+.stage-note{position:absolute;left:22px;bottom:16px;z-index:9;pointer-events:none;color:#cdd6dfc9;font-size:10px;letter-spacing:.11em;text-transform:uppercase}
+.stage-hint{position:absolute;right:18px;bottom:16px;z-index:9;pointer-events:none;color:#e3d9c6b0;font-size:10px}
+.controls{display:flex;justify-content:center;flex-wrap:wrap;gap:9px;margin:14px auto}
+button{cursor:pointer;min-height:39px;border:1px solid #e8d0a34f;background:#fbead114;color:#efe4d4;padding:9px 15px;border-radius:9px;font-size:12px}
+button:hover{border-color:#ffedc48c}
+button:focus-visible,input:focus-visible{outline:2px solid #f3e1bf;outline-offset:2px}
+button[aria-pressed=true]{border-color:#fff8e2be;background:#fff2d730;color:#fffdf5;box-shadow:0 0 17px #fdf0d51e}
+button.primary{font-weight:700;color:#253046;background:linear-gradient(120deg,#fff8e7,#e1c99a);border-color:#fff5e2}
+button:disabled{opacity:.46;cursor:not-allowed}
+.readout{text-align:center;color:#d8c4a9;font-size:11px;min-height:16px}
+.panel{margin:13px 0 0;background:#121e2dcc;border:1px solid #e5d1a436;border-radius:12px;padding:15px 19px}
+.panel summary{cursor:pointer;font-size:12px;font-weight:600;color:#e9dabd}
+.params{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-top:15px}
+.params label{font-size:11px;color:#dfd3c1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.params .value{font-variant-numeric:tabular-nums;color:#b7d9e7;float:right}
+input[type=range]{width:100%;accent-color:#ead7b3}
+.uploads{display:grid;grid-template-columns:1fr 1fr;gap:17px;margin-top:15px}
+.uploads label{font-size:11px;color:#dfd3c1;display:flex;flex-direction:column;gap:6px;min-width:0}
+input[type=file]{max-width:100%;font-size:11px;color:#aeb8c8}
+.tiny{font-size:11px;line-height:1.65;color:#a8bbcb;margin:11px 0 0}
+.help{margin:15px 1px 0;color:#bbc2cc;font-size:11px;text-align:center}
+#status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:640px){main{width:98vw}.stage{height:62vh;min-height:440px}.card{width:min(45vw,210px)}.params{grid-template-columns:repeat(2,minmax(0,1fr))}.uploads{grid-template-columns:1fr}.stage-note{left:10px;font-size:9px}.stage-hint{right:10px;font-size:9px}}
+@media(prefers-reduced-motion:reduce){.card{will-change:auto}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="eyebrow">SCHICKSAL · SOLSTICE DENDRITE · EFFECT STUDY</div><h1>Holy Light Lab</h1><p>珍珠白冬日天光 · 光在空气中，而不只在卡牌表面</p></header>
+<section id="stage" class="stage" data-has-art="false" role="button" tabindex="0" aria-label="点击重新播放圣光；卡牌下降时点击可跳过至悬停">
+<div id="environment" class="halo-environment"></div>
+<div id="floor" class="light-floor"></div>
+<div id="legacyLight"><div class="legacy-source"></div><div class="legacy-beam"></div><div class="legacy-inner"></div></div>
+<canvas id="lightCanvas"></canvas>
+<canvas id="dustCanvas"></canvas>
+<div id="card" class="card">
+ <div id="spin" class="spin">
+  <div class="face back"><div class="blank-design"><small>ORIGINAL CARD ART</small>✧ SOLSTICE ✧<small>导入原画后显示真实牌背</small></div><img id="back" class="background" alt="原始卡牌背面"></div>
+  <div class="face front"><div class="blank-design"><small>ORIGINAL CARD ART</small>✧ BRUMA ✧<small>导入原画后显示真实牌面</small></div><img id="front" class="background" alt="原始卡牌正面"><img id="flower" class="flower" alt=""><div id="titleArt" class="title-art"><img id="title" alt=""><div class="title-crystal"></div></div></div>
+ </div><div class="rim-light"></div>
+</div>
+<div id="stageLabel" class="stage-note">LIGHT ONLY · HOLY LIGHT V2</div>
+<div id="stageHint" class="stage-hint">点击画面重播</div>
+<div id="status" role="status" aria-live="polite"></div>
+</section>
+<div class="controls" role="group" aria-label="预览模式">
+ <button id="lightOnly" aria-pressed="true">01 · 只看圣光</button>
+ <button id="cardHold" aria-pressed="false">02 · 卡牌受光</button>
+ <button id="descent" aria-pressed="false">03 · 下降预览</button>
+</div>
+<div class="controls" role="group" aria-label="圣光版本">
+ <button id="refined" aria-pressed="true">新版 · 冬日体积光</button>
+ <button id="original" aria-pressed="false">对照 · 旧圣光</button>
+ <button id="play" class="primary">✦ 重播圣光</button>
+ <button id="reset">重置</button>
+</div>
+<div class="readout" id="readout">0.00s · 高处天光逐渐成形</div>
+<details class="panel" open><summary>光效调试参数 · 不改变卡牌原画</summary>
+ <div class="params">
+  <label><span>光照强度 <span id="intensityValue" class="value">100%</span></span><input id="intensity" type="range" min="45" max="145" value="100" step="5"></label>
+  <label><span>光束宽度 <span id="widthValue" class="value">100%</span></span><input id="width" type="range" min="55" max="155" value="100" step="5"></label>
+  <label><span>雾气密度 <span id="hazeValue" class="value">100%</span></span><input id="haze" type="range" min="25" max="155" value="100" step="5"></label>
+  <label><span>空气微粒 <span id="dustValue" class="value">45%</span></span><input id="dust" type="range" min="0" max="100" value="45" step="5"></label>
+ </div>
+</details>
+<details class="panel"><summary>导入真实卡牌素材（可选，纯圣光无需素材）</summary>
+ <div class="uploads">
+  <label>四件套原画 ZIP<input type="file" id="zipFile" accept=".zip,application/zip"></label>
+  <label>珍珠暖白 Bruma PNG<input type="file" id="brumaFile" accept="image/png"></label>
+ </div>
+ <p id="assetMsg" class="tiny">单独欣赏圣光可直接点击播放。选择「卡牌受光」或「下降预览」时，如果未导入 PNG，将使用明确标识的占位卡片；不会重新绘制或替换原画。</p>
+</details>
+<p class="help">只制作圣光。现有冰晶爆发 V4、卡牌美术、完整合并版不受影响。</p>
+</main>
+<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+precision highp float;
+out vec2 vUV;
+void main(){
+vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));
+vUV=p;
+gl_Position=vec4(p*2.-1.,0.,1.);
+}
+</script>
+<script id="fragmentShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+in vec2 vUV;
+out vec4 frag;
+uniform vec2 uSize;
+uniform float uTime;
+uniform float uShape;
+uniform float uIntensity;
+uniform float uWidth;
+uniform float uHaze;
+const float PI=3.14159265359;
+float s(float a,float b,float x){return smoothstep(a,b,x);}
+float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+ vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+ return mix(mix(hs(i),hs(i+vec2(1.,0.)),f.x),mix(hs(i+vec2(0.,1.)),hs(i+1.),f.x),f.y);
+}
+float fbm(vec2 p){
+ float v=0.,amp=.55;
+ for(int k=0;k<3;k++){v+=amp*noise(p);p=p*2.02+11.38;amp*=.48;}
+ return v;
+}
+void main(){
+ vec2 uv=gl_FragCoord.xy/uSize;
+ vec2 p=vec2(uv.x,1.-uv.y);
+ float elapsed=uTime;
+ // The emitter is deliberately above the frame, so there is no flat visible sun disc.
+ vec2 emitter=vec2(.5,-.27);
+ vec2 delta=p-emitter;
+ float theta=atan(delta.x,delta.y);
+ float y=p.y;
+ float width=max(.20,uWidth)*.34;
+ float ang=theta/width;
+ // Wide overall atmospheric volume, shaped by distance from the hidden source.
+ float cone=exp(-pow(abs(ang)*1.17,2.42));
+ float stageFalloff=(.87+.13*(1.-y))*(1.-s(.81,1.18,y)*.35);
+ float depth=s(-.035,.13,y)*(1.-s(.91,1.23,y)*.65);
+ // Several broad, interwoven shafts; all boundaries remain soft.
+ float timeDrift=elapsed*.018;
+ float laneA=exp(-pow((theta+.100+sin(elapsed*.12)*.0025)/.092,2.0));
+ float laneB=exp(-pow((theta-.076-sin(elapsed*.10)*.0023)/.079,2.0));
+ float laneC=exp(-pow((theta+.014)/.109,2.0));
+ float laneD=exp(-pow((theta-.174)/.074,2.0))*.52;
+ float lanes=.23*laneA+.24*laneB+.31*laneC+.11*laneD;
+ // Slow heterogeneous air density. No hard-edged cone or regular laser spokes.
+ float veils=fbm(vec2(theta*14.0+timeDrift,y*2.75-elapsed*.009));
+ float filaments=fbm(vec2(theta*49.0-timeDrift*.21,y*3.4+elapsed*.014));
+ float softAir=.78+.32*(veils-.48)+.11*(filaments-.50);
+ float core=exp(-pow(theta/.147,2.0))*.19;
+ float volume=cone*(.245+lanes+core)*softAir*stageFalloff*depth*uHaze;
+ // Top diffusion has no circular edge and fades into the upper atmosphere.
+ float topGlow=exp(-pow((p.x-.5)/.38,2.0))*(1.-s(-.07,.49,y))*.24;
+ // Lower haze stays restrained so that the background retains deep contrast.
+ float lower=exp(-pow((p.x-.5)/(.31*uWidth),2.0))*exp(-pow((y-.64)/.43,2.0))*.11;
+ float density=(volume+topGlow+lower*uHaze);
+ // Envelopes are different in time but always converge to a stable, nonpulsing state.
+ float reveal=s(.02,.87,uShape);
+ float veilReveal=s(.15,.71,uShape);
+ float shape=reveal*(.84+.16*veilReveal);
+ density*=shape*uIntensity;
+ // Pearl/ivory core, muted champagne interior, extremely subtle cold-blue rim.
+ float cool=s(.35,1.05,abs(ang));
+ vec3 pearl=vec3(1.0,.986,.955);
+ vec3 champagne=vec3(1.0,.947,.857);
+ vec3 ice=vec3(.81,.916,1.0);
+ vec3 tint=mix(pearl,champagne,s(.04,.7,y)*.22);
+ tint=mix(tint,ice,cool*.30);
+ float diffusion=exp(-pow((p.x-.5)/(.22+max(y,0.)*.13),2.0))*exp(-pow((y-.42)/.68,2.0))*.035;
+ vec3 rgb=tint*density+pearl*diffusion*shape*uIntensity;
+ float alpha=clamp(density*.92+diffusion*shape,0.,.77);
+ frag=vec4(rgb,alpha);
+}
+</script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const stage=$('stage'),card=$('card'),spin=$('spin'),canvas=$('lightCanvas'),dustCanvas=$('dustCanvas');
+const dust=dustCanvas.getContext('2d',{alpha:true});
+const note=$('stageLabel'),hint=$('stageHint'),readout=$('readout'),environment=$('environment'),floor=$('floor'),legacy=$('legacyLight');
+const btns={light:$('lightOnly'),card:$('cardHold'),descent:$('descent'),refined:$('refined'),original:$('original')};
+const sliders={intensity:$('intensity'),width:$('width'),haze:$('haze'),dust:$('dust')};
+const names=['Card_Back.png','Card_Front.png','Flower_Bruma.png','Title_Solstice_Dendrite.png'];
+const keyMap={'Card_Back.png':'back','Card_Front.png':'front','Flower_Bruma.png':'flower','Title_Solstice_Dendrite.png':'title'};
+const objects={};
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const ease=x=>{x=clamp(x);return x*x*(3-2*x)};
+let view='light',version='refined',W=1,H=1,dpr=1,webgl=null,particles=[],seed=216013;
+let startAt=0,lastAt=0,played=0,playing=true,frame=0,ready=false;
+const LIGHT=.95,DROP=4.45,TRAVEL=355,START_TILT=-13.7,END_TILT=-4.8;
+const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+function setArt(name,blob){
+ const id=keyMap[name];if(!id)return;
+ if(objects[name])URL.revokeObjectURL(objects[name]);
+ objects[name]=URL.createObjectURL(blob);
+ $(id).src=objects[name];
+ if(name==='Title_Solstice_Dendrite.png'){
+  $('titleArt').style.setProperty('--title-mask','url("'+objects[name]+'")');
+ }
+ if(objects['Card_Back.png']&&objects['Card_Front.png'])stage.dataset.hasArt='true';
+}
+async function unzip(file){
+ const bytes=new Uint8Array(await file.arrayBuffer()),view=new DataView(bytes.buffer);
+ let end=-1;
+ for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65558);i--){
+  if(view.getUint32(i,true)===0x06054b50){end=i;break;}
+ }
+ if(end<0)throw Error('未找到 ZIP 中央目录');
+ let offset=view.getUint32(end+16,true),count=view.getUint16(end+10,true),result={};
+ for(let i=0;i<count;i++){
+  if(view.getUint32(offset,true)!==0x02014b50)throw Error('ZIP 文件目录异常');
+  const method=view.getUint16(offset+10,true),compressed=view.getUint32(offset+20,true);
+  const nameLen=view.getUint16(offset+28,true),extra=view.getUint16(offset+30,true),comment=view.getUint16(offset+32,true);
+  const local=view.getUint32(offset+42,true);
+  const name=new TextDecoder().decode(bytes.subarray(offset+46,offset+46+nameLen)).split('/').pop();
+  if(names.includes(name)){
+   const start=local+30+view.getUint16(local+26,true)+view.getUint16(local+28,true);
+   const raw=bytes.slice(start,start+compressed);
+   if(method===0)result[name]=new Blob([raw],{type:'image/png'});
+   else if(method===8){
+    if(typeof DecompressionStream==='undefined')throw Error('当前浏览器不支持 ZIP 解压，请换用较新 Safari/Chrome');
+    const stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    result[name]=new Blob([await new Response(stream).arrayBuffer()],{type:'image/png'});
+   }else throw Error('不支持的 ZIP 压缩格式 '+method);
+  }
+  offset+=46+nameLen+extra+comment;
+ }
+ return result;
+}
+$('zipFile').addEventListener('change',async e=>{
+ const file=e.target.files[0];if(!file)return;
+ $('assetMsg').textContent='正在读取原画……';
+ try{
+  const art=await unzip(file);
+  for(const name of names)if(art[name])setArt(name,art[name]);
+  $('assetMsg').textContent='素材导入成功。现在切换「卡牌受光」或「下降预览」即可查看真实原画。';
+ }catch(err){$('assetMsg').textContent='读取失败：'+err.message;}
+});
+$('brumaFile').addEventListener('change',e=>{const f=e.target.files[0];if(f){setArt('Flower_Bruma.png',f);$('assetMsg').textContent='珍珠暖白 Bruma 已载入。';}});
+function compile(gl,type,source){
+ const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);
+ if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(sh));
+ return sh;
+}
+function makeGL(){
+ try{
+  const gl=canvas.getContext('webgl2',{alpha:true,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false});
+  if(!gl)return null;
+  const program=gl.createProgram();
+  gl.attachShader(program,compile(gl,gl.VERTEX_SHADER,$('vertexShader').textContent));
+  gl.attachShader(program,compile(gl,gl.FRAGMENT_SHADER,$('fragmentShader').textContent));
+  gl.linkProgram(program);
+  if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
+  return {gl,program,locations:Object.fromEntries(['uSize','uTime','uShape','uIntensity','uWidth','uHaze'].map(k=>[k,gl.getUniformLocation(program,k)]))};
+ }catch(err){$('status').textContent='WebGL2 启动失败，已改用兼容圣光：'+err.message;return null;}
+}
+function resize(){
+ const b=stage.getBoundingClientRect();
+ W=b.width;H=b.height;dpr=Math.min(window.devicePixelRatio||1,1.35);
+ canvas.width=Math.max(1,Math.round(W*dpr*.82));canvas.height=Math.max(1,Math.round(H*dpr*.82));
+ dustCanvas.width=Math.max(1,Math.round(W*dpr));dustCanvas.height=Math.max(1,Math.round(H*dpr));
+ dust.setTransform(dpr,0,0,dpr,0,0);
+ if(webgl)webgl.gl.viewport(0,0,canvas.width,canvas.height);
+ createDust();
+}
+function createDust(){
+ particles=[];seed=216013;
+ for(let i=0;i<70;i++){
+  const a=rand()*Math.PI*2;
+  particles.push({x:.5+(rand()-.5)*.61,y:rand(),size:.32+rand()*1.2,phase:rand()*6.28,
+   vx:(rand()-.5)*.0055,vy:.004+rand()*.011,twinkle:.55+rand()*.45,life:rand(),tilt:a});
+ }
+}
+function rgba(color,a){return 'rgba('+color+','+clamp(a).toFixed(4)+')';}
+function drawDust(sec,p){
+ dust.clearRect(0,0,W,H);
+ const count=Math.round(70*(Number(sliders.dust.value)/100));
+ if(count<=0||p<=.05)return;
+ for(let i=0;i<count;i++){
+  const z=particles[i];
+  const y=((z.y-sec*z.vy)%1+1)%1;
+  const x=z.x+Math.sin(sec*.26+z.phase)*.009+z.vx*sec*.13;
+  // Visible only in lit air; scattered at various depths.
+  const nx=(x-.5)/(.17+.24*y)*(100/Number(sliders.width.value));
+  const exposure=Math.exp(-nx*nx*1.3);
+  const alpha=exposure*p*(.15+.24*z.twinkle)*(Number(sliders.intensity.value)/100);
+  if(alpha<.008)continue;
+  const px=x*W,py=y*H;
+  const radius=(2.6+z.size*2.5);
+  const grad=dust.createRadialGradient(px,py,0,px,py,radius);
+  grad.addColorStop(0,rgba('255,253,241',alpha*.78));
+  grad.addColorStop(.24,rgba('240,248,253',alpha*.35));
+  grad.addColorStop(1,rgba('224,241,253',0));
+  dust.fillStyle=grad;dust.beginPath();dust.arc(px,py,radius,0,Math.PI*2);dust.fill();
+  dust.fillStyle=rgba('255,250,233',alpha*.9);
+  dust.beginPath();dust.arc(px,py,z.size*.39,0,Math.PI*2);dust.fill();
+ }
+}
+function drawLight(sec,p){
+ let progress=clamp(p);
+ const intensity=Number(sliders.intensity.value)/100,width=Number(sliders.width.value)/100,haze=Number(sliders.haze.value)/100;
+ const stateOld=version==='original'||!webgl;
+ canvas.style.display=stateOld?'none':'block';
+ legacy.style.display=stateOld?'block':'none';
+ if(!stateOld){
+  const {gl,program,locations:L}=webgl;
+  gl.viewport(0,0,canvas.width,canvas.height);
+  gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(program);
+  gl.uniform2f(L.uSize,canvas.width,canvas.height);
+  gl.uniform1f(L.uTime,sec);
+  gl.uniform1f(L.uShape,progress);
+  gl.uniform1f(L.uIntensity,intensity);
+  gl.uniform1f(L.uWidth,width);
+  gl.uniform1f(L.uHaze,haze);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+ }else{
+  legacy.style.opacity=String(clamp(progress*intensity*.86));
+  legacy.style.transform='scaleX('+width.toFixed(3)+')';
+  legacy.style.transformOrigin='center top';
+ }
+ environment.style.opacity=String(clamp(progress*.68*intensity*haze));
+ floor.style.opacity=String(clamp(progress*.56*intensity));
+ drawDust(sec,progress);
+}
+function cardPose(deg,tilt,y,scale,opacity,lit){
+ card.style.visibility=opacity>.001?'visible':'hidden';
+ card.style.opacity=String(opacity);
+ card.style.transform='translate(-50%,-50%) translateY('+y.toFixed(3)+'px) scale('+scale.toFixed(4)+')';
+ spin.style.transform='rotateZ('+tilt.toFixed(3)+'deg) rotate3d(.5547,-.83205,0,'+deg.toFixed(3)+'deg)';
+ const facing=Math.cos(deg*Math.PI/180);
+ const influence=(.72+.28*facing)*lit;
+ card.style.setProperty('--rim',String(clamp(.24+.44*influence)));
+ card.style.setProperty('--face-light',String(clamp(.08+.18*influence)));
+ card.style.setProperty('--face-angle',(124+sin(deg*Math.PI/180)*17).toFixed(1)+'deg');
+}
+const sin=Math.sin;
+function updateCard(elapsed,progress){
+ if(view==='light'){card.style.visibility='hidden';card.style.opacity='0';return;}
+ if(view==='card'){
+  const o=ease((elapsed-.40)/.55);
+  cardPose(720,END_TILT,0,1,o,progress);
+  return;
+ }
+ if(elapsed<LIGHT){
+  card.style.visibility='hidden';card.style.opacity='0';return;
+ }
+ const p=clamp((elapsed-LIGHT)/DROP);
+ const rot=ease(p),recover=ease((p-.72)/.28);
+ const travelling=1-Math.pow(1-p,1.7);
+ cardPose(720*rot,START_TILT+(END_TILT-START_TILT)*recover,-TRAVEL*(1-travelling),.72+.28*travelling,clamp(p*3.7),progress);
+}
+function currentElapsed(now){
+ if(!playing)return played;
+ return Math.max(0,(now-startAt)/1000);
+}
+function render(now){
+ if(!ready)return;
+ const elapsed=currentElapsed(now);
+ const progression=ease(elapsed/LIGHT);
+ const clampedTime=view==='descent'?LIGHT+DROP:LIGHT;
+ if(elapsed>=clampedTime&&playing){played=clampedTime;playing=false;}
+ // Keep the softly drifting atmosphere alive even after the entrance completes.
+ const steady=now/1000;
+ drawLight(steady,progression);
+ updateCard(elapsed,progression);
+ if(view==='descent'){
+  const part=elapsed<LIGHT?'圣光成形':elapsed<LIGHT+DROP?'卡牌下降':'悬停完成';
+  readout.textContent=Math.min(elapsed,LIGHT+DROP).toFixed(2)+'s / 5.40s · '+part;
+ }else readout.textContent=Math.min(elapsed,LIGHT).toFixed(2)+'s / 0.95s · '+(elapsed<LIGHT?'圣光逐渐成形':'圣光稳定 · 空气层缓慢流动');
+ frame=requestAnimationFrame(render);
+}
+function replay(){
+ playing=true;played=0;startAt=performance.now();lastAt=0;
+ note.textContent=(view==='light'?'LIGHT ONLY':view==='card'?'CARD IN LIGHT':'DESCENT PREVIEW')+' · '+(version==='refined'?'HOLY LIGHT V2':'ORIGINAL');
+ hint.textContent=view==='descent'?'点击画面跳至悬停':'点击画面重播';
+ $('status').textContent='正在播放 '+note.textContent;
+}
+function chooseMode(mode){
+ view=mode;
+ for(const [name,btn]of [['light',btns.light],['card',btns.card],['descent',btns.descent]])
+  btn.setAttribute('aria-pressed',String(name===mode));
+ replay();
+}
+function chooseVersion(v){
+ version=v;
+ btns.refined.setAttribute('aria-pressed',String(v==='refined'));
+ btns.original.setAttribute('aria-pressed',String(v==='original'));
+ replay();
+}
+btns.light.onclick=()=>chooseMode('light');
+btns.card.onclick=()=>chooseMode('card');
+btns.descent.onclick=()=>chooseMode('descent');
+btns.refined.onclick=()=>chooseVersion('refined');
+btns.original.onclick=()=>chooseVersion('original');
+$('play').onclick=()=>replay();
+$('reset').onclick=()=>{replay();};
+function stageAction(){
+ if(view==='descent'&&currentElapsed(performance.now())<LIGHT+DROP){
+  playing=false;played=LIGHT+DROP;
+  $('status').textContent='已跳过卡牌下降，停在悬停位置';
+  return;
+ }
+ replay();
+}
+stage.onclick=stageAction;
+stage.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stageAction();}};
+for(const [name,input]of Object.entries(sliders)){
+ const lab=$(name+'Value');
+ input.addEventListener('input',()=>{lab.textContent=input.value+'%';});
+}
+window.addEventListener('resize',resize);
+webgl=makeGL();
+resize();ready=true;replay();
+frame=requestAnimationFrame(render);
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);for(const url of Object.values(objects))URL.revokeObjectURL(url);});
+})();
+</script>
+</body>
+</html>
