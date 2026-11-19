@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Solstice Dendrite · Snow Refraction A/B Lab</title>
+<title>Solstice Dendrite · Radial Snow Refraction Lab</title>
 <style>
 :root{color-scheme:dark;--warm:#f3e7d5}
 *{box-sizing:border-box}
@@ -61,7 +61,7 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <div id="missing" class="missing">导入已定稿四件套 ZIP<br>即可查看真实卡牌的爆发演示</div>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 </section>
-<div class="ab" role="group" aria-label="对比爆发版本"><button id="baseMode" type="button" aria-pressed="false">V1 原版</button><button id="iceMode" type="button" aria-pressed="true">V1 + 冰雪折光</button></div>
+<div class="ab" role="group" aria-label="对比爆发版本"><button id="baseMode" type="button" aria-pressed="false">V1 原版</button><button id="iceMode" type="button" aria-pressed="true">V1 + 径向冰雪折光</button></div>
 <div class="controls"><button id="play" class="primary" disabled>✦ 点击爆发</button><button id="reset" disabled>重播 / 重置</button></div>
 <details class="settings"><summary>素材与定位 · 只用于调试</summary>
 <div class="grid">
@@ -70,7 +70,7 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <label>雪花核心横向位置<input id="coreX" type="range" min="43" max="57" step=".25" value="50"></label>
 <label>雪花核心纵向位置<input id="coreY" type="range" min="43" max="57" step=".25" value="50"></label>
 <label style="flex-direction:row;align-items:center"><input type="checkbox" id="showCore">显示核心定位标记</label>
-</div><div id="assetMsg" class="small">在微冰晶版基础上：雪花更明亮，冻结瞬间沿六枝冰棱滑过细小折射辉光，雪点短暂闪亮；原版可随时对照。</div>
+</div><div id="assetMsg" class="small">升级雪花受光方向：每片雪花沿爆发中心指向自身位置的射线向外折光；光尾更长、辉光范围更宽，冻结后短暂退去。V1 原版可随时对照。</div>
 </details></div>
 <script id="vertSrc" type="x-shader/x-vertex">#version 300 es
 precision highp float;
@@ -253,11 +253,11 @@ function sixflake(ctx,x,y,size,rot,alpha,flash=0,enhanced=false,age=1){
  if(enhanced){
   // A restrained cool, diffuse reflected-light halo, no star/diamond silhouette.
   const h=flash;
-  const halo=ctx.createRadialGradient(0,0,size*.13,0,0,size*2.0);
+  const halo=ctx.createRadialGradient(0,0,size*.13,0,0,size*2.25);
   halo.addColorStop(0,'rgba(252,253,255,'+(0.10+h*.45).toFixed(3)+')');
   halo.addColorStop(.32,'rgba(219,240,255,'+(0.065+h*.23).toFixed(3)+')');
   halo.addColorStop(1,'rgba(212,235,252,0)');
-  ctx.fillStyle=halo;ctx.beginPath();ctx.arc(0,0,size*2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=halo;ctx.beginPath();ctx.arc(0,0,size*2.25,0,Math.PI*2);ctx.fill();
  }
  ctx.rotate(rot);ctx.lineCap='round';ctx.lineJoin='round';
  // One identical six-arm geometry for both modes; only its optical treatment changes.
@@ -277,7 +277,7 @@ function sixflake(ctx,x,y,size,rot,alpha,flash=0,enhanced=false,age=1){
   ctx.shadowBlur=2.1+flash*4.5;ctx.stroke();ctx.restore();
  }
  ctx.strokeStyle='rgba(247,253,255,'+Math.min(1,alpha+flash*.23).toFixed(3)+')';
- ctx.lineWidth=enhanced?1.08+flash*.19:.85;
+ ctx.lineWidth=enhanced?1.14+flash*.25:.85;
  ctx.shadowColor=enhanced?'rgba(243,250,255,.7)':'rgba(238,251,255,.8)';
  ctx.shadowBlur=enhanced?1.2+flash*2.7:flash*4.2;ctx.stroke();
  if(enhanced&&flash>.014){
@@ -326,6 +326,67 @@ function snowStep(dt,radius){
   }
  }
 }
+// Radially aligned refraction: source -> individual flake -> outward light.
+// Draw on the snow canvas, *not* the GPU burst canvas, so the streak stays attached
+// to each snowflake as the wave freezes it. Rays have no independent random angle.
+function drawRadialRefraction(ctx,x,y,flake,pulse,age){
+ if(pulse<=.014)return;
+ const dx=x-origin.x,dy=y-origin.y,len=Math.hypot(dx,dy);
+ const theta=len>1e-3?Math.atan2(dy,dx):0;
+ const crystal=flake.crystal;
+ const size=flake.size;
+ // Main crystal rays extend substantially beyond the physical crystal.
+ // Dot snow receives a shorter, softer optical trail.
+ const out=crystal?Math.min(66,29+size*2.8):Math.min(30,13+size*6.0);
+ const back=crystal?Math.min(18,7+size*.82):Math.min(10,4+size*2.2);
+ const spread=crystal?Math.min(12,4.5+size*.83):Math.min(7,2.3+size*1.9);
+ const opening=.56+.44*Math.min(1,age/.14);
+ const tip=out*opening,tail=back*(.82+.18*opening);
+ const intensity=pulse*(crystal?1:.66);
+ ctx.save();ctx.translate(x,y);ctx.rotate(theta);
+ // A diffuse long-axis pearl-blue veil: the optical envelope, not a hard line.
+ ctx.save();ctx.scale(1,spread/Math.max(out,1));
+ const veil=ctx.createRadialGradient(tip*.16,0,.4,tip*.16,0,out*.92);
+ veil.addColorStop(0,'rgba(248,252,255,'+(.42*intensity).toFixed(3)+')');
+ veil.addColorStop(.33,'rgba(210,235,255,'+(.24*intensity).toFixed(3)+')');
+ veil.addColorStop(.72,'rgba(205,231,252,'+(.095*intensity).toFixed(3)+')');
+ veil.addColorStop(1,'rgba(208,237,255,0)');
+ ctx.fillStyle=veil;ctx.beginPath();ctx.ellipse(tip*.16,0,out*.92,out*.78,0,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+ // A translucent taper continuing outward in exactly the incident ray direction.
+ const grad=ctx.createLinearGradient(-tail,0,tip,0);
+ grad.addColorStop(0,'rgba(240,247,255,0)');
+ grad.addColorStop(.18,'rgba(235,248,255,'+(.13*intensity).toFixed(3)+')');
+ grad.addColorStop(.31,'rgba(255,253,244,'+(.45*intensity).toFixed(3)+')');
+ grad.addColorStop(.56,'rgba(219,242,255,'+(.33*intensity).toFixed(3)+')');
+ grad.addColorStop(.84,'rgba(209,235,255,'+(.09*intensity).toFixed(3)+')');
+ grad.addColorStop(1,'rgba(209,235,255,0)');
+ ctx.fillStyle=grad;ctx.beginPath();
+ ctx.moveTo(-tail,0);
+ ctx.bezierCurveTo(-tail*.1,-spread*.74,tip*.36,-spread*.65,tip,-spread*.07);
+ ctx.quadraticCurveTo(tip+.8,0,tip,spread*.07);
+ ctx.bezierCurveTo(tip*.48,spread*.62,-tail*.05,spread*.52,-tail,0);
+ ctx.fill();
+ // Clean narrow specular center: sharper on ice crystals, fades to transparent.
+ const line=ctx.createLinearGradient(-tail*.45,0,tip*.85,0);
+ line.addColorStop(0,'rgba(255,251,240,0)');
+ line.addColorStop(.22,'rgba(255,252,245,'+(.69*intensity).toFixed(3)+')');
+ line.addColorStop(.43,'rgba(250,254,255,'+(.89*intensity).toFixed(3)+')');
+ line.addColorStop(.76,'rgba(235,249,255,'+(.33*intensity).toFixed(3)+')');
+ line.addColorStop(1,'rgba(222,242,255,0)');
+ ctx.strokeStyle=line;ctx.lineWidth=crystal?1.55:.87;
+ ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-tail*.45,0);ctx.lineTo(tip*.85,0);ctx.stroke();
+ if(crystal){
+  // Subtle refractive split on the OUTWARD side only, not two opposing spikes.
+  ctx.strokeStyle='rgba(215,239,255,'+(.32*intensity).toFixed(3)+')';
+  ctx.lineWidth=.85;ctx.beginPath();
+  ctx.moveTo(size*.28,-1.9);ctx.quadraticCurveTo(tip*.45,-2.8,tip*.78,-1.0);ctx.stroke();
+  ctx.strokeStyle='rgba(255,244,224,'+(.17*intensity).toFixed(3)+')';
+  ctx.beginPath();ctx.moveTo(size*.3,1.5);ctx.quadraticCurveTo(tip*.52,1.9,tip*.65,.65);ctx.stroke();
+ }
+ ctx.restore();
+}
+
 function drawSnow(dt,still){
  if(!snow)return;
  snow.clearRect(0,0,W,H);
@@ -335,21 +396,23 @@ function drawSnow(dt,still){
   const rot=f.frozen?f.freezeAngle:f.angle;
   const age=f.frozen?Math.max(0,t-f.freezeAt):1;
   // A short optical impulse after the freeze front touches this specific snowflake.
-  const progress=Math.min(1,age/.32);
-  const flash=iceDetail&&f.frozen&&age<.32
-   ? Math.sin(Math.PI*progress)*(.94-.18*progress):0;
+  const flash=iceDetail&&f.frozen&&age<.46
+   ? Math.min(1,age/.055)*(1-smooth((age-.12)/.34))
+   :0;
+  // Draw the large radial halo behind the crystal, then its finer internal branches.
+  if(flash>.014)drawRadialRefraction(snow,x,y,f,flash,age);
   if(f.crystal){
-   const brightness=iceDetail?Math.min(1,.53+f.opacity*.51):f.opacity;
+   const brightness=iceDetail?Math.min(1,.64+f.opacity*.43):f.opacity;
    sixflake(snow,x,y,f.size,rot,brightness,flash,iceDetail,age);
   }else{
-   const brightness=iceDetail?Math.min(1,.34+f.opacity*.77):f.opacity;
+   const brightness=iceDetail?Math.min(1,.38+f.opacity*.72):f.opacity;
    if(flash>.025){
-    // Dot snow has a brief pearly round glimmer, never a diamond-shaped particle.
-    const g=snow.createRadialGradient(x,y,0,x,y,Math.max(3,f.size*3.8));
+    // Dot snow has a brief pearly round glimmer in addition to a radial trail.
+    const g=snow.createRadialGradient(x,y,0,x,y,Math.max(5,f.size*4.5));
     g.addColorStop(0,'rgba(255,255,250,'+(.42*flash).toFixed(3)+')');
     g.addColorStop(.4,'rgba(207,234,255,'+(.17*flash).toFixed(3)+')');
     g.addColorStop(1,'rgba(207,234,255,0)');
-    snow.fillStyle=g;snow.beginPath();snow.arc(x,y,Math.max(3,f.size*3.8),0,Math.PI*2);snow.fill();
+    snow.fillStyle=g;snow.beginPath();snow.arc(x,y,Math.max(5,f.size*4.5),0,Math.PI*2);snow.fill();
    }
    snow.fillStyle='rgba(255,254,250,'+Math.min(1,brightness+flash*.35).toFixed(3)+')';
    snow.beginPath();snow.arc(x,y,f.size,0,Math.PI*2);snow.fill();
