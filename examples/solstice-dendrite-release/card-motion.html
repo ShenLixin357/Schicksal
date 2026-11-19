@@ -56,6 +56,14 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 .pool{opacity:0}
 .card{opacity:0;visibility:hidden;will-change:transform,opacity}
 #snowCanvas{opacity:0}
+
+/* Restored the approved front-title ice/pearl mask and card rim from the original full-card study. */
+.face{box-shadow:0 0 3px 1px #fff8e6aa,0 0 30px #fff1c793,0 10px 40px #101c3280}
+.face::after{content:"";position:absolute;inset:1px;pointer-events:none;border:1px solid #fffefa85;border-radius:6px}
+.title-art{transform:scale(var(--title-scale,.94));filter:drop-shadow(0 0 1px #fff9eb88)}
+.title-art img.title-original{opacity:.24;filter:brightness(1.4) saturate(.6)}
+.title-crystal{position:absolute;inset:0;background:linear-gradient(152deg,#ffe9bf 5%,#fff 21%,#c6d4eb 35%,#fff9f0 48%,#e5bddd 63%,#fffaf0 76%,#b4d6ee 91%);-webkit-mask-image:var(--title-mask);mask-image:var(--title-mask);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.title-art::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 0%,#ffffff00 30%,#fff8eaaa 44%,#ffffff00 58%,transparent 75%);mix-blend-mode:screen;-webkit-mask-image:var(--title-mask);mask-image:var(--title-mask);-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
 </style></head>
 <body><div class="wrap">
 <header><div class="kicker">SCHICKSAL · THE ENCHANTED VASE · RARE CARD</div><h1>Solstice Dendrite</h1></header>
@@ -65,7 +73,7 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <div id="lightCore" class="light-core"></div><div class="pool" id="pool"></div><div id="cardHalo" class="card-halo"></div>
 <div class="card" id="card"><div class="spin" id="spin">
 <div class="face back"><img id="back" class="background" alt=""><span id="anchor" class="core-anchor"></span></div>
-<div class="face front"><img id="front" class="background" alt=""><img id="flower" class="flower" alt=""><div class="title-art"><img id="title" alt=""></div></div>
+<div class="face front"><img id="front" class="background" alt=""><img id="flower" class="flower" alt=""><div class="title-art" id="titleArt"><img id="title" class="title-original" alt=""><div class="title-crystal" aria-hidden="true"></div></div></div>
 </div></div>
 <canvas id="snowCanvas"></canvas><canvas id="fxCanvas" aria-hidden="true" hidden></canvas>
 <span id="coreGuide"></span>
@@ -105,7 +113,7 @@ function applyImage(name,blob){
  if(name===names[0])back.src=URLs[name];
  if(name===names[1])front.src=URLs[name];
  if(name===names[2])flower.src=URLs[name];
- if(name===names[3])title.src=URLs[name];
+ if(name===names[3]){title.src=URLs[name];$('titleArt').style.setProperty('--title-mask','url("'+URLs[name]+'")');}
  ready();
 }
 async function unzip(file){
@@ -403,7 +411,7 @@ function stageAction(){
 }
 stage.onclick=stageAction;
 stage.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stageAction()}};
-play.onclick=stageAction;resetBtn.onclick=()=>idle();
+play.onclick=stageAction;resetBtn.onclick=()=>{idle();entrance();};
 window.addEventListener('resize',()=>{
  resize();
  if(mode!=='burst')idle();
