@@ -1,16 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { foundingNews, type BriefingNews, type BriefingTask } from "./briefing-data";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { foundingNews } from "./briefing-data";
+import { fetchBriefingFeed, type BriefingFeed } from "./briefing-loader";
 import type { InboxViews } from "./affairs-history";
 
 export type BriefingFeedState = "loading" | "ready" | "error";
 const emptyViews: InboxViews = { pending: [], participated: [], missed: [], archived: [] };
-type BriefingFeed = { tasks: BriefingTask[]; news: BriefingNews[]; views: InboxViews };
-
-export function useBriefingFeed(citizenId: string, refreshKey: string) {
-  const [feed, setFeed] = useState<BriefingFeed>({ tasks: [], news: [...foundingNews], views: emptyViews });
-  const [status, setStatus] = useState<BriefingFeedState>("loading");
+export function useBriefingFeed(citizenId: string, refreshKey: string, initialFeed: BriefingFeed | null = null) {
+  const [feed, setFeed] = useState<BriefingFeed>(initialFeed ?? { tasks: [], news: [...foundingNews], views: emptyViews });
+  const [status, setStatus] = useState<BriefingFeedState>(initialFeed ? "ready" : "loading");
+  const skipFirstFetch = useRef(Boolean(initialFeed));
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision(value => value + 1), []);
 
@@ -42,15 +42,9 @@ export function useBriefingFeed(citizenId: string, refreshKey: string) {
       const nextController = new AbortController();
       controller = nextController;
       try {
-        const response = await fetch("/api/briefing", { cache: "no-store", credentials: "same-origin", signal: nextController.signal });
-        if (!response.ok) throw new Error("Could not sync briefing");
-        const payload = await response.json() as Partial<BriefingFeed>;
-        if (!Array.isArray(payload.tasks) || !Array.isArray(payload.news) ||
-          !payload.views || !Array.isArray(payload.views.pending) ||
-          !Array.isArray(payload.views.archived) || !Array.isArray(payload.views.participated) ||
-          !Array.isArray(payload.views.missed)) throw new Error("Malformed feed");
+        const payload = await fetchBriefingFeed(nextController.signal);
         if (active && !nextController.signal.aborted) {
-          setFeed({ tasks: payload.tasks, news: payload.news, views: payload.views });
+          setFeed(payload);
           setStatus("ready");
         }
       } catch {
@@ -64,7 +58,10 @@ export function useBriefingFeed(citizenId: string, refreshKey: string) {
         }
       }
     };
-    void load();
+    // Welcome already fetched the current member's briefing. Reuse that
+    // snapshot for the first frame; later polls and section changes revalidate.
+    if (skipFirstFetch.current) skipFirstFetch.current = false;
+    else void load();
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void load();
     }, 60_000);
