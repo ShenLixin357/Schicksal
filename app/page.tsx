@@ -31,7 +31,10 @@ import { getVase } from "./club/vase/vase-catalogue";
 import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
 import { ImperialSidebar } from "./shell/imperial-sidebar";
 import { ShellPlaceholder } from "./shell/placeholder";
-import { PointsHub } from "./points/points-hub";
+import { PageHead } from "./shell/page-head";
+import { HonorsPage, MarketPage } from "./points/points-pages";
+import { CalendarPage } from "./festivals/festival-page";
+import { SelfProfilePage } from "./profile/profile-page";
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import type { SidebarDestination } from "./shell/navigation";
 
@@ -369,9 +372,7 @@ function CitizenEmblem({ large = false }: { large?: boolean }) {
   );
 }
 
-function PageHead({ eyebrow, title, copy }: { eyebrow: string; title: string; copy: string }) {
-  return <header className="page-head"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><p>{copy}</p></header>;
-}
+
 
 function HomeSection({ go }: { go: (id: Section) => void }) {
   return (
@@ -1086,20 +1087,11 @@ function PersistentParliamentSection({ citizen, requestedItemId = "", requestedF
   </>;
 }
 
-function HonorsSection() {
-  const rows = [["宇宙霸主","Amberina von Schicksal","128",AMBERINA_OFFICIAL_COLOR],["怪盗 基德","Citizen 04","114","#65cae9"],["我说 真的","Citizen 03","98","#eecf58"],["哈利 波特","Citizen 05","82","#a99ce6"]];
-  return <><PageHead eyebrow="Honors & Scoreboard" title="荣誉与积分" copy="每一次得分都有原因，每一次荣耀都有可审计的来处。" /><div className="honors"><div className="leaderboard">{rows.map(([code,name,points,color],index) => <article key={code} style={{ "--citizen": color } as CSSProperties}><span>0{index + 1}</span><i /><div><h2>{code}</h2><p>{name}</p></div><b>{points}<small>PTS</small></b></article>)}</div><article className="ribbon"><p>IMPERIAL DISTINCTION</p><h2>BLUE<br />RIBBON</h2><div>S</div><small>年度最高荣誉 · 可作为实体在跳蚤市场流通</small></article></div><p className="note">积分为视觉 Demo 数据；正式规则与 Blue Ribbon 权利尚待确认。</p></>;
-}
+function HonorsSection() { return <HonorsPage/>; }
 
-function CalendarSection() {
-  const events = [["04·19","National Day","国庆日","竞赛 · Puzzle Hunt · Blue Ribbon · 跳蚤市场"],["08·15","Restoration Day","复辟纪念日（名称待定）","13:43 公投以 2/3 通过，第一帝国正式复辟"],["TBD","Yogurt Festival","酸奶节","因为大家喜欢喝酸奶，所以大喝特喝"],["TBD","Fire Festival","打火节","真火 · 细生日蜡烛 · 轮流许愿"]];
-  return <><PageHead eyebrow="State Calendar" title="国家节日" copy="传统可以庄重，也可以忠实保留它最初荒唐而快乐的理由。" /><div className="events">{events.map(([date,en,cn,copy],index) => <article key={en}><span>0{index + 1}</span><time>{date}</time><div><small>{en}</small><h2>{cn}</h2></div><p>{copy}</p><i>↗</i></article>)}</div></>;
-}
+function CalendarSection() { return <CalendarPage/>; }
 
-function MarketSection() {
-  const goods = [["01","National Day Coin","第一帝国国庆纪念币","交换条件 · 一杯酸奶"],["02","Blue Ribbon","2026 年度实物绶带","仅转移实物所有权"],["03","Archive Print","《宪法草案 1.0》复刻件","12 Imperial Points"]];
-  return <><PageHead eyebrow="Grand Flea Market" title="天命大跳蚤市场" copy="实物可以换主人，但荣誉的历史归属不会被出售。" /><div className="market">{goods.map(([n,en,cn,price]) => <article key={n}><div className="object"><span>{n}</span><i>S</i></div><small>{en}</small><h2>{cn}</h2><footer><span>{price}</span><button type="button">查看物品 →</button></footer></article>)}</div><p className="note">货币与交换规则仍处于 TODO；当前条目仅展示未来的信息层级。</p></>;
-}
+function MarketSection() { return <MarketPage/>; }
 
 const PHOTO_SUBJECTS = [{ id: "empire", username: "天命全体照", name: "Schicksal Group", accent: "#d6ad56", markColor: "#d6ad56", motif: "empire", office: "Group Archive", codename: "天命" }, ...CITIZENS] as Citizen[];
 
@@ -1403,9 +1395,7 @@ function PublicAtlasCitizenProfile({ citizen, onBack }: { citizen: Citizen; onBa
   return <><button className="atlas-profile-back" type="button" onClick={onBack}>← 返回天命图谱</button><PageHead eyebrow="Public Citizen Profile" title="公民公开档案" copy="这里只展示获准公开的身份与公职资料。"/><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen}/><span>{atlasCodename(citizen.id)}</span></div><div className="profile-copy"><small>PUBLIC CITIZEN RECORD</small><h2>{atlasName(citizen)}</h2><dl><div><dt>公民代号</dt><dd>{atlasCodename(citizen.id)}</dd></div><div><dt>现任公职</dt><dd>{positions.length ? positions.map(office => office.title).join(" · ") : "暂无现任公职"}</dd></div><div><dt>身份</dt><dd>第一帝国公民</dd></div></dl><p className="atlas-visitor-disclaimer">访客只能查看公开身份；私人消息、账户设置、个人数据及编辑功能不开放。</p></div></article></>;
 }
 
-function ProfileSection({ citizen }: { citizen: Citizen }) {
-  return <><PageHead eyebrow="Citizen Profile" title="个人身份档案" copy="登录用户名、正式身份、个人标志与历史荣誉在这里汇合。" /><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} /><span>{citizen.username}</span></div><div className="profile-copy"><small>AUTHENTICATED CITIZEN</small><h2>{atlasName(citizen)}</h2><dl><div><dt>Login Username</dt><dd>{citizen.username}</dd></div><div><dt>Current Office</dt><dd>{atlasOfficesForCitizen(citizen.id).map(o=>o.title).join(" · ") || "暂无现任公职"}</dd></div><div><dt>Personal Mark</dt><dd>{citizen.id === "amberina" ? "Golden Solar Snowflake" : citizen.id === "zxy" ? "Red Flame" : citizen.id === "truth" ? "Yellow Lightning" : "Personal Sigil"}</dd></div><div><dt>Representative Color</dt><dd>{citizen.id === "amberina" ? "Imperial Gold / Yellow" : "待本人确认"}</dd></div></dl></div><div className="profile-score"><span>IMPERIAL POINTS</span><b>{citizen.id === "amberina" ? "128" : "—"}</b><small>Demo record</small></div></article></>;
-}
+function ProfileSection({ citizen }: { citizen: Citizen }) { return <SelfProfilePage citizen={citizen} renderMark={<CitizenMark citizen={citizen} />}/>; }
 
 function ClubMysticMark({ citizen }: { citizen: Citizen }) {
   return <MysticSigil memberId={citizen.id} />;
@@ -2037,9 +2027,9 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
     case "citizens":
     case "emblem": content = <SchicksalAtlas key={focusedCitizenId ?? "atlas-default"} initialCitizenId={focusedCitizenId ?? undefined} onVisitCitizen={openAtlasProfile} onOpenHandbook={openAtlasHandbook}/>; break;
     case "parliament": content = <><div className="atlas-parliament-help"><button type="button" title="查阅图书馆政务手册" onClick={openAtlasHandbook}>▤ 政务手册 ↗</button></div><PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} requestedFocus={parliamentDeepLinkFocus} focusReferendums={parliamentFocus === "referendum"} /></>; break;
-    case "honors": content = <PointsHub honors={<HonorsSection/>} market={<MarketSection/>}/>; break;
+    case "honors": content = <HonorsSection/>; break;
     case "calendar": content = <CalendarSection />; break;
-    case "market": content = <PointsHub initialTab="market" honors={<HonorsSection/>} market={<MarketSection/>}/>; break;
+    case "market": content = <MarketSection/>; break;
     case "photos": content = <PhotoArchiveSection citizen={citizen} />; break;
     case "archives": content = atlasHandbookOpen ? <AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/> : <ArchivesSection />; break;
     case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
@@ -2074,12 +2064,13 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
           return member ? <CitizenMark citizen={member} display={clubOpen ? "official" : "web"} /> : null;
         }}
         onToggle={toggleSidebar}
-        onLogo={() => { if (clubOpen) exitLounge(); else if (CLUB_MEMBER_IDS.has(citizen.id)) enterLounge(); else setSection("home"); }}
+        onLogo={() => { if (clubOpen) exitLounge(); else if (CLUB_MEMBER_IDS.has(citizen.id)) enterLounge(); }}
         onNavigate={(target: SidebarDestination) => {
           if (target === "collection") return;
           if (target === "messenger") { openMessenger(null); return; }
           if (target === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); }
           if (target === "atlas") setFocusedCitizenId(null);
+          if (target === "profile") setViewedCitizenId(citizen.id);
           if (target === "archives") setAtlasHandbookOpen(false);
           setBriefingOpen(false);
           setSection(target);
