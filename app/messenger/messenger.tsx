@@ -17,7 +17,8 @@ export function Messenger({ selfId, members, peerId, onSelect, renderMark }: {
   const contacts = members.filter(member => !member.locked);
   const peer = contacts.find(member => member.id === peerId);
   const [recent, setRecent] = useState<Record<string, Message>>({});
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [thread, setThread] = useState<{ peerId: string; items: Message[] } | null>(null);
+  const messages = thread?.peerId === peerId ? thread.items : [];
   const [status, setStatus] = useState<LoadState>("loading");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -35,7 +36,7 @@ export function Messenger({ selfId, members, peerId, onSelect, renderMark }: {
         if (controller.signal.aborted) return;
         if (peerId) {
           if (!Array.isArray(data.messages)) throw new Error("通讯记录不完整。");
-          setMessages(data.messages);
+          setThread({ peerId, items: data.messages });
         } else {
           if (!data.recent || typeof data.recent !== "object") throw new Error("通讯列表不完整。");
           setRecent(data.recent);
@@ -69,7 +70,9 @@ export function Messenger({ selfId, members, peerId, onSelect, renderMark }: {
       const result = await response.json() as { error?: string; message?: Message };
       if (!response.ok || !result.message) throw new Error(result.error ?? "发送失败");
       setDraft("");
-      setMessages(current => [...current.filter(item => item.id !== result.message!.id), result.message!]);
+      setThread(current => current?.peerId === peer.id
+        ? { peerId: peer.id, items: [...current.items.filter(item => item.id !== result.message!.id), result.message!] }
+        : current);
       setRefresh(value => value + 1);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "发送失败，请重试。");
