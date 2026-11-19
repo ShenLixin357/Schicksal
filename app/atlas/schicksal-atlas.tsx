@@ -59,9 +59,9 @@ export function SchicksalAtlas({onVisitCitizen,onOpenHandbook,initialCitizenId}:
   <header className="atlas-page-heading"><div className="atlas-page-symbol"><AtlasGemGlyph size={34}/></div><div className="atlas-title-text"><h1>天命图谱 <em>Schicksal Atlas</em></h1><p>THE FIRST SCHICKSAL EMPIRE · 八位公民的共同图谱</p></div></header>
   <div className="atlas-upper-grid">
    <section className="atlas-scene-panel" aria-label="八位公民共同构成的星图">
-    <Image unoptimized src="/atlas/star-stage.webp" alt="精致的紫蓝彩窗与天文星盘" fill sizes="(max-width:1100px) 100vw, 50vw" className="atlas-scene-art" priority/>
+    <Image unoptimized src="/atlas/approved-stage-clean.webp" alt="精致的紫蓝彩窗与天文星盘" fill sizes="(max-width:1100px) 100vw, 50vw" className="atlas-scene-art" priority/>
     <span className="atlas-scene-halo" aria-hidden="true"/>
-    {ATLAS_SHARED_EMBLEM_SRC && <span className="atlas-central-emblem"><Image unoptimized src={ATLAS_SHARED_EMBLEM_SRC} alt="天命共同标志" width={195} height={195}/></span>}
+    {ATLAS_SHARED_EMBLEM_SRC && <span className="atlas-central-emblem"><Image unoptimized src={ATLAS_SHARED_EMBLEM_SRC} alt="天命共同标志" width={262} height={262}/></span>}
     {CITIZENS.map((citizen,index)=><button key={citizen.id} type="button"
       className={"atlas-member-node"+((hoverId||selected.id)===citizen.id?" active":"")}
       style={{left:slotLocations[index].left,top:slotLocations[index].top,"--node-color":atlasColor(citizen)} as CSSProperties}
