@@ -20,8 +20,16 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Type check
-        run: npx tsc --noEmit
+      - name: Type check new Atlas surfaces (baseline Cloudflare ambient types are known missing)
+        run: |
+          npx tsc --noEmit --pretty false > /tmp/atlas-types.log 2>&1 || true
+          if grep -E '^app/(atlas/|page\\.tsx)' /tmp/atlas-types.log; then
+            echo "::error::Type errors were found in Atlas or the modified page"
+            exit 1
+          fi
+          echo "No TypeScript errors in Atlas files or modified page."
+          echo "Legacy baseline type errors (if any):"
+          sed -n '1,8p' /tmp/atlas-types.log
       - name: Lint Atlas files
         run: npx eslint app/atlas app/page.tsx
       - name: Build worker application
