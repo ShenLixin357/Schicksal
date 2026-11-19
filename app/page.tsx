@@ -1349,7 +1349,7 @@ function ArchivesSection() {
           <span className="book-page-edges" aria-hidden="true" />
           <span className="book-cover-art"><Image src="/archive-queen-cover.png" alt="童话式女王立于月光花园中的剪影书封" fill sizes="(max-width: 760px) 82vw, 430px" priority={false} unoptimized /></span>
           <span className="book-cover-wash" aria-hidden="true" />
-          <span className="book-cover-mark"><CitizenMark citizen={CITIZENS[0]} /></span>
+          <span className="book-cover-mark" style={{ "--mark": CITIZENS[0].markColor } as CSSProperties}><CitizenMark citizen={CITIZENS[0]} /></span>
           <span className="book-cover-copy"><small>SCHICKSAL NATIONAL ARCHIVES</small><strong>如何从零<br />建立一个国家</strong><i>AvS 著</i></span>
           <span className="book-spine"><b>SCHICKSAL</b><i>国家档案馆</i></span>
         </button>
@@ -1368,7 +1368,7 @@ function ArchivesSection() {
       <header className="reader-topbar"><div><span>《如何从零建立一个国家》</span><i>{chapter.lesson}</i></div><button type="button" onClick={() => setBookOpen(false)}>合上书 ×</button></header>
       <div className="archive-book-spread">
         <aside className="reader-verso">
-          <div className="reader-author-mark"><CitizenMark citizen={CITIZENS[0]} /></div>
+          <div className="reader-author-mark" style={{ "--mark": CITIZENS[0].markColor } as CSSProperties}><CitizenMark citizen={CITIZENS[0]} /></div>
           <small>SCHICKSAL FIRST EMPIRE<br />NATIONAL ARCHIVES</small>
           <h2>{chapter.title}</h2>
           <p>{chapter.note}</p>

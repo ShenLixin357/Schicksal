@@ -121,3 +121,10 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - Restore the original `CitizenMark` outer ring, inner ring, and snow-style peripheral accents in locations that already used CitizenMark; do not decorate unrelated art or the shared eight-color emblem.
 - Retain the current sidebar-only actual-online `SidebarPresence` UI and click-to-public-profile behavior; no names, numbers, extra green dots, or topbar online strip.
 - Deploy strictly the existing isolated `schicksal-briefing-preview` Worker and its **separate** `schicksal-briefing-preview-db`. Do not update or access production D1, Worker or secrets. Perform the existing authenticated preview HTTP smoke tests.
+
+### 2026-11-19 · Amberina web-color 35.7% and ring/dot hue unification
+
+- User explicitly chose 35.7% between official `#F3ED87` and suggested `#F0DD7B`; web-only output: `#F2E783`.
+- Only the Amberina Simple derived web PNG and `CITIZENS.amberina.markColor` change; the other member colours, Procreate masters and shared eight-blade emblem remain intact.
+- Synchronize already-existing CitizenMark inner/outer circles and President office halo/dots via `--mark`, removing fixed orange from leader halo and blue from Amberina's archive book/reader outer circular badges. Do not add any circles/dots where previously absent.
+- Deploy exclusively existing isolated preview Worker `schicksal-briefing-preview` + distinct test D1 `schicksal-briefing-preview-db`. Do not touch production Worker/D1 or merge main. Confirm CI, logged-in `/api/briefing` and `/api/presence` smoke checks.
