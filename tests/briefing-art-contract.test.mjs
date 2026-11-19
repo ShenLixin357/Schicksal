@@ -10,7 +10,7 @@ const css = readFileSync(new URL("../app/briefing/briefing.css", import.meta.url
 test("briefing uses the same compact eight-ray mark as the existing website navigation", () => {
   // The shared emblem now passes through the extracted sidebar component.
   const sidebar = readFileSync(new URL("../app/shell/imperial-sidebar.tsx", import.meta.url), "utf8");
-  assert.match(page, /<ImperialSidebar[\\s\\S]*?sharedMark=\\{<Emblem compact \\/>\\}/);
+  assert.match(page, /<ImperialSidebar[\s\S]*?sharedMark=\{<Emblem compact \/>\}/);
   assert.match(sidebar, /className="imperial-logo-trigger"/);
   assert.match(sidebar, /: sharedMark/);
   assert.match(page, /heroMark=\{<Emblem compact \/>\}/);
