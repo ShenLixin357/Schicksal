@@ -1,3 +1,5 @@
+> **CURRENT RULES (2026-11-19):** See [Amberina identity colour policy](amberina-identity-color-policy.md). This document contains older historical experiments; the active emblem display is **#EECF58 on approved beige contexts**, official **#F3ED87 in parliament / non-beige contexts**, and official **#F3ED87 for all ordinary identity-colour UI**. New emblem/name placement requires asking the user first.
+
 # Amberina von Schicksal — official Simple web identity
 
 Source of truth: user-uploaded `AvS_Final_Procreate_Only(1).zip` (2026-11-19).

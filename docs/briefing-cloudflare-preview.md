@@ -173,3 +173,11 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - Add derived web-only transparent Simple PNG, preserving alpha + Procreate two-tone. Shared CitizenMark switches image sources and `--mark` hue by context; no other personal marks modified.
 - The previous dark-blue-purple fog is explicitly **removed** from site, including stylesheet and DOM overlay. All old V2.6 UI backgrounds, cabinet/rooms, and gameplay stay unchanged; personal Profile layout untouched.
 - Keep change exclusively in PR #5 isolated preview Worker/D1. Verify full CI and authenticated preview smoke before user review. Never merge/deploy production without explicit approval.
+
+### 2026-11-19 · Final identity contract: real colour, deeper badge and mandatory future inquiry
+
+- User-approved real representative colour `#F3ED87`, independently extracted from the official Procreate ZIP README. This ALWAYS applies to scores, honour points, metadata and representative UI colours. Existing shared imperial art is separate and preserved.
+- Approved brighter/darker display on existing beige/light surfaces **only for Amberina's personal Simple emblem, its existing circles and President-only outer points**: `#EECF58`. No background plates, purple fog or other gradients. Existing other member colours unchanged.
+- Parliamentary member mark **everywhere**, not only the elected Speaker (seat occupants, commenters, candidate marks, voters and floor requests), uses original PNG `#F3ED87`. Dark Committee Lounge sidebar uses original too.
+- Future newly introduced personal mark or identity-coloured name contexts MUST ask user whether to deepen; official `#F3ED87` if not and exact `#EECF58` if yes. A persistent `AGENTS.md` plus `docs/amberina-identity-color-policy.md` record this. Do not extrapolate one context's choice.
+- Rest of V2.6 original UI palette, content art, parliament procedures, games, other identities and official master files unchanged. Only isolated preview Worker / preview D1, never main or production.

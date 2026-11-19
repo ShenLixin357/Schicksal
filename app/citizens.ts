@@ -10,8 +10,14 @@ export function hasLeaderInsignia(citizen: Pick<Citizen, "office">): boolean {
 
 /** Official member colour: unaffected by website icon contrast tuning. */
 export const AMBERINA_OFFICIAL_COLOR = "#F3ED87" as const;
-/** Champagne-gold web emblem: 70% #EAD98C + 30% #EEDFA1 = #EBDB92 (RGB). */
-export const AMBERINA_WEB_MARK_COLOR = "#EBDB92" as const;
+/**
+ * User-approved stronger display colour for Amberina's Simple personal mark
+ * on beige/ivory backgrounds ONLY. This is NEVER the representative colour.
+ * New personal-mark/name scenarios: ASK FIRST whether display should be
+ * stronger. Only "official" (#F3ED87) and "emphasized" (#EECF58) are allowed
+ * without a fresh user-approved change. See /AGENTS.md and the identity policy.
+ */
+export const AMBERINA_WEB_MARK_COLOR = "#EECF58" as const;
 export function citizenRepresentativeColor(citizen: Pick<Citizen, "id" | "accent">): string {
   return citizen.id === "amberina" ? AMBERINA_OFFICIAL_COLOR : citizen.accent;
 }
