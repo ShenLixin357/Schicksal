@@ -167,3 +167,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   object-fit: contain;
   filter: none;
 }
+
+/* The approved Amberina mark is inlined into the CSP-nonced stylesheet on
+   the public login screen, preserving the private static-asset boundary. */
+.citizen-mark.personal-simple .citizen-simple-image {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.welcome section > button:disabled { cursor: progress; opacity: .7; }
+.welcome-preload-status { margin: 14px 0; color: #7d899b; font-size: 11px; line-height: 1.5; }
+.welcome-preload-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.welcome-preload-actions button { padding: 10px 14px; border: 1px solid #6d7786; background: transparent; color: inherit; cursor: pointer; font-size: 10px; }
