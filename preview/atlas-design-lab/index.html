@@ -24,7 +24,7 @@
 /* Atlas V5: all main-scene styles isolated; original sidebar selectors unchanged. */
 .aurora-main{overflow:clip;background:#eee3f4!important}.aurora-topbar{position:absolute;top:0;left:0;right:0;z-index:8;background:rgba(250,247,249,.42);backdrop-filter:blur(10px);border-color:rgba(236,204,166,.5)}
 .aurora-world{min-height:900px;height:max(900px,100vh);position:relative;isolation:isolate;overflow:hidden;background:#e8d9f4;}
-.aurora-world-art{position:absolute;inset:0;z-index:-2;background:linear-gradient(180deg,rgba(252,245,255,.06),rgba(248,236,255,.02) 67%,rgba(243,230,247,.12)),url("assets/iris-lily-background.webp") 50% 50% / cover no-repeat;transform:scale(1.006);pointer-events:none}
+.aurora-world-art{position:absolute;inset:0;z-index:-2;background:linear-gradient(180deg,rgba(252,245,255,.06),rgba(248,236,255,.02) 67%,rgba(243,230,247,.12)),url("assets/atlas-hq-background.webp") 50% 50% / cover no-repeat;transform:scale(1.006);pointer-events:none}
 .aurora-world:after{content:"";position:absolute;z-index:-1;inset:0;background:radial-gradient(ellipse 35% 37% at 50% 46%,rgba(224,201,245,.17),transparent 80%),linear-gradient(90deg,rgba(244,230,255,.02),transparent 24%,transparent 76%,rgba(244,230,255,.02));pointer-events:none}
 .aurora-top-heading{position:relative;z-index:2;padding:70px 16px 0;text-align:center;color:#523567;text-shadow:0 1px 2px #fff9f6}
 .aurora-top-heading small{letter-spacing:.3em;color:#967ab3;font:10px Georgia,serif}
@@ -46,7 +46,7 @@
 .aurora-center:hover{transform:translate(-50%,-50%) scale(1.06);filter:drop-shadow(0 0 27px #fff5f0)}
 .aurora-hint{font-size:12px;letter-spacing:.13em;color:#765985;text-shadow:0 1px 2px #ffffff;position:relative;margin:0}
 .aurora-down{position:absolute;bottom:17px;left:50%;transform:translateX(-50%);font-size:29px;color:#bb916b;text-shadow:0 1px 2px white;pointer-events:none}
-.aurora-directory{position:relative;isolation:isolate;background:linear-gradient(180deg,rgba(241,229,247,.82),rgba(255,248,248,.87)),url("assets/iris-lily-background.webp") center bottom/cover no-repeat;padding:55px max(25px,7vw) 95px;min-height:400px;color:#543b60}
+.aurora-directory{position:relative;isolation:isolate;background:linear-gradient(180deg,rgba(241,229,247,.82),rgba(255,248,248,.87)),url("assets/atlas-hq-background.webp") center bottom/cover no-repeat;padding:55px max(25px,7vw) 95px;min-height:400px;color:#543b60}
 .aurora-directory:before{content:"";position:absolute;top:0;left:10%;right:10%;border-top:1px solid #d2ab76}
 .aurora-directory>header{display:flex;align-items:center;justify-content:center;gap:22px;margin:0 auto 40px}
 .aurora-directory>header h2{font-weight:500;letter-spacing:.08em;font-size:27px;margin:0}
@@ -93,6 +93,28 @@ body.aurora-modal-open{overflow:hidden}
 @media(max-width:690px){.aurora-topbar{height:43px}.aurora-topbar .eyebrow{display:none}.aurora-world{min-height:660px;height:100svh}.aurora-top-heading{padding-top:74px}.aurora-top-heading h1{font-size:28px}.aurora-top-heading h1 em{font-size:15px;display:block;margin-top:5px}.aurora-wheel{width:96vw;max-width:96vw;height:auto}.aurora-altar{margin-top:44px;padding:0}.aurora-node{border-width:1px}.aurora-node-name{font-size:10px}.aurora-hint{font-size:10px;margin-top:22px}.aurora-tables{grid-template-columns:1fr;gap:35px}.aurora-directory{padding:45px 25px 75px}.aurora-directory>header h2{font-size:21px}.aurora-scroll{padding:25px 22px 36px}.aurora-scroll-sigil{width:78px;height:78px;flex-basis:78px}.aurora-scroll-person{gap:14px}.aurora-scroll-person h2{font-size:24px}}
 @media(prefers-reduced-motion:reduce){.aurora-main *{transition:none!important;animation:none!important}}
 
+
+/* V6: approved watercolor background at original quality, no blur and no printed wheel. */
+.aurora-world-art{background-image:url("assets/atlas-hq-background.webp")!important;background-size:cover!important;background-position:center center!important;filter:none!important;transform:none!important;image-rendering:auto!important}
+.aurora-world:after{background:linear-gradient(180deg,rgba(248,240,255,.06),transparent 36%,rgba(242,228,249,.04) 85%)!important}
+.aurora-directory{background:linear-gradient(180deg,rgba(249,241,251,.72),rgba(253,247,252,.79)),url("assets/atlas-hq-background.webp") center bottom/cover no-repeat!important}
+.aurora-wheel{width:min(77vh,735px);height:min(77vh,735px);max-width:calc(100vw - 286px);filter:drop-shadow(0 6px 14px rgba(83,47,89,.10));}
+.aurora-wheel:before{inset:22%;background:radial-gradient(circle,rgba(237,226,250,.28),rgba(250,245,254,.08) 67%,transparent 73%);box-shadow:0 0 30px 5px rgba(255,246,249,.22)}
+.aurora-wheel-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;filter:drop-shadow(0 4px 9px rgba(91,63,92,.14))}
+.aurora-node{width:14.75%;border:1px solid rgba(185,131,71,.76);background:radial-gradient(circle at 31% 21%,#fffefa 0%,#fff8f6 34%,var(--node-pastel) 100%);box-shadow:inset 0 0 0 3px rgba(255,252,246,.84),inset 0 0 0 4px #d9ae78,0 0 13px 2px var(--node-glow)}
+.aurora-node img{width:83%;height:83%;object-fit:contain;filter:drop-shadow(0 1px 3px #6d476c21)}
+.aurora-node .fallback-emblem{height:72%;width:72%}
+.aurora-center{width:42%;filter:drop-shadow(0 0 12px #fffbef99)}
+.aurora-center img{width:100%;height:100%;filter:drop-shadow(0 2px 3px #f2e9ca)}
+.aurora-top-heading{padding-top:69px}
+.aurora-hint{margin-top:0;font-size:11px}
+@media(max-width:700px){
+ .aurora-wheel{height:min(85vw,620px);width:min(85vw,620px);max-width:95vw}
+ .aurora-world{min-height:720px;height:100svh}
+ .aurora-world-art{background-position:50% 40%!important}
+ .aurora-node{width:15.1%}
+}
+
 </style>
 </head>
 <body>
@@ -123,36 +145,8 @@ body.aurora-modal-open{overflow:hidden}
   <div class="aurora-top-heading"><small>THE SCHICKSAL ATLAS</small><h1>天命图谱 <em>Schicksal Atlas</em></h1></div>
   <section class="aurora-altar" aria-label="天命轮盘，选择公民以打开档案">
    <div class="aurora-wheel" id="wheel">
-    <svg class="aurora-wheel-metal" viewBox="0 0 660 660" aria-hidden="true">
-      <defs>
-       <linearGradient id="metal-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff4c8"/><stop offset=".28" stop-color="#bc8856"/><stop offset=".55" stop-color="#fff9da"/><stop offset=".84" stop-color="#c99858"/><stop offset="1" stop-color="#fff7d6"/></linearGradient>
-       <radialGradient id="metal-glow"><stop stop-color="#ffffff" stop-opacity=".48"/><stop offset=".75" stop-color="#e5c6f4" stop-opacity=".17"/><stop offset="1" stop-color="#c5a8e0" stop-opacity="0"/></radialGradient>
-       <filter id="wheel-glow"><feGaussianBlur stdDeviation="4"/></filter>
-      </defs>
-      <circle cx="330" cy="330" r="320" fill="url(#metal-glow)"/>
-      <circle cx="330" cy="330" r="256" fill="none" stroke="#fff6d9" stroke-opacity=".85" stroke-width="12"/>
-      <circle cx="330" cy="330" r="256" fill="none" stroke="url(#metal-gold)" stroke-width="5"/>
-      <circle cx="330" cy="330" r="242" fill="none" stroke="#f7dcad" stroke-width="1.4" stroke-dasharray="2 7" opacity=".8"/>
-      <circle cx="330" cy="330" r="197" fill="none" stroke="url(#metal-gold)" stroke-width="4.5"/>
-      <circle cx="330" cy="330" r="191" fill="none" stroke="#fff7d5" stroke-width="1.7" opacity=".8"/>
-      <circle cx="330" cy="330" r="151" fill="none" stroke="#ead5ae" stroke-width="1.2" opacity=".65"/>
-      <circle cx="330" cy="330" r="105" fill="none" stroke="#fff9e3" stroke-width="1" opacity=".66"/>
-      <g stroke="#fce5bc" stroke-width="1.5" opacity=".8">
-       <path d="M330 80V580M80 330H580M153 153L507 507M507 153L153 507"/>
-      </g>
-      <g id="gold-node-anchors" fill="none" stroke="#f9e8c9" stroke-width="1.1">
-       <circle cx="330" cy="330" r="224" stroke-dasharray="1 17"/>
-      </g>
-      <g fill="#fff9dd" stroke="#c59764" stroke-width="2">
-       <path d="M330 30L341 65L330 88L319 65Z"/>
-       <path d="M330 630L341 595L330 572L319 595Z"/>
-       <path d="M30 330L65 319L88 330L65 341Z"/>
-       <path d="M630 330L595 319L572 330L595 341Z"/>
-      </g>
-      <path d="M330 10Q363 51 399 60M330 10Q297 51 261 60" fill="none" stroke="url(#metal-gold)" stroke-width="3.5" stroke-linecap="round"/>
-      <path d="M330 650Q363 609 399 600M330 650Q297 609 261 600" fill="none" stroke="url(#metal-gold)" stroke-width="3.5" stroke-linecap="round"/>
-    </svg>
-    <button class="aurora-center" type="button" aria-label="天命共同体的八彩标志" title="天命第一帝国共同标志" onclick="showCollective()"><img id="sharedEmblem" src="assets/shared-emblem.webp" alt="天命标志"></button>
+    <img class="aurora-wheel-frame" src="assets/wheel-frame-no-flowers.webp" alt="" aria-hidden="true" decoding="async">
+    <button class="aurora-center" type="button" aria-label="天命共同体的八彩标志" title="天命第一帝国共同标志" onclick="showCollective()"><img id="sharedEmblem" src="assets/shared-emblem-precision.webp" alt="天命标志"></button>
     <div class="aurora-nodes" id="auroraNodes"></div>
    </div>
    <p class="aurora-hint">选择晶棱 · 查阅公民档案</p>
@@ -183,8 +177,9 @@ body.aurora-modal-open{overflow:hidden}
 <script>
 
 const ASSETS={
- background:"assets/iris-lily-background.webp",
- sharedEmblem:"assets/shared-emblem.webp",
+ background:"assets/atlas-hq-background.webp",
+ wheelFrame:"assets/wheel-frame-no-flowers.webp",
+ sharedEmblem:"assets/shared-emblem-precision.webp",
  memberEmblems:{
    amberina:"assets/avs-simple-original.png",
    // Add approved member symbols here as separate transparent image files.
@@ -195,11 +190,11 @@ const CITIZENS=[
  {id:"amberina",name:"AvS",codename:"宇宙霸主",color:"#F3ED87",glass:"#f8f2b3"},
  {id:"zxy",name:"No.2",codename:"No.2",color:"#d95d52",glass:"#f5cfce"},
  {id:"truth",name:"你说真的",codename:"你说真的",color:"#eecf58",glass:"#f8efc8"},
- {id:"kaito",name:"怪盗基德",codename:"怪盗基德",color:"#65cae9",glass:"#c9e6ff"},
- {id:"harry",name:"哈利波特",codename:"哈利波特",color:"#a99ce6",glass:"#e3d9f6"},
- {id:"member6",name:"第六公民",codename:"待补档",color:"#48ad83",glass:"#d9f1e6"},
+ {id:"kaito",name:"怪盗基德",codename:"怪盗基德",color:"#e6f9ee",glass:"#f3fff9"},
+ {id:"harry",name:"哈利波特",codename:"哈利波特",color:"#5995ee",glass:"#d4e7fe"},
+ {id:"member6",name:"第六公民",codename:"待补档",color:"#ea95c9",glass:"#fbe1f3"},
  {id:"member7",name:"第七公民",codename:"待补档",color:"#ef9148",glass:"#ffdfc5"},
- {id:"member8",name:"第八公民",codename:"待补档",color:"#e982ad",glass:"#f7dbe8"}
+ {id:"member8",name:"第八公民",codename:"待补档",color:"#9f78dc",glass:"#eee0fd"}
 ];
 const OFFICES=[
  {title:"天命主席",holders:["amberina"],duties:"代表天命第一帝国，统筹公共事务。"},
@@ -214,8 +209,8 @@ const OFFICES=[
 ];
 const $=id=>document.getElementById(id);
 const positions=[
- [50,10.9],[75.8,24.2],[89.1,50],[75.8,75.8],
- [50,89.1],[24.2,75.8],[10.9,50],[24.2,24.2]
+ [50,17.6],[71.7,26.8],[79.8,49.0],[72.1,70.6],
+ [50,78.5],[27.5,70.7],[19.6,49.0],[27.8,26.8]
 ]; // 8 slots clockwise from 12 o'clock, consistent with shared emblem.
 let currentId=null,lastTrigger=null;
 function emblemGlyph(color){
@@ -223,6 +218,8 @@ function emblemGlyph(color){
 }
 function memberImg(p){const src=ASSETS.memberEmblems[p.id];return src?'<img src="'+src+'" alt="">':'<span class="fallback-emblem">'+emblemGlyph(p.color)+'</span>'}
 function renderNodes(){
+ document.getElementById("sharedEmblem").src=ASSETS.sharedEmblem;
+ document.querySelector(".aurora-wheel-frame").src=ASSETS.wheelFrame;
  $("auroraNodes").innerHTML=CITIZENS.map((p,i)=>'<button type="button" class="aurora-node" style="left:'+positions[i][0]+'%;top:'+positions[i][1]+'%;--node-glow:'+p.color+'75;--node-pastel:'+p.glass+'" aria-label="打开'+p.codename+'的公开档案" data-id="'+p.id+'">'+memberImg(p)+'<span class="aurora-node-name">'+p.codename+'</span></button>').join("");
  document.querySelectorAll(".aurora-node").forEach(b=>b.addEventListener("click",()=>openCitizen(b.dataset.id,b)));
 }
