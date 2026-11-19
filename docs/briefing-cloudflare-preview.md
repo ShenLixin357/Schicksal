@@ -144,3 +144,11 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - Existing personal emblems (75.3% web Simple and official-source Speaker exception), President office dots, eight-colour shared emblem, and other citizens' colours are unchanged. Existing urgent/important/red and yellow briefings are unchanged. Profile page's actual component/style intentionally remains as designed previously, pending a separate future task.
 - Excluded Committee Lounge, art scenes, games and the dark parliamentary chamber; broad non-club colours affect only the site's outer shell while parliament content-specific greens remain.
 - Keep all website/DB changes on PR #5 isolated preview branch; never merge, update production Worker/D1, or change Procreate source. Validate tests and authenticated preview smoke.
+
+### 2026-11-19 · User-requested less-green oat correction (supersedes the prior oat preview)
+
+- **Correction:** prior sidebar was too green and the Amberina mark must have **no background plate**. Keep the large-area background neutral oat `#ECEDE4`, off-white cards `#F5F4ED`, and use a barely perceptible `#D8E4CE` leaf tone only as a light accent (nothing greener/saturated for large surfaces).
+- Sidebar explicitly switched to nearly neutral oat-white `#F4F3EC → #F1F2EA`; no strong sage or leaf-green fill. Standard navy text and existing identity/honor colors restored.
+- Removed dark green backplate/shadow CSS entirely for Amberina's Simple in login, welcome and normal system surfaces. Only the original identity circle outlines and President office outer dots remain. Personal glyph PNG and officially approved 75.3% color were not modified.
+- Blue Ribbon retains the original blue badge, red/yellow important/urgent flags retain semantic appearance. No layout/interaction/illustration changes; separate Profile design is postponed.
+- Only modify `app/oat-sage-theme.css`, its matching test, and this preview note on isolated PR #5. Never merge or touch production or Procreate masters.
