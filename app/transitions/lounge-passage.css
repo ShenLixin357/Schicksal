@@ -1,0 +1,17 @@
+.lounge-passage {
+  position:fixed; z-index:9999; inset:0; overflow:hidden; cursor:pointer;
+  user-select:none; -webkit-tap-highlight-color:transparent;
+  background:transparent; touch-action:manipulation;
+}
+.lounge-passage:focus-visible { outline:3px solid #b09b78; outline-offset:-3px; }
+.lounge-passage-veil { position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none; }
+.lounge-passage-seal {
+  position:absolute; width:60px; height:60px; transform:translate(-50%,-50%);
+  pointer-events:none; display:grid; place-items:center; isolation:isolate;
+}
+.lounge-passage-seal-source,.lounge-passage-seal-destination {
+  position:absolute; inset:0; display:grid; place-items:center;
+}
+.lounge-passage-seal img { width:54px; height:54px; object-fit:contain; }
+.lounge-passage-seal .emblem { transform:scale(.89); }
+@media (prefers-reduced-motion:reduce) { .lounge-passage { display:none; } }
