@@ -59,12 +59,12 @@ test("ALL parliamentary insignia show original even for seat members, candidate,
   for(const mark of marks)assert.match(mark,/display="official"/,"parliament badge missing official mode: "+mark);
   assert.match(section,/electedSpeaker && <CitizenMark citizen=\{electedSpeaker\} display="official"/);
   // The member-presence footer moved to the extracted shell; identity rules did not change.
-  assert.match(pg,/renderMemberMark=\\{memberId => \\{/);
-  assert.match(pg,/<CitizenMark citizen=\\{member\\} display=\\{clubOpen \\? "official" : "web"\\}/);
+  assert.match(pg,/renderMemberMark=\{memberId => \{/);
+  assert.match(pg,/<CitizenMark citizen=\{member\} display=\{clubOpen \? "official" : "web"\}/);
   const sidebar=source("../app/shell/imperial-sidebar.tsx");
-  assert.match(sidebar,/className="schicksal-sidebar-footer"[^]*?<SidebarPresence[^]*?selfId=\\{selfId\\}/);
+  assert.match(sidebar,/className="schicksal-sidebar-footer"[^]*?<SidebarPresence[^]*?selfId=\{selfId\}/);
   assert.match(sidebar,/className="schicksal-sidebar-logout"/);
-  assert.match(sidebar,/onClick=\\{onLogout\\}/);
+  assert.match(sidebar,/onClick=\{onLogout\}/);
   const presence=source("../app/briefing/sidebar-presence.tsx");
   assert.match(presence,/member.id === selfId/);
   assert.match(presence,/member.id !== selfId && !member.locked && onlineIds.has\(member.id\)/);
