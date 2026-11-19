@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN" data-demo-mode="merged"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Solstice Dendrite · Complete Animation with Tyndall Holy Light</title>
+<title>Solstice Dendrite · Double Back Descent + Front Reveal</title>
 <style>
 :root{color-scheme:dark;--warm:#f3e7d5}
 *{box-sizing:border-box}
@@ -67,6 +67,23 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 /* Independent Holy Light GPU layer: Tyndall rays stay behind the card and snow.
    The previously accepted 1.42-second ice-burst GPU canvas stays above the card. */
 #holyLightCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;mix-blend-mode:screen}
+/* Tyndall overlay ABOVE the card during descent/hover, but BELOW the revealed
+   front after the click. The approved snow and burst keep their own depth. */
+.stage.light-over-card #holyLightCanvas{z-index:7}
+.stage.reveal-phase #holyLightCanvas{z-index:4}
+.stage.light-over-card.holy-fallback .light-origin,
+.stage.light-over-card.holy-fallback .beam,
+.stage.light-over-card.holy-fallback .light-core{z-index:7}
+.stage.reveal-phase.holy-fallback .light-origin,
+.stage.reveal-phase.holy-fallback .beam,
+.stage.reveal-phase.holy-fallback .light-core{z-index:4}
+/* The other physical side of the 3D card is the same original BACK during
+   descent; the actual front underneath is exposed only when clicked. */
+.front>.arrival-back-cover{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;
+ z-index:3;border-radius:inherit;opacity:1;pointer-events:none}
+.card.is-revealing .front>.arrival-back-cover{visibility:hidden}
+.face::before{z-index:4!important}
+.face::after{z-index:5!important}
 .light-origin,.beam,.light-core{display:none}
 .stage.holy-fallback .light-origin,.stage.holy-fallback .beam,.stage.holy-fallback .light-core{display:block}
 .pool{z-index:2;filter:blur(25px)}
@@ -84,7 +101,7 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <div id="lightCore" class="light-core"></div><div class="pool" id="pool"></div><div id="cardHalo" class="card-halo"></div>
 <div class="card" id="card"><div class="spin" id="spin">
 <div class="face back"><img id="back" class="background" alt=""><span id="anchor" class="core-anchor"></span></div>
-<div class="face front"><img id="front" class="background" alt=""><img id="flower" class="flower" alt=""><div class="title-art" id="titleArt"><img id="title" class="title-original" alt=""><div class="title-crystal" aria-hidden="true"></div></div></div>
+<div class="face front"><img id="front" class="background" alt=""><img id="flower" class="flower" alt=""><div class="title-art" id="titleArt"><img id="title" class="title-original" alt=""><div class="title-crystal" aria-hidden="true"></div></div><img id="arrivalBack" class="arrival-back-cover" alt="" aria-hidden="true"></div>
 </div></div>
 <canvas id="snowCanvas"></canvas>
 <canvas id="fxCanvas"></canvas>
@@ -100,7 +117,7 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <label>雪花核心横向位置<input id="coreX" type="range" min="43" max="57" step=".25" value="50"></label>
 <label>雪花核心纵向位置<input id="coreY" type="range" min="43" max="57" step=".25" value="50"></label>
 <label style="flex-direction:row;align-items:center"><input type="checkbox" id="showCore">显示核心定位标记</label>
-</div><div id="assetMsg" class="small">整合版：丁达尔圣光（强度105%、宽度100%、雾气100%、无可见微粒）→ 原卡牌斜轴旋转下降 → 悬停 → 点击后原版V4径向冰雪折光（1.42秒）。圣光和冰晶爆发互不覆盖，可点击跳过进场。</div>
+</div><div id="assetMsg" class="small">整合版：丁达尔圣光105/100/100叠在牌背上方 → 卡牌双面牌背沿斜轴旋转下降 → 悬停 → 点击才翻出真实牌面，此时卡牌图层高于圣光 → V4径向冰雪折光1.42秒。可点击跳过进场。</div>
 </details></div>
 <script id="holyLightSrc" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -291,7 +308,7 @@ frag=vec4(col,a);
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-const stage=$('stage'),spin=$('spin'),card=$('card'),back=$('back'),front=$('front'),flower=$('flower'),title=$('title'),anchor=$('anchor'),guide=$('coreGuide'),missing=$('missing'),play=$('play'),resetBtn=$('reset'),assetMsg=$('assetMsg'),status=$('status');
+const stage=$('stage'),spin=$('spin'),card=$('card'),back=$('back'),arrivalBack=$('arrivalBack'),front=$('front'),flower=$('flower'),title=$('title'),anchor=$('anchor'),guide=$('coreGuide'),missing=$('missing'),play=$('play'),resetBtn=$('reset'),assetMsg=$('assetMsg'),status=$('status');
 const lightOrigin=$('lightOrigin'),beam=$('beam'),lightCore=$('lightCore'),pool=$('pool'),cardHalo=$('cardHalo');
 const holyCanvas=$('holyLightCanvas');
 const HOLY_INTENSITY=1.05,HOLY_WIDTH=1.00,HOLY_HAZE=1.00;
@@ -310,7 +327,7 @@ function ready(){let ok=!!assets[names[0]]&&!!assets[names[1]];play.disabled=!ok
 function applyImage(name,blob){
  if(URLs[name])URL.revokeObjectURL(URLs[name]);
  URLs[name]=URL.createObjectURL(blob);assets[name]=true;
- if(name===names[0])back.src=URLs[name];
+ if(name===names[0]){back.src=URLs[name];arrivalBack.src=URLs[name];}
  if(name===names[1])front.src=URLs[name];
  if(name===names[2])flower.src=URLs[name];
  if(name===names[3]){title.src=URLs[name];$('titleArt').style.setProperty('--title-mask','url("'+URLs[name]+'")');}
@@ -674,6 +691,9 @@ function cardPose(deg,tilt,y,scale,opacity){
 }
 function hover(){
  mode='hover';sunLight(1);cardPose(720,END_TILT,0,1,1);
+ // Light still overlays the double-backed card until the reveal click.
+ stage.classList.add('light-over-card');
+ stage.classList.remove('reveal-phase');
  snowCanvas.style.opacity='1';refreshGuide();
  play.textContent='✦ 点击卡牌揭晓';
  status.textContent='卡牌悬停，点击揭晓';
@@ -687,6 +707,9 @@ function entrance(){
 }
 function idle(){
  cancelAnimationFrame(raf);mode='ready';t=0;last=0;startAt=0;entryAt=0;
+ card.classList.remove('is-revealing');
+ stage.classList.remove('reveal-phase');
+ stage.classList.add('light-over-card');
  card.style.visibility='hidden';card.style.opacity='0';
  card.style.transform='translate(-50%,-50%) translateY(-355px) scale(.72)';
  spin.style.transform='rotateZ(-13.7deg)';
@@ -708,6 +731,11 @@ function freezeRadius(time){
 }
 function explode(){
  if(play.disabled||mode!=='hover')return;
+ // Switch the hidden reverse face to the authentic front BEFORE the 3D flip.
+ // Nothing changes visually until that side turns toward the viewer.
+ card.classList.add('is-revealing');
+ stage.classList.remove('light-over-card');
+ stage.classList.add('reveal-phase');
  cancelAnimationFrame(raf);mode='burst';t=0;last=0;startAt=0;
  origin=getOrigin();
  maxRadius=Math.max(Math.hypot(origin.x,origin.y),Math.hypot(W-origin.x,origin.y),Math.hypot(origin.x,H-origin.y),Math.hypot(W-origin.x,H-origin.y))+30;
