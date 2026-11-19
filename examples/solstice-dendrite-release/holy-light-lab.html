@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Solstice Dendrite — Holy Light Lab</title>
+<title>Solstice Dendrite — Holy Light · Tyndall Lab</title>
 <style>
 :root{color-scheme:dark;--paper:#f0e7da;--muted:#bfc6cc;--champagne:#f2dcb6}
 *{box-sizing:border-box}
@@ -18,7 +18,7 @@ header p{font-size:12px;color:#c2c6cf;margin:3px 0}
 .stage{position:relative;height:min(72vh,635px);min-height:450px;background:radial-gradient(ellipse at 50% 4%,#5160773b 0%,transparent 48%),linear-gradient(180deg,#28344a,#192639 58%,#101b2a);border:1px solid #cbb58b35;box-shadow:0 18px 65px #050b15a6,inset 0 0 80px #06101d90;overflow:hidden;border-radius:17px;isolation:isolate;perspective:1300px;cursor:pointer}
 .stage:focus-visible{outline:2px solid #eed9b4;outline-offset:3px}
 #lightCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;mix-blend-mode:screen}
-#dustCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
+
 .halo-environment{position:absolute;z-index:1;left:50%;top:52%;transform:translate(-50%,-50%);width:85%;height:85%;background:radial-gradient(ellipse,#fff6df27 0%,#f0e4d00e 38%,transparent 73%);opacity:0;filter:blur(28px);pointer-events:none}
 .light-floor{position:absolute;z-index:1;left:50%;top:83%;width:58%;height:27%;transform:translate(-50%,-50%);background:radial-gradient(ellipse,#fff7e54d,#eddbad23 36%,transparent 71%);opacity:0;filter:blur(22px);pointer-events:none}
 #legacyLight{position:absolute;inset:0;z-index:2;display:none;pointer-events:none;mix-blend-mode:screen}
@@ -54,7 +54,7 @@ button:disabled{opacity:.46;cursor:not-allowed}
 .readout{text-align:center;color:#d8c4a9;font-size:11px;min-height:16px}
 .panel{margin:13px 0 0;background:#121e2dcc;border:1px solid #e5d1a436;border-radius:12px;padding:15px 19px}
 .panel summary{cursor:pointer;font-size:12px;font-weight:600;color:#e9dabd}
-.params{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-top:15px}
+.params{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:15px}.scattering-note{padding:9px 12px;border:1px solid #d9e9f43b;background:#d8e9fc09;border-radius:8px;font-size:11px;color:#b5cbda;margin-top:12px}.scattering-note strong{display:block;color:#f6e4c8;font-weight:600}.scattering-note span{display:block;margin-top:4px}
 .params label{font-size:11px;color:#dfd3c1;display:flex;flex-direction:column;gap:5px;min-width:0}
 .params .value{font-variant-numeric:tabular-nums;color:#b7d9e7;float:right}
 input[type=range]{width:100%;accent-color:#ead7b3}
@@ -70,20 +70,20 @@ input[type=file]{max-width:100%;font-size:11px;color:#aeb8c8}
 </head>
 <body>
 <main>
-<header><div class="eyebrow">SCHICKSAL · SOLSTICE DENDRITE · EFFECT STUDY</div><h1>Holy Light Lab</h1><p>珍珠白冬日天光 · 光在空气中，而不只在卡牌表面</p></header>
+<header><div class="eyebrow">SCHICKSAL · SOLSTICE DENDRITE · EFFECT STUDY</div><h1>Holy Light · Tyndall Lab</h1><p>105% 珍珠白圣辉 · 大范围天光包裹 · 丁达尔散射光路</p></header>
 <section id="stage" class="stage" data-has-art="false" role="button" tabindex="0" aria-label="点击重新播放圣光；卡牌下降时点击可跳过至悬停">
 <div id="environment" class="halo-environment"></div>
 <div id="floor" class="light-floor"></div>
 <div id="legacyLight"><div class="legacy-source"></div><div class="legacy-beam"></div><div class="legacy-inner"></div></div>
 <canvas id="lightCanvas"></canvas>
-<canvas id="dustCanvas"></canvas>
+
 <div id="card" class="card">
  <div id="spin" class="spin">
   <div class="face back"><div class="blank-design"><small>ORIGINAL CARD ART</small>✧ SOLSTICE ✧<small>导入原画后显示真实牌背</small></div><img id="back" class="background" alt="原始卡牌背面"></div>
   <div class="face front"><div class="blank-design"><small>ORIGINAL CARD ART</small>✧ BRUMA ✧<small>导入原画后显示真实牌面</small></div><img id="front" class="background" alt="原始卡牌正面"><img id="flower" class="flower" alt=""><div id="titleArt" class="title-art"><img id="title" alt=""><div class="title-crystal"></div></div></div>
  </div><div class="rim-light"></div>
 </div>
-<div id="stageLabel" class="stage-note">LIGHT ONLY · HOLY LIGHT V2</div>
+<div id="stageLabel" class="stage-note">LIGHT ONLY · TYNDALL LIGHT V2</div>
 <div id="stageHint" class="stage-hint">点击画面重播</div>
 <div id="status" role="status" aria-live="polite"></div>
 </section>
@@ -93,7 +93,7 @@ input[type=file]{max-width:100%;font-size:11px;color:#aeb8c8}
  <button id="descent" aria-pressed="false">03 · 下降预览</button>
 </div>
 <div class="controls" role="group" aria-label="圣光版本">
- <button id="refined" aria-pressed="true">新版 · 冬日体积光</button>
+ <button id="refined" aria-pressed="true">新版 · 丁达尔圣光</button>
  <button id="original" aria-pressed="false">对照 · 旧圣光</button>
  <button id="play" class="primary">✦ 重播圣光</button>
  <button id="reset">重置</button>
@@ -101,11 +101,11 @@ input[type=file]{max-width:100%;font-size:11px;color:#aeb8c8}
 <div class="readout" id="readout">0.00s · 高处天光逐渐成形</div>
 <details class="panel" open><summary>光效调试参数 · 不改变卡牌原画</summary>
  <div class="params">
-  <label><span>光照强度 <span id="intensityValue" class="value">100%</span></span><input id="intensity" type="range" min="45" max="145" value="100" step="5"></label>
-  <label><span>光束宽度 <span id="widthValue" class="value">100%</span></span><input id="width" type="range" min="55" max="155" value="100" step="5"></label>
+  <label><span>光照强度 <span id="intensityValue" class="value">105%</span></span><input id="intensity" type="range" min="45" max="145" value="105" step="5"></label>
+  <label><span>光束宽度 <span id="widthValue" class="value">185%</span></span><input id="width" type="range" min="65" max="260" value="185" step="5"></label>
   <label><span>雾气密度 <span id="hazeValue" class="value">100%</span></span><input id="haze" type="range" min="25" max="155" value="100" step="5"></label>
-  <label><span>空气微粒 <span id="dustValue" class="value">45%</span></span><input id="dust" type="range" min="0" max="100" value="45" step="5"></label>
- </div>
+  <div class="scattering-note"><strong>丁达尔散射</strong><span>用空气中的散射密度显出柔和光路；不绘制漂浮的亮点。</span></div>
+ </div><div class="scattering-note"><strong>已启用丁达尔散射光路</strong><span>细长光路沿同一个高处光源向下延伸，边界平滑、空气浓淡略有差异。取消了可见漂浮微粒。</span></div>
 </details>
 <details class="panel"><summary>导入真实卡牌素材（可选，纯圣光无需素材）</summary>
  <div class="uploads">
@@ -135,87 +135,97 @@ uniform float uShape;
 uniform float uIntensity;
 uniform float uWidth;
 uniform float uHaze;
-const float PI=3.14159265359;
+uniform float uCardHalfW;
 float s(float a,float b,float x){return smoothstep(a,b,x);}
-float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){
- vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
- return mix(mix(hs(i),hs(i+vec2(1.,0.)),f.x),mix(hs(i+vec2(0.,1.)),hs(i+1.),f.x),f.y);
+ vec2 i=floor(p),f=fract(p);
+ f=f*f*(3.0-2.0*f);
+ return mix(mix(hash21(i),hash21(i+vec2(1.,0.)),f.x),
+            mix(hash21(i+vec2(0.,1.)),hash21(i+vec2(1.,1.)),f.x),f.y);
 }
 float fbm(vec2 p){
- float v=0.,amp=.55;
- for(int k=0;k<3;k++){v+=amp*noise(p);p=p*2.02+11.38;amp*=.48;}
- return v;
+ float total=0.,amplitude=.56;
+ for(int k=0;k<3;k++){total+=amplitude*noise(p);p=p*2.02+11.3;amplitude*=.48;}
+ return total;
 }
 void main(){
- vec2 uv=gl_FragCoord.xy/uSize;
- vec2 p=vec2(uv.x,1.-uv.y);
- float elapsed=uTime;
- // The emitter is deliberately above the frame, so there is no flat visible sun disc.
- vec2 emitter=vec2(.5,-.27);
- vec2 delta=p-emitter;
- float theta=atan(delta.x,delta.y);
+ vec2 p=vec2(gl_FragCoord.x/uSize.x,1.0-gl_FragCoord.y/uSize.y);
  float y=p.y;
- float width=max(.20,uWidth)*.34;
- float ang=theta/width;
- // Wide overall atmospheric volume, shaped by distance from the hidden source.
- float cone=exp(-pow(abs(ang)*1.17,2.42));
- float stageFalloff=(.87+.13*(1.-y))*(1.-s(.81,1.18,y)*.35);
- float depth=s(-.035,.13,y)*(1.-s(.91,1.23,y)*.65);
- // Several broad, interwoven shafts; all boundaries remain soft.
- float timeDrift=elapsed*.018;
- float laneA=exp(-pow((theta+.100+sin(elapsed*.12)*.0025)/.092,2.0));
- float laneB=exp(-pow((theta-.076-sin(elapsed*.10)*.0023)/.079,2.0));
- float laneC=exp(-pow((theta+.014)/.109,2.0));
- float laneD=exp(-pow((theta-.174)/.074,2.0))*.52;
- float lanes=.23*laneA+.24*laneB+.31*laneC+.11*laneD;
- // Slow heterogeneous air density. No hard-edged cone or regular laser spokes.
- float veils=fbm(vec2(theta*14.0+timeDrift,y*2.75-elapsed*.009));
- float filaments=fbm(vec2(theta*49.0-timeDrift*.21,y*3.4+elapsed*.014));
- float softAir=.78+.32*(veils-.48)+.11*(filaments-.50);
- float core=exp(-pow(theta/.147,2.0))*.19;
- float volume=cone*(.245+lanes+core)*softAir*stageFalloff*depth*uHaze;
- // Top diffusion has no circular edge and fades into the upper atmosphere.
- float topGlow=exp(-pow((p.x-.5)/.38,2.0))*(1.-s(-.07,.49,y))*.24;
- // Lower haze stays restrained so that the background retains deep contrast.
- float lower=exp(-pow((p.x-.5)/(.31*uWidth),2.0))*exp(-pow((y-.64)/.43,2.0))*.11;
- float density=(volume+topGlow+lower*uHaze);
- // Envelopes are different in time but always converge to a stable, nonpulsing state.
- float reveal=s(.02,.87,uShape);
- float veilReveal=s(.15,.71,uShape);
- float shape=reveal*(.84+.16*veilReveal);
- density*=shape*uIntensity;
- // Pearl/ivory core, muted champagne interior, extremely subtle cold-blue rim.
- float cool=s(.35,1.05,abs(ang));
- vec3 pearl=vec3(1.0,.986,.955);
- vec3 champagne=vec3(1.0,.947,.857);
- vec3 ice=vec3(.81,.916,1.0);
- vec3 tint=mix(pearl,champagne,s(.04,.7,y)*.22);
- tint=mix(tint,ice,cool*.30);
- float diffusion=exp(-pow((p.x-.5)/(.22+max(y,0.)*.13),2.0))*exp(-pow((y-.42)/.68,2.0))*.035;
- vec3 rgb=tint*density+pearl*diffusion*shape*uIntensity;
- float alpha=clamp(density*.92+diffusion*shape,0.,.77);
- frag=vec4(rgb,alpha);
+ float elapsed=uTime;
+ // The luminous opening stays above the viewport. Rays refer to that one source.
+ vec2 source=vec2(.5,-.40);
+ vec2 d=p-source;
+ float angle=atan(d.x,d.y);
+ float axis=(p.x-.5);
+ // Screen-space breadth is calibrated to the ORIGINAL card, including the
+ // full width of the tilted card silhouette plus ample illuminated atmosphere.
+ float cardEnvelope=max(.21,uCardHalfW*1.8);
+ float baseHalf=cardEnvelope*(.85+.24*y)*uWidth;
+ float normalized=axis/max(baseHalf,.001);
+ float wideVeil=exp(-pow(abs(normalized)*.74,3.0));
+ float spacious=exp(-pow(abs(normalized)*.56,2.0));
+ float horizon=1.0-s(.84,1.25,y)*.42;
+ // Realistic Tyndall-like visible scattering: dust is represented by smoothly
+ // varying *air density*, never drawn as glowing particle dots.
+ // Broad patches along the source direction create soft distinct light paths.
+ float slow=elapsed*.008;
+ vec2 medium=vec2(angle*13.6+slow,y*2.2-slow*.70);
+ float scatter=fbm(medium);
+ float fine=fbm(vec2(angle*39.0-slow*.18,y*3.3+slow*.34));
+ float densityVariation=.86+.30*(scatter-.42)+.13*(fine-.45);
+ float relative=angle/(.26*uWidth+.035);
+ // The central shaft is broad; three subsidiary shafts have soft changing
+ // boundaries and share the same invisible top source.
+ float shaftOne=exp(-pow((relative+.31)/.21,2.0));
+ float shaftTwo=exp(-pow((relative-.25)/.24,2.0));
+ float shaftThree=exp(-pow((relative+.01)/.33,2.0));
+ float shaftFar=exp(-pow((relative-.63)/.27,2.0));
+ float shafts=.22*shaftOne+.24*shaftTwo+.29*shaftThree+.075*shaftFar;
+ float atmosphericPath=.13+.67*wideVeil+shafts*wideVeil;
+ // Tyndall beams are softer toward the floor and merge into broad ambient light.
+ float viewDepth=s(-.06,.12,y)*(1.-s(.80,1.22,y)*.26);
+ float volumetric=atmosphericPath*densityVariation*viewDepth*horizon*uHaze;
+ float enclosure=spacious*(.13+.18*s(.11,.65,y))*uHaze;
+ // Topmost source spread: not a flat glowing ball or hard cone.
+ float sourceHaze=exp(-pow((p.x-.5)/(.44*uWidth),2.0))*
+                  (1.-s(-.11,.48,y))*.20;
+ // Separate a slowly drifting translucence from the static wide light field.
+ float pearlBloom=exp(-pow(normalized*.71,2.0))*
+  exp(-pow((y-.49)/.82,2.0))*.064;
+ float shape=s(.01,.95,uShape);
+ float detail=s(.24,.71,uShape);
+ float brightness=(volumetric*(.65+.35*detail)*.56+
+                   enclosure*.46+sourceHaze+pearlBloom)*shape*uIntensity;
+ // The golden warmth is concentrated in the inner shaft, with gentle cold
+ // blue near the outer scattering edges. Avoid rainbow refractions.
+ float edge=s(.39,1.16,abs(normalized));
+ vec3 pearl=vec3(1.0,.985,.958);
+ vec3 warm=vec3(1.0,.946,.867);
+ vec3 cold=vec3(.80,.908,1.0);
+ vec3 tint=mix(pearl,warm,.12+shafts*.23);
+ tint=mix(tint,cold,.24*edge);
+ float alpha=clamp(brightness*.78,0.0,.71);
+ frag=vec4(tint*brightness,alpha);
 }
+
 </script>
 <script>
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const stage=$('stage'),card=$('card'),spin=$('spin'),canvas=$('lightCanvas'),dustCanvas=$('dustCanvas');
-const dust=dustCanvas.getContext('2d',{alpha:true});
+const stage=$('stage'),card=$('card'),spin=$('spin'),canvas=$('lightCanvas');
 const note=$('stageLabel'),hint=$('stageHint'),readout=$('readout'),environment=$('environment'),floor=$('floor'),legacy=$('legacyLight');
 const btns={light:$('lightOnly'),card:$('cardHold'),descent:$('descent'),refined:$('refined'),original:$('original')};
-const sliders={intensity:$('intensity'),width:$('width'),haze:$('haze'),dust:$('dust')};
+const sliders={intensity:$('intensity'),width:$('width'),haze:$('haze')};
 const names=['Card_Back.png','Card_Front.png','Flower_Bruma.png','Title_Solstice_Dendrite.png'];
 const keyMap={'Card_Back.png':'back','Card_Front.png':'front','Flower_Bruma.png':'flower','Title_Solstice_Dendrite.png':'title'};
 const objects={};
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 const ease=x=>{x=clamp(x);return x*x*(3-2*x)};
-let view='light',version='refined',W=1,H=1,dpr=1,webgl=null,particles=[],seed=216013;
+let view='light',version='refined',W=1,H=1,dpr=1,webgl=null;
 let startAt=0,lastAt=0,played=0,playing=true,frame=0,ready=false;
 const LIGHT=.95,DROP=4.45,TRAVEL=355,START_TILT=-13.7,END_TILT=-4.8;
-const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
 function setArt(name,blob){
  const id=keyMap[name];if(!id)return;
  if(objects[name])URL.revokeObjectURL(objects[name]);
@@ -278,50 +288,15 @@ function makeGL(){
   gl.attachShader(program,compile(gl,gl.FRAGMENT_SHADER,$('fragmentShader').textContent));
   gl.linkProgram(program);
   if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
-  return {gl,program,locations:Object.fromEntries(['uSize','uTime','uShape','uIntensity','uWidth','uHaze'].map(k=>[k,gl.getUniformLocation(program,k)]))};
+  return {gl,program,locations:Object.fromEntries(['uSize','uTime','uShape','uIntensity','uWidth','uHaze','uCardHalfW'].map(k=>[k,gl.getUniformLocation(program,k)]))};
  }catch(err){$('status').textContent='WebGL2 启动失败，已改用兼容圣光：'+err.message;return null;}
 }
 function resize(){
  const b=stage.getBoundingClientRect();
  W=b.width;H=b.height;dpr=Math.min(window.devicePixelRatio||1,1.35);
- canvas.width=Math.max(1,Math.round(W*dpr*.82));canvas.height=Math.max(1,Math.round(H*dpr*.82));
- dustCanvas.width=Math.max(1,Math.round(W*dpr));dustCanvas.height=Math.max(1,Math.round(H*dpr));
- dust.setTransform(dpr,0,0,dpr,0,0);
+ canvas.width=Math.max(1,Math.round(W*dpr*.84));
+ canvas.height=Math.max(1,Math.round(H*dpr*.84));
  if(webgl)webgl.gl.viewport(0,0,canvas.width,canvas.height);
- createDust();
-}
-function createDust(){
- particles=[];seed=216013;
- for(let i=0;i<70;i++){
-  const a=rand()*Math.PI*2;
-  particles.push({x:.5+(rand()-.5)*.61,y:rand(),size:.32+rand()*1.2,phase:rand()*6.28,
-   vx:(rand()-.5)*.0055,vy:.004+rand()*.011,twinkle:.55+rand()*.45,life:rand(),tilt:a});
- }
-}
-function rgba(color,a){return 'rgba('+color+','+clamp(a).toFixed(4)+')';}
-function drawDust(sec,p){
- dust.clearRect(0,0,W,H);
- const count=Math.round(70*(Number(sliders.dust.value)/100));
- if(count<=0||p<=.05)return;
- for(let i=0;i<count;i++){
-  const z=particles[i];
-  const y=((z.y-sec*z.vy)%1+1)%1;
-  const x=z.x+Math.sin(sec*.26+z.phase)*.009+z.vx*sec*.13;
-  // Visible only in lit air; scattered at various depths.
-  const nx=(x-.5)/(.17+.24*y)*(100/Number(sliders.width.value));
-  const exposure=Math.exp(-nx*nx*1.3);
-  const alpha=exposure*p*(.15+.24*z.twinkle)*(Number(sliders.intensity.value)/100);
-  if(alpha<.008)continue;
-  const px=x*W,py=y*H;
-  const radius=(2.6+z.size*2.5);
-  const grad=dust.createRadialGradient(px,py,0,px,py,radius);
-  grad.addColorStop(0,rgba('255,253,241',alpha*.78));
-  grad.addColorStop(.24,rgba('240,248,253',alpha*.35));
-  grad.addColorStop(1,rgba('224,241,253',0));
-  dust.fillStyle=grad;dust.beginPath();dust.arc(px,py,radius,0,Math.PI*2);dust.fill();
-  dust.fillStyle=rgba('255,250,233',alpha*.9);
-  dust.beginPath();dust.arc(px,py,z.size*.39,0,Math.PI*2);dust.fill();
- }
 }
 function drawLight(sec,p){
  let progress=clamp(p);
@@ -340,15 +315,15 @@ function drawLight(sec,p){
   gl.uniform1f(L.uIntensity,intensity);
   gl.uniform1f(L.uWidth,width);
   gl.uniform1f(L.uHaze,haze);
+  gl.uniform1f(L.uCardHalfW,(card.getBoundingClientRect().width/Math.max(W,1))*.5);
   gl.drawArrays(gl.TRIANGLES,0,3);
  }else{
   legacy.style.opacity=String(clamp(progress*intensity*.86));
   legacy.style.transform='scaleX('+width.toFixed(3)+')';
   legacy.style.transformOrigin='center top';
  }
- environment.style.opacity=String(clamp(progress*.68*intensity*haze));
- floor.style.opacity=String(clamp(progress*.56*intensity));
- drawDust(sec,progress);
+ environment.style.opacity=String(clamp(progress*.57*intensity*haze));
+ floor.style.opacity=String(clamp(progress*.50*intensity));
 }
 function cardPose(deg,tilt,y,scale,opacity,lit){
  card.style.visibility=opacity>.001?'visible':'hidden';
@@ -399,7 +374,7 @@ function render(now){
 }
 function replay(){
  playing=true;played=0;startAt=performance.now();lastAt=0;
- note.textContent=(view==='light'?'LIGHT ONLY':view==='card'?'CARD IN LIGHT':'DESCENT PREVIEW')+' · '+(version==='refined'?'HOLY LIGHT V2':'ORIGINAL');
+ note.textContent=(view==='light'?'LIGHT ONLY':view==='card'?'CARD IN LIGHT':'DESCENT PREVIEW')+' · '+(version==='refined'?'TYNDALL HOLY LIGHT':'ORIGINAL');
  hint.textContent=view==='descent'?'点击画面跳至悬停':'点击画面重播';
  $('status').textContent='正在播放 '+note.textContent;
 }
