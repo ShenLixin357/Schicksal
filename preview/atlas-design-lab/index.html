@@ -38,8 +38,8 @@
 .aurora-node{position:absolute;width:15.5%;aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid #e9c9a1;border-radius:50%;background:radial-gradient(circle at 29% 22%,rgba(255,255,255,.96),rgba(255,248,247,.91) 35%,var(--node-pastel) 100%);box-shadow:inset 0 0 0 4px rgba(255,251,241,.75),inset 0 0 0 5px rgba(195,143,87,.50),0 2px 9px rgba(105,70,104,.22),0 0 13px 2px var(--node-glow);display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .2s;cursor:pointer}
 .aurora-node:hover,.aurora-node:focus-visible{transform:translate(-50%,-50%) scale(1.1);box-shadow:inset 0 0 0 4px rgba(255,251,241,.86),inset 0 0 0 5px #e2bc8c,0 0 27px 6px var(--node-glow),0 5px 14px rgba(102,65,105,.28);z-index:10}
 .aurora-node img{width:63%;height:63%;object-fit:contain;filter:drop-shadow(0 1px 2px #634e6f27)}
-.aurora-node .fallback-emblem{width:60%;height:60%;object-fit:contain;filter:drop-shadow(0 0 4px var(--node-glow))}
-.aurora-node-name{position:absolute;top:100%;left:50%;transform:translate(-50%,8px);font:12px "Songti SC",serif;white-space:nowrap;color:#563f65;background:#fffaf6ed;border:1px solid #d6b88e;padding:3px 10px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+.aurora-node .fallback-emblem{display:block;width:60%;height:60%;object-fit:contain;filter:drop-shadow(0 0 4px var(--node-glow))}
+.aurora-node .fallback-emblem svg{display:block;width:100%;height:100%}.aurora-node-name{position:absolute;top:100%;left:50%;transform:translate(-50%,8px);font:12px "Songti SC",serif;white-space:nowrap;color:#563f65;background:#fffaf6ed;border:1px solid #d6b88e;padding:3px 10px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
 .aurora-node:hover .aurora-node-name,.aurora-node:focus-visible .aurora-node-name{opacity:1}
 .aurora-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:42%;aspect-ratio:1;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;filter:drop-shadow(0 0 21px #fff2f0b8);transition:transform .28s,filter .28s}
 .aurora-center img{width:100%;height:100%;object-fit:contain}
@@ -193,13 +193,13 @@ const ASSETS={
 };
 const CITIZENS=[
  {id:"amberina",name:"AvS",codename:"宇宙霸主",color:"#F3ED87",glass:"#f8f2b3"},
- {id:"zxy",name:"No.2",codename:"No.2",color:"#f37d79",glass:"#f5cfce"},
- {id:"truth",name:"你说真的",codename:"你说真的",color:"#95d7c2",glass:"#d0ebe3"},
- {id:"kaito",name:"怪盗基德",codename:"怪盗基德",color:"#91c7f5",glass:"#c9e6ff"},
- {id:"harry",name:"哈利波特",codename:"哈利波特",color:"#e7ae76",glass:"#ffdfbf"},
- {id:"member6",name:"第六公民",codename:"待补档",color:"#dd8bb1",glass:"#f5cbdd"},
- {id:"member7",name:"第七公民",codename:"待补档",color:"#ad91db",glass:"#ded1fa"},
- {id:"member8",name:"第八公民",codename:"待补档",color:"#87a4ed",glass:"#c7d7f5"}
+ {id:"zxy",name:"No.2",codename:"No.2",color:"#d95d52",glass:"#f5cfce"},
+ {id:"truth",name:"你说真的",codename:"你说真的",color:"#eecf58",glass:"#f8efc8"},
+ {id:"kaito",name:"怪盗基德",codename:"怪盗基德",color:"#65cae9",glass:"#c9e6ff"},
+ {id:"harry",name:"哈利波特",codename:"哈利波特",color:"#a99ce6",glass:"#e3d9f6"},
+ {id:"member6",name:"第六公民",codename:"待补档",color:"#48ad83",glass:"#d9f1e6"},
+ {id:"member7",name:"第七公民",codename:"待补档",color:"#ef9148",glass:"#ffdfc5"},
+ {id:"member8",name:"第八公民",codename:"待补档",color:"#e982ad",glass:"#f7dbe8"}
 ];
 const OFFICES=[
  {title:"天命主席",holders:["amberina"],duties:"代表天命第一帝国，统筹公共事务。"},
