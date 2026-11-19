@@ -55,14 +55,19 @@ jobs:
           appendFileSync(process.env.GITHUB_ENV,"VERIFIED_PREVIEW_UUID="+preview[0].uuid+"\n");
           NODE
           npx wrangler deployments list --name schicksal --json > "$RUNNER_TEMP/prod-worker.json"
-          npx wrangler deployments list --name schicksal-briefing-preview --json > "$RUNNER_TEMP/preview-worker.json"
-          node --input-type=module - <<'NODE'
-          import { readFileSync } from "node:fs";
-          for(const name of ["prod","preview"]){
-            const raw=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/"+name+"-worker.json","utf8"));
-            const rows=Array.isArray(raw)?raw:(raw.deployments??raw.result??[]);
-            if(!Array.isArray(rows)||!rows.length)throw Error(name+" Worker not deployed");
-          }
+node --input-type=module - <<'NODE'
+          // Previous Wrangler delete removed the preview Worker before its
+          // unrelated KV-listing permission error; confirm it stays absent.
+          import {readFileSync} from "node:fs";
+          const raw=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/prod-worker.json","utf8"));
+          const rows=Array.isArray(raw)?raw:(raw.deployments??raw.result??[]);
+          if(!Array.isArray(rows)||!rows.length)throw Error("Production Worker missing");
+          const res=await fetch("https://api.cloudflare.com/client/v4/accounts/"+process.env.CLOUDFLARE_ACCOUNT_ID+
+            "/workers/scripts/schicksal-briefing-preview",{
+            headers:{Authorization:"Bearer "+process.env.CLOUDFLARE_API_TOKEN}
+          });
+          if(res.status!==404)throw Error("Preview Worker must already be gone; HTTP "+res.status);
+          console.log("Confirmed preview Worker is already deleted; production Worker still deployed.");
           NODE
           node --input-type=module - <<'NODE'
           const root="https://schicksal.m17686100216.workers.dev";
@@ -74,23 +79,6 @@ jobs:
           }
           console.log("Production guarded briefing and presence routes verified.");
           NODE
-      - name: Delete ONLY preview Worker
-        run: |
-          set -euo pipefail
-          test -n "$VERIFIED_PREVIEW_UUID"
-          node --input-type=module - <<'NODE'
-          // Use exact Worker DELETE API, bypassing Wrangler's unnecessary KV listing.
-          const account=process.env.CLOUDFLARE_ACCOUNT_ID, token=process.env.CLOUDFLARE_API_TOKEN;
-          if(!/^[0-9a-f]{32}$/i.test(account)||!token||!process.env.VERIFIED_PREVIEW_UUID)throw Error("Guard failed");
-          const worker="schicksal-briefing-preview";
-          const r=await fetch("https://api.cloudflare.com/client/v4/accounts/"+account+"/workers/scripts/"+worker,{
-            method:"DELETE",headers:{Authorization:"Bearer "+token}
-          });
-          const result=await r.json().catch(()=>({success:false}));
-          if(!r.ok||result.success!==true)throw Error("Exact preview Worker delete failed: HTTP "+r.status+" "+JSON.stringify(result.errors??[]));
-          console.log("Cloudflare API confirmed deletion of only Worker "+worker);
-          NODE
-          echo "Preview Worker deletion successful."
       - name: Delete ONLY preview D1 and verify production remains
         run: |
           set -euo pipefail

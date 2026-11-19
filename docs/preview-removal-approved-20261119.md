@@ -7,3 +7,7 @@ This branch-only workflow verifies the current main Cloudflare success, exact Wo
 ## Cleanup retry after permission-bound Wrangler command
 
 First cleanup run (44461985962) stopped at Worker delete because Wrangler unexpectedly listed KV namespaces and the preview-scoped Cloudflare token lacks KV List. Neither Worker nor D1 was deleted by that run. This safe retry uses official exact-name Cloudflare REST Worker DELETE and exact UUID D1 DELETE, no broader token privileges. All previous production/main/D1/endpoint guards still apply. Do not alter production resources.
+
+## Third pass — Worker already deleted, D1 remains
+
+Confirmed by Cloudflare on 2026-11-19: the first Wrangler deletion partially succeeded in removing the preview Worker, then failed when enumerating KV namespace with insufficient privilege. The second read-only run received Worker-not-found code 10007. The new job requires this Worker to be absent and production Worker to remain deployed before removing only the preview D1 via exact verified UUID. Never attempt to recreate or redeploy preview.
