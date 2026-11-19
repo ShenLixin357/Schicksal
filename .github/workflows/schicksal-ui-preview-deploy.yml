@@ -158,7 +158,12 @@ jobs:
             method: "POST", headers: {"Content-Type":"application/json", Origin:root},
             body:JSON.stringify({ citizenId:"amberina", password:passwords.amberina }),
           });
-          if (!login.ok) throw new Error("Preview member login failed: HTTP " + login.status);
+          if (!login.ok) {
+            const safeDiagnostic = await login.text();
+            // This endpoint returns only public-facing JSON/HTML error messages.
+            console.error("Preview login diagnostic:", safeDiagnostic.slice(0, 500));
+            throw new Error("Preview member login failed: HTTP " + login.status);
+          }
           const cookie = login.headers.get("set-cookie")?.split(";")[0];
           if (!cookie) throw new Error("Preview login did not return a session cookie");
           const briefing = await fetch(root + "/api/briefing", {headers:{Cookie:cookie}, cache:"no-store"});
