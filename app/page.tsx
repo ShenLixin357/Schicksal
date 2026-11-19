@@ -217,14 +217,15 @@ function Wordmark() {
   return <div className="wordmark"><strong>SCHICKSAL</strong><span>天命第一帝国</span></div>;
 }
 
-function CitizenMark({ citizen, display = "web" }: { citizen: Citizen; display?: "web" | "official" }) {
+function CitizenMark({ citizen }: { citizen: Citizen }) {
   const leaderClass = hasLeaderInsignia(citizen) ? " leader" : "";
-  // Web tint only improves the legibility of the Simple glyph + matching original rings.
-  // A meeting Speaker on a dark background keeps the official unmodified Simple colours.
-  const markColor = display === "official" && citizen.id === "amberina" ? AMBERINA_OFFICIAL_COLOR : citizen.markColor;
+  // Exact Procreate Simple colors for every Amberina badge; the fog is independent CSS.
+  // The official PNG, existing rings and President halo/dots are never recolored.
+  const markColor = citizen.markColor;
   if (citizen.id === "amberina") {
     return <span className={`citizen-mark personal-simple${leaderClass}`} style={{ "--mark": markColor } as CSSProperties} aria-hidden="true">
-      <Image src={display === "official" ? "/amberina-personal-simple-official.png" : "/amberina-personal-simple-web753.png"} alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
+      <span className="citizen-mark-mist" />
+      <Image src="/amberina-personal-simple-official.png" alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
     </span>;
   }
   let sigil: ReactNode;
@@ -1026,7 +1027,7 @@ function PersistentParliamentSection({ citizen, requestedItemId = "", requestedF
             {meeting?.speakerStatus === "elected" && <>
               <div className={`schicksal-chamber ${meeting.debateStartedAt ? "live" : "seating"}`}>
                 <section className="chamber-side proposal-side"><header><small>PROPOSING BENCH</small><strong>提案方</strong></header><div>{[1,2,3,4].map((index) => renderSeat("proposal", index))}</div></section>
-                <section className="chamber-centre"><article><small>本次会议议长 · SPEAKER</small>{electedSpeaker && <CitizenMark citizen={electedSpeaker} display="official" />}<strong>{electedSpeaker?.username ?? meeting.speakerCitizenId}</strong><span>{meeting.debateStartedAt ? "议长权限已生效" : "等待成员就座"}</span></article><div className="dispatch-box"><small>ORDER PAPER</small><b>{activeItem.serialCode}</b><span>{meeting.debateStartedAt ? `当前发言：${currentFloorCitizen?.username ?? "等待议长点名"}` : "席位将在开会时锁定"}</span></div></section>
+                <section className="chamber-centre"><article><small>本次会议议长 · SPEAKER</small>{electedSpeaker && <CitizenMark citizen={electedSpeaker} />}<strong>{electedSpeaker?.username ?? meeting.speakerCitizenId}</strong><span>{meeting.debateStartedAt ? "议长权限已生效" : "等待成员就座"}</span></article><div className="dispatch-box"><small>ORDER PAPER</small><b>{activeItem.serialCode}</b><span>{meeting.debateStartedAt ? `当前发言：${currentFloorCitizen?.username ?? "等待议长点名"}` : "席位将在开会时锁定"}</span></div></section>
                 <section className="chamber-side question-side"><header><small>QUESTIONING BENCH</small><strong>质询方</strong></header><div>{[1,2,3,4].map((index) => renderSeat("question", index))}</div></section>
               </div>
               {!meeting.debateStartedAt && <div className="seating-status"><span>{session.meetingSpeaker ? "你是本次会议议长；确认成员就座后即可宣布开会。" : meeting.speakerCitizenId === citizen.id ? "你已经当选本次会议议长。" : mySeat ? `你已选择${mySeat.side === "proposal" ? "提案方" : "质询方"}第 ${mySeat.seatIndex} 席。` : "请选择提案方或质询方的一个空席。"}</span>{session.meetingSpeaker && <button type="button" onClick={startDebateSession} disabled={busy}>宣布开会并锁定席位</button>}</div>}

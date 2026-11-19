@@ -159,3 +159,10 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - Also remove temporary oat-sage theme regression test because the theme no longer exists. Existing independent personal mark fixes, 75.3%-tint and official-colour parliament Speaker exception, President office dots, V2.6 ivory backgrounds, and all data/UI functionality remain exactly as on the pre-theme commit.
 - **Do not introduce any new personal-mark background yet.** The user wants to choose a pale backdrop colour first; no new colour or badge can be assumed approved.
 - Isolated Worker + separate preview D1 only. Do not touch production Worker, main branch, or member data.
+
+### 2026-11-19 · Official amberina Simple + approved #000A4C purple mist
+
+- User finalized `#000A4C`, center opacity `56%`, spread diameter `270px`, blur `32px`, **official unchanged source image**, existing personal rings and President dot halo retained, feathered transparent edge.
+- New `app/amberina-personal-fog.css` is imported after all other styles; a size-proportional pure CSS layer reproduces the interactive lab's 218px reference size for all physical badge sizes. Do not overlay an opaque circular background; no more oat-green CSS or site-wide palette changes.
+- `CITIZENS.amberina.markColor` returns to official `#F3ED87`; badge rings/office dot hues match. Login and post-login welcome now use official PNG; meeting Speaker remains official.
+- No changes to original PNG or Procreate masters, eight-ray empire symbol, other members' colors, responsive layouts, or data. Isolated preview Worker + D1 only; no production merge/deploy.

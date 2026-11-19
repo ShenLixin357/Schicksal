@@ -1,0 +1,50 @@
+/* Amberina official Simple • approved navy-violet mist • 2026-11-19
+   Source: user's independent visual lab (218px emblem, 270px fog, 32px blur).
+   This CSS is an *independent, transparent layer*, not a replacement artwork.
+   All sizes scale with each actual CitizenMark to avoid giant halos on 31px icons.
+   Only Amberina gets the mist; existing circle and President office dots remain. */
+.citizen-mark.personal-simple {
+  container-type: inline-size;
+  isolation: isolate;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+.citizen-mark.personal-simple > .citizen-mark-mist {
+  position: absolute;
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  width: 123.8532%;
+  height: 123.8532%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(0,10,76,.56) 0%,
+    rgba(0,10,76,.4312) 28%,
+    rgba(0,10,76,.1792) 53%,
+    rgba(0,10,76,0) 77%
+  );
+  filter: blur(6px);
+  z-index: 0;
+}
+@supports (width: 1cqi) {
+  .citizen-mark.personal-simple > .citizen-mark-mist {
+    width: 123.8532cqi;
+    height: 123.8532cqi;
+    filter: blur(14.6789cqi);
+  }
+}
+.citizen-mark.personal-simple::before {
+  z-index: 1;
+}
+.citizen-mark.personal-simple.leader::after {
+  z-index: 2;
+}
+.citizen-mark.personal-simple > .citizen-simple-image {
+  z-index: 3;
+}
+
+/* The original source PNG stays untouched: only the fog sits behind it.
+   The site's own thin borders, circular rings and leader rays keep --mark. */

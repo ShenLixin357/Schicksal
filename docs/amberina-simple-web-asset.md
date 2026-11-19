@@ -38,3 +38,15 @@ This supersedes the 35.7% temporary web display documented above.
 - Login selector and post-login Welcome both use the shared CitizenMark, now with a **new asset URL** so the browser does not reuse a cached old PNG. The empire's eight-blade symbol in the login header and opening remains unchanged.
 - `citizenRepresentativeColor` selects official colour for Amberina's non-glyph UI accents and preserves every other member's existing accent. The personal Profile layout and style are expressly deferred.
 - The earlier `public/amberina-personal-simple.png` 35.7% asset is retired to prevent accidental fallback.
+
+## Current user-approved design: official original + navy-violet transparent fog (2026-11-19)
+
+This **supersedes the earlier 35.7% and 75.3% tint decisions** for the active site renderer.
+
+- **Actual visible PNG** is ONLY `/amberina-personal-simple-official.png`, exact 800×800 crop of the official unmodified Procreate Simple QuickLook source, SHA-256 `55b230019268fce29feb9011ba2d220f3576ec3d8c4d7659049548228b1e4823`. Neither pixel nor alpha channel is changed, and Parhelia is not activated.
+- Amberina `CITIZENS.markColor` and the existing circle, inner ring and President office outer points are all **official `#F3ED87`**, not the old 75.3% website tint. Other members' marks and the imperial emblem are unchanged.
+- Behind this original image only: independent CSS `app/amberina-personal-fog.css`, fog RGB `#000A4C`, center alpha **56%**, diameter **270px**, blur **32px**, fading to fully transparent at **77%** radial stop. Exact independent visual lab source: 218px mark + 270px spread + 32px blur. Relative-size CSS with container query units re-scales the fog to 270/218 = 123.8532% badge width, and blur to 32/218 = 14.6789% badge width; on a 38px icon, this produces ~47px fog with ~5.6px blur, instead of uncontrolled 270px clouds in sidebars. Alpha gradient stops at 0% (0.56), 28% (0.4312), 53% (0.1792), 77% (0).
+- Fog is a new **transparent DOM/CSS layer behind artwork** `<span className="citizen-mark-mist"/>` inside the shared `CitizenMark`, not a circle/solid background plate, not a raster change, and not a replacement for the existing leader halo/rings.
+- The same official snowflake now renders at login identity selector, welcome, online sidebar, archives, honors (if the mark appears), regular parliament seats and dark meeting Speaker; only its adaptive fog responds to badge size. The existing dark Speaker exception no longer needs a separate graphic source because all contexts use the official art.
+- Original website V2.6 color palette remains intact; no oat/green site theme is reintroduced. No changes to profile-specific layout.
+- The legacy `web753` PNG is retained as unused historical asset, to avoid destructive changes to source references; no active renderer points to it.

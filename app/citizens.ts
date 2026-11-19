@@ -16,7 +16,7 @@ export function citizenRepresentativeColor(citizen: Pick<Citizen, "id" | "accent
   return citizen.id === "amberina" ? AMBERINA_OFFICIAL_COLOR : citizen.accent;
 }
 export const CITIZENS: Citizen[] = [
-  { id: "amberina", username: "宇宙霸主", name: "Amberina von Schicksal", codename: "宇宙霸主", office: "President of the First Empire", accent: "#f3c969", markColor: AMBERINA_WEB_MARK_COLOR, motif: "snow" },
+  { id: "amberina", username: "宇宙霸主", name: "Amberina von Schicksal", codename: "宇宙霸主", office: "President of the First Empire", accent: "#f3c969", markColor: AMBERINA_OFFICIAL_COLOR, motif: "snow" },
   { id: "zxy", username: "No.2", name: "zxy", codename: "No.2", office: "Citizen of the First Empire", accent: "#d95d52", markColor: "#f05f55", motif: "flame" },
   { id: "truth", username: "我说 真的", name: "我说 真的", codename: "我说 真的", office: "Core Member of the Legislative Committee", accent: "#eecf58", markColor: "#ffd84f", motif: "lightning" },
   { id: "kaito", username: "怪盗 基德", name: "怪盗 基德", codename: "怪盗 基德", office: "Citizen of the First Empire", accent: "#65cae9", markColor: "#65cae9", motif: "water" },
