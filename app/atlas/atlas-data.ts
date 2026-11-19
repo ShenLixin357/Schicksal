@@ -5,12 +5,12 @@ export type AtlasAppearance = { emblemSrc?: string; ornamentSrc?: string; accent
 export const ATLAS_APPEARANCE: Record<string, AtlasAppearance> = {
   amberina: {
     emblemSrc: "/amberina-personal-simple-official.png",
-    ornamentSrc: "/atlas/avs-raised-sunflowers.webp",
+    ornamentSrc: "/atlas/approved-bouquet.webp",
     accent: "#F3ED87",
   },
 };
 /** Set a new public asset path here to replace the central library-style crystal emblem. */
-export const ATLAS_SHARED_EMBLEM_SRC: string | null = null;
+export const ATLAS_SHARED_EMBLEM_SRC: string | null = "/atlas/approved-main-emblem.webp";
 
 export type Office = {
   id: string;
