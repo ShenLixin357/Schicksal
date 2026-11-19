@@ -19,7 +19,7 @@
 .atlas-scene-panel:before{content:"";position:absolute;z-index:3;inset:9px;border:1px solid #f4d9b5;pointer-events:none;border-radius:3px}
 .atlas-scene-art{object-fit:cover;filter:saturate(1.05) contrast(1.02)}
 .atlas-scene-halo{position:absolute;inset:0;z-index:1;pointer-events:none;box-shadow:inset 0 0 18px rgba(255,252,248,.84)}
-.atlas-central-emblem{position:absolute;z-index:2;left:51.8%;top:51.5%;transform:translate(-50%,-50%);width:34%;aspect-ratio:1;display:grid;place-items:center;background:radial-gradient(circle,rgba(116,97,190,.90),rgba(93,83,168,.2) 67%,transparent 73%);border-radius:50%}
+.atlas-central-emblem{position:absolute;z-index:2;left:51.05%;top:50.7%;transform:translate(-50%,-50%);width:38.3%;aspect-ratio:1;display:grid;place-items:center;background:radial-gradient(circle,rgba(116,97,190,.90),rgba(93,83,168,.2) 67%,transparent 73%);border-radius:50%}
 .atlas-central-emblem img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 13px #fff5e8)}
 .atlas-member-node{position:absolute;z-index:5;transform:translate(-50%,-50%);width:12%;aspect-ratio:1;border-radius:50%;border:1px solid transparent;background:transparent;transition:box-shadow .22s,border-color .22s;box-shadow:none}
 .atlas-member-node:hover,.atlas-member-node.active,.atlas-member-node:focus-visible{border:1px solid #fff3c4;box-shadow:0 0 0 2px var(--node-color),0 0 20px 5px rgba(255,238,184,.73),inset 0 0 10px rgba(255,255,255,.46)}
@@ -57,7 +57,7 @@
 .atlas-record-footer button{border:1px solid #caa16b;border-radius:30px;background:linear-gradient(180deg,#fffcda,var(--atlas-personal));font-size:13px;color:#5f4735;min-height:41px;min-width:182px;font-weight:600;padding:7px 12px;box-shadow:0 2px 9px #aa8d642e}
 .atlas-record-footer button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px #ab8b6340}
 .atlas-record-footer button:disabled{opacity:.6;cursor:not-allowed}
-.atlas-person-flower{position:absolute;z-index:2;right:-7px;bottom:-14px;width:clamp(122px,16vw,211px);height:auto;max-height:185px;object-fit:contain;object-position:bottom right;filter:drop-shadow(0 3px 4px #99718a38);pointer-events:none}
+.atlas-person-flower{position:absolute;z-index:2;right:-7px;bottom:-14px;width:clamp(164px,17.5vw,236px);height:auto;max-height:188px;object-fit:contain;object-position:bottom right;filter:drop-shadow(0 3px 4px #99718a38);pointer-events:none}
 .atlas-org-panel,.atlas-directory-panel{min-height:322px}
 .atlas-org-item{position:relative;z-index:2;display:grid;grid-template-columns:70px minmax(130px,.85fr) minmax(112px,1fr);gap:11px;align-items:center;margin:0 23px;padding:20px 2px;min-height:121px}
 .atlas-org-item+.atlas-org-item{border-top:1px solid #dec4ac}
@@ -93,7 +93,7 @@
  .atlas-roles{margin-left:17px;margin-right:15px}
  .atlas-role-tags{max-width:calc(100% - 93px)}
  .atlas-record-footer{margin-left:18px;padding-right:110px}
- .atlas-person-flower{max-height:153px;width:145px}
+ .atlas-person-flower{max-height:157px;width:168px}
  .atlas-org-item{grid-template-columns:53px minmax(105px,.88fr) minmax(105px,1fr);gap:7px;margin:0 16px}
  .atlas-org-glyph{width:52px;height:52px}
  .atlas-org-label h3{font-size:17px}
