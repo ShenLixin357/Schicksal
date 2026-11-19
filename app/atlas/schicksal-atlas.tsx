@@ -63,7 +63,7 @@ export function SchicksalAtlas({ renderMark, renderEmblem, onVisitCitizen, onOpe
         <div className="atlas-scene-caption">SHARED EMBLEM · EIGHT CITIZENS <span>✧</span> INTERACTIVE ATLAS</div>
       </section>
 
-      <section className="atlas-record" style={{"--person-color":atlasCitizenColor(selected)} as CSSProperties} aria-label="公民档案">
+      <section className="atlas-record" style={{"--person-color":appearance?.personalColor ?? atlasCitizenColor(selected)} as CSSProperties} aria-label="公民档案">
         <header className="atlas-panel-heading"><span aria-hidden="true">✧</span><h2>公民档案</h2><small>CITIZEN RECORD</small></header>
         <div className="atlas-record-person">
           <div className="atlas-record-sigil">{renderMark(selected)}</div>
