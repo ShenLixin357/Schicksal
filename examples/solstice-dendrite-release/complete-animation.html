@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN" data-demo-mode="merged"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Solstice Dendrite · Complete Final Animation</title>
+<title>Solstice Dendrite · Complete Animation with Tyndall Holy Light</title>
 <style>
 :root{color-scheme:dark;--warm:#f3e7d5}
 *{box-sizing:border-box}
@@ -64,11 +64,22 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 .title-art img.title-original{opacity:.24;filter:brightness(1.4) saturate(.6)}
 .title-crystal{position:absolute;inset:0;background:linear-gradient(152deg,#ffe9bf 5%,#fff 21%,#c6d4eb 35%,#fff9f0 48%,#e5bddd 63%,#fffaf0 76%,#b4d6ee 91%);-webkit-mask-image:var(--title-mask);mask-image:var(--title-mask);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
 .title-art::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 0%,#ffffff00 30%,#fff8eaaa 44%,#ffffff00 58%,transparent 75%);mix-blend-mode:screen;-webkit-mask-image:var(--title-mask);mask-image:var(--title-mask);-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+/* Independent Holy Light GPU layer: Tyndall rays stay behind the card and snow.
+   The previously accepted 1.42-second ice-burst GPU canvas stays above the card. */
+#holyLightCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;mix-blend-mode:screen}
+.light-origin,.beam,.light-core{display:none}
+.stage.holy-fallback .light-origin,.stage.holy-fallback .beam,.stage.holy-fallback .light-core{display:block}
+.pool{z-index:2;filter:blur(25px)}
+.card-halo{z-index:3}
+.face::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+ background:linear-gradient(var(--face-angle,124deg),transparent 21%,#fffdf15c 43%,#fff9e631 53%,transparent 76%);
+ opacity:var(--face-light,0);mix-blend-mode:screen}
+.card .face{box-shadow:0 0 3px 1px #fff8e6aa,0 0 24px #fff1c77b,0 10px 40px #101c3280}
 </style></head>
 <body><div class="wrap">
 <header><div class="kicker">SCHICKSAL · THE ENCHANTED VASE · RARE CARD</div><h1>Solstice Dendrite</h1></header>
 <section class="stage" id="stage" role="button" tabindex="0" aria-label="点击启动完整降临动画；悬停后点击揭晓，播放冰晶爆发">
-<div class="ambient"></div>
+<div class="ambient"></div><canvas id="holyLightCanvas" aria-hidden="true"></canvas>
 <div id="lightOrigin" class="light-origin"></div><div class="beam" id="beam"></div>
 <div id="lightCore" class="light-core"></div><div class="pool" id="pool"></div><div id="cardHalo" class="card-halo"></div>
 <div class="card" id="card"><div class="spin" id="spin">
@@ -89,8 +100,93 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <label>雪花核心横向位置<input id="coreX" type="range" min="43" max="57" step=".25" value="50"></label>
 <label>雪花核心纵向位置<input id="coreY" type="range" min="43" max="57" step=".25" value="50"></label>
 <label style="flex-direction:row;align-items:center"><input type="checkbox" id="showCore">显示核心定位标记</label>
-</div><div id="assetMsg" class="small">完整流程：圣光降临 → 卡牌在雪中沿斜轴旋转下降 → 悬停 → 点击触发最终径向冰雪折光（1.42秒）。进场时点击画面可跳过至悬停。</div>
+</div><div id="assetMsg" class="small">整合版：丁达尔圣光（强度105%、宽度100%、雾气100%、无可见微粒）→ 原卡牌斜轴旋转下降 → 悬停 → 点击后原版V4径向冰雪折光（1.42秒）。圣光和冰晶爆发互不覆盖，可点击跳过进场。</div>
 </details></div>
+<script id="holyLightSrc" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+in vec2 vUV;
+out vec4 frag;
+uniform vec2 uSize;
+uniform float uTime;
+uniform float uShape;
+uniform float uIntensity;
+uniform float uWidth;
+uniform float uHaze;
+uniform float uCardHalfW;
+float s(float a,float b,float x){return smoothstep(a,b,x);}
+float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+ vec2 i=floor(p),f=fract(p);
+ f=f*f*(3.0-2.0*f);
+ return mix(mix(hash21(i),hash21(i+vec2(1.,0.)),f.x),
+            mix(hash21(i+vec2(0.,1.)),hash21(i+vec2(1.,1.)),f.x),f.y);
+}
+float fbm(vec2 p){
+ float total=0.,amplitude=.56;
+ for(int k=0;k<3;k++){total+=amplitude*noise(p);p=p*2.02+11.3;amplitude*=.48;}
+ return total;
+}
+void main(){
+ vec2 p=vec2(gl_FragCoord.x/uSize.x,1.0-gl_FragCoord.y/uSize.y);
+ float y=p.y;
+ float elapsed=uTime;
+ // The luminous opening stays above the viewport. Rays refer to that one source.
+ vec2 source=vec2(.5,-.40);
+ vec2 d=p-source;
+ float angle=atan(d.x,d.y);
+ float axis=(p.x-.5);
+ // Screen-space breadth is calibrated to the ORIGINAL card, including the
+ // full width of the tilted card silhouette plus ample illuminated atmosphere.
+ float cardEnvelope=max(.21,uCardHalfW*1.8);
+ float baseHalf=cardEnvelope*(.85+.24*y)*uWidth;
+ float normalized=axis/max(baseHalf,.001);
+ float wideVeil=exp(-pow(abs(normalized)*.74,3.0));
+ float spacious=exp(-pow(abs(normalized)*.56,2.0));
+ float horizon=1.0-s(.84,1.25,y)*.42;
+ // Realistic Tyndall-like visible scattering: dust is represented by smoothly
+ // varying *air density*, never drawn as glowing particle dots.
+ // Broad patches along the source direction create soft distinct light paths.
+ float slow=elapsed*.008;
+ vec2 medium=vec2(angle*13.6+slow,y*2.2-slow*.70);
+ float scatter=fbm(medium);
+ float fine=fbm(vec2(angle*39.0-slow*.18,y*3.3+slow*.34));
+ float densityVariation=.86+.30*(scatter-.42)+.13*(fine-.45);
+ float relative=angle/(.26*uWidth+.035);
+ // The central shaft is broad; three subsidiary shafts have soft changing
+ // boundaries and share the same invisible top source.
+ float shaftOne=exp(-pow((relative+.31)/.21,2.0));
+ float shaftTwo=exp(-pow((relative-.25)/.24,2.0));
+ float shaftThree=exp(-pow((relative+.01)/.33,2.0));
+ float shaftFar=exp(-pow((relative-.63)/.27,2.0));
+ float shafts=.22*shaftOne+.24*shaftTwo+.29*shaftThree+.075*shaftFar;
+ float atmosphericPath=.13+.67*wideVeil+shafts*wideVeil;
+ // Tyndall beams are softer toward the floor and merge into broad ambient light.
+ float viewDepth=s(-.06,.12,y)*(1.-s(.80,1.22,y)*.26);
+ float volumetric=atmosphericPath*densityVariation*viewDepth*horizon*uHaze;
+ float enclosure=spacious*(.13+.18*s(.11,.65,y))*uHaze;
+ // Topmost source spread: not a flat glowing ball or hard cone.
+ float sourceHaze=exp(-pow((p.x-.5)/(.44*uWidth),2.0))*
+                  (1.-s(-.11,.48,y))*.20;
+ // Separate a slowly drifting translucence from the static wide light field.
+ float pearlBloom=exp(-pow(normalized*.71,2.0))*
+  exp(-pow((y-.49)/.82,2.0))*.064;
+ float shape=s(.01,.95,uShape);
+ float detail=s(.24,.71,uShape);
+ float brightness=(volumetric*(.65+.35*detail)*.56+
+                   enclosure*.46+sourceHaze+pearlBloom)*shape*uIntensity;
+ // The golden warmth is concentrated in the inner shaft, with gentle cold
+ // blue near the outer scattering edges. Avoid rainbow refractions.
+ float edge=s(.39,1.16,abs(normalized));
+ vec3 pearl=vec3(1.0,.985,.958);
+ vec3 warm=vec3(1.0,.946,.867);
+ vec3 cold=vec3(.80,.908,1.0);
+ vec3 tint=mix(pearl,warm,.12+shafts*.23);
+ tint=mix(tint,cold,.24*edge);
+ float alpha=clamp(brightness*.78,0.0,.71);
+ frag=vec4(tint*brightness,alpha);
+}
+
+</script>
 <script id="vertSrc" type="x-shader/x-vertex">#version 300 es
 precision highp float;
 out vec2 vUV;
@@ -197,6 +293,9 @@ frag=vec4(col,a);
 const $=id=>document.getElementById(id);
 const stage=$('stage'),spin=$('spin'),card=$('card'),back=$('back'),front=$('front'),flower=$('flower'),title=$('title'),anchor=$('anchor'),guide=$('coreGuide'),missing=$('missing'),play=$('play'),resetBtn=$('reset'),assetMsg=$('assetMsg'),status=$('status');
 const lightOrigin=$('lightOrigin'),beam=$('beam'),lightCore=$('lightCore'),pool=$('pool'),cardHalo=$('cardHalo');
+const holyCanvas=$('holyLightCanvas');
+const HOLY_INTENSITY=1.05,HOLY_WIDTH=1.00,HOLY_HAZE=1.00;
+let holyGPU=null,holyLevel=0;
 const DEMO_MODE=document.documentElement.dataset.demoMode||'merged';
 const LIGHT=.95,DROP=4.45,TRAVEL=355,START_TILT=-13.7,END_TILT=-4.8;
 const snowCanvas=$('snowCanvas'),fxCanvas=$('fxCanvas'),snow=snowCanvas.getContext('2d',{alpha:true});
@@ -267,6 +366,7 @@ function resize(){
  snow.setTransform(sr,0,0,sr,0,0);
  if(DEMO_MODE==='merged')initGL();
  else {fxCanvas.width=1;fxCanvas.height=1;}
+ initHolyLight();
  if(mode==='idle')drawSnow(0,true);
  refreshGuide();
 }
@@ -503,24 +603,74 @@ function paintGlow(time){
  gl.uniform2f(gl.getUniformLocation(bloom,'uTexel'),1/width,1/height);
  gl.drawArrays(gl.TRIANGLES,0,3);
 }
+// Separate Holy Light renderer. Never reuses the approved ice-burst GPU buffers.
+function initHolyLight(){
+ const dpr=Math.min(window.devicePixelRatio||1,1.35)*.82;
+ const width=Math.max(1,Math.round(W*dpr)),height=Math.max(1,Math.round(H*dpr));
+ holyCanvas.width=width;holyCanvas.height=height;
+ let gl=holyGPU&&holyGPU.gl;
+ if(!gl){
+  try{gl=holyCanvas.getContext('webgl2',{alpha:true,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false});}
+  catch(err){gl=null}
+  if(!gl){
+   holyGPU={gl:null};stage.classList.add('holy-fallback');holyCanvas.style.display='none';return;
+  }
+  try{
+   const programHoly=program(gl,$('vertSrc').textContent,$('holyLightSrc').textContent);
+   const uniforms=Object.fromEntries(['uSize','uTime','uShape','uIntensity','uWidth','uHaze','uCardHalfW']
+      .map(name=>[name,gl.getUniformLocation(programHoly,name)]));
+   holyGPU={gl,program:programHoly,uniforms,width,height};
+   stage.classList.remove('holy-fallback');holyCanvas.style.display='block';
+  }catch(err){
+   holyGPU={gl:null};stage.classList.add('holy-fallback');holyCanvas.style.display='none';
+   assetMsg.textContent='圣光 GPU 初始化失败，已回退兼容光源：'+err.message;
+   return;
+  }
+ }
+ holyGPU.width=width;holyGPU.height=height;
+ holyGPU.gl.viewport(0,0,width,height);
+}
+function paintHoly(time){
+ if(!holyGPU||!holyGPU.gl)return;
+ const {gl,program:lightProgram,uniforms:U,width,height}=holyGPU;
+ gl.viewport(0,0,width,height);
+ gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+ gl.useProgram(lightProgram);
+ gl.uniform2f(U.uSize,width,height);
+ gl.uniform1f(U.uTime,time);
+ gl.uniform1f(U.uShape,holyLevel);
+ gl.uniform1f(U.uIntensity,HOLY_INTENSITY);
+ gl.uniform1f(U.uWidth,HOLY_WIDTH);
+ gl.uniform1f(U.uHaze,HOLY_HAZE);
+ // The shape is anchored to actual card size; 100% is NOT the old 100% cone.
+ gl.uniform1f(U.uCardHalfW,(card.getBoundingClientRect().width/Math.max(W,1))*.5);
+ gl.drawArrays(gl.TRIANGLES,0,3);
+}
 function pose(t){
  const k=smooth((t-.22)/(1.42-.22));
  spin.style.transform='rotateZ('+END_TILT+'deg) rotate3d(.5547,-.83205,0,'+(720+180*k).toFixed(3)+'deg)';
 }
 function sunLight(value){
- const p=1-Math.pow(1-clamp(value),3);
+ holyLevel=clamp(value);
+ const p=1-Math.pow(1-holyLevel,3);
+ // Legacy light only acts as fallback on browsers without WebGL2.
  lightOrigin.style.opacity=String(.93*p);
  beam.style.opacity=String(.79*p);
  beam.style.transform='translateX(-50%) scaleY('+Math.max(.0001,p)+')';
  lightCore.style.opacity=String(.75*p);
  lightCore.style.transform='translateX(-50%) scaleY('+Math.max(.0001,p)+')';
- pool.style.opacity=String(.7*p);
- cardHalo.style.opacity=String(.64*p);
+ // Ambient bounce stays restrained to preserve the approved dark stage.
+ pool.style.opacity=String(.31*p);
+ cardHalo.style.opacity=String(.33*p);
 }
 function cardPose(deg,tilt,y,scale,opacity){
  card.style.visibility='visible';card.style.opacity=String(opacity);
  card.style.transform='translate(-50%,-50%) translateY('+y.toFixed(3)+'px) scale('+scale.toFixed(4)+')';
  spin.style.transform='rotateZ('+tilt.toFixed(3)+'deg) rotate3d(.5547,-.83205,0,'+deg.toFixed(3)+'deg)';
+ // Gentle incoming illumination on the real original art; no blanket whitening.
+ const incidence=(.78+.22*Math.cos(deg*Math.PI/180))*holyLevel;
+ card.style.setProperty('--face-light',String(clamp(.14*incidence)));
+ card.style.setProperty('--face-angle',(124+Math.sin(deg*Math.PI/180)*17).toFixed(1)+'deg');
 }
 function hover(){
  mode='hover';sunLight(1);cardPose(720,END_TILT,0,1,1);
@@ -541,11 +691,13 @@ function idle(){
  card.style.transform='translate(-50%,-50%) translateY(-355px) scale(.72)';
  spin.style.transform='rotateZ(-13.7deg)';
  sunLight(0);snowCanvas.style.opacity='0';
+ card.style.setProperty('--face-light','0');
  if(!W||!H)resize();
  initSnow();origin=getOrigin();
  if(DEMO_MODE==='merged')paintGlow(1.42);
  else fxCanvas.style.opacity='0';
  drawSnow(0,true);guide.style.display='none';
+ paintHoly(0);
  play.textContent='✦ Guess What?';
  status.textContent='点击开始完整卡牌降临动画';
 }
@@ -591,13 +743,11 @@ function tick(now){
   pose(t);
   if(DEMO_MODE==='merged')paintGlow(t);
   drawSnow(dt,false);
+  // Keep the holy light behind the GPU ice eruption. As the reveal finishes,
+  // it dims naturally instead of masking the approved 1.42-second explosion.
   const lightLeft=1-smooth(t);
-  // The already-established sunbeam softly fades behind the reveal.
-  lightOrigin.style.opacity=String(.10+.83*lightLeft);
-  beam.style.opacity=String(.08+.71*lightLeft);
-  lightCore.style.opacity=String(.06+.69*lightLeft);
-  pool.style.opacity=String(.20+.50*lightLeft);
-  cardHalo.style.opacity=String(.16+.48*lightLeft);
+  sunLight(.16+.84*lightLeft);
+  card.style.setProperty('--face-light',String(clamp(.14*holyLevel)));
   if(t>=1.42){
    if(DEMO_MODE==='merged'){
     for(const f of flakes){if(!f.frozen){
@@ -606,7 +756,7 @@ function tick(now){
     }}
     drawSnow(0,true);
    }
-   mode='done';status.textContent='卡牌揭晓完成';
+   mode='done';paintHoly(now/1000);status.textContent='卡牌揭晓完成';
    play.textContent='✦ 再次播放完整动画';
    if(DEMO_MODE==='card')raf=requestAnimationFrame(tick);
    return;
@@ -615,6 +765,7 @@ function tick(now){
   if(DEMO_MODE==='card'){snowStep(dt,-1);drawSnow(dt,false);}
   else return;
  }else return;
+ paintHoly(now/1000);
  raf=requestAnimationFrame(tick);
 }
 function stageAction(){
