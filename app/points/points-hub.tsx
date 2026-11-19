@@ -3,8 +3,8 @@
 import { useState, type ReactNode } from "react";
 
 /** Preserve existing Honors and Market implementations while combining only navigation. */
-export function PointsHub({ honors, market }: { honors: ReactNode; market: ReactNode }) {
-  const [tab, setTab] = useState<"honors" | "market">("honors");
+export function PointsHub({ honors, market, initialTab = "honors" }: { honors: ReactNode; market: ReactNode; initialTab?: "honors" | "market" }) {
+  const [tab, setTab] = useState<"honors" | "market">(initialTab);
   return <section className="points-hub">
     <nav className="points-hub-tabs" aria-label="积分中心">
       <button type="button" aria-current={tab === "honors" ? "page" : undefined}
