@@ -1,0 +1,38 @@
+.imperial-messenger{max-width:1120px;margin:0 auto;color:#263b52}
+.imperial-messenger-heading{display:flex;justify-content:space-between;align-items:end;gap:24px;padding:14px 0 29px;border-bottom:1px solid #d8d4ca}
+.imperial-messenger-heading small{font-size:10px;letter-spacing:.2em;color:#b18b51}
+.imperial-messenger-heading h1{margin:12px 0;font:400 clamp(2.25rem,5vw,4rem) Georgia,serif}
+.imperial-messenger-heading p{color:#708198;font-size:13px;line-height:1.8}
+.imperial-messenger button{cursor:pointer}
+.imperial-messenger-heading>button,.imperial-messenger-thread>header>button{padding:11px 15px;border:1px solid #bba574;background:#fffaf1;color:#755e39}
+.imperial-messenger-directory{margin:30px 0;background:#fffdf9c9;border:1px solid #e2ddd2}
+.imperial-messenger-directory h2{margin:0;padding:22px 26px;font:400 1.4rem Georgia,serif;border-bottom:1px solid #e2ddd2}
+.imperial-messenger-directory h2 span{font:10px system-ui;letter-spacing:.15em;color:#8c938e;margin-left:12px}
+.imperial-messenger-directory>button{display:flex;align-items:center;gap:15px;width:100%;min-height:77px;padding:13px 24px;border:0;border-bottom:1px solid #ece6da;background:transparent;color:inherit;text-align:left}
+.imperial-messenger-directory>button:hover{background:#eee9dd8f}
+.imperial-messenger-directory .citizen-mark,.imperial-messenger-peer .citizen-mark{width:44px;height:44px;flex:none}
+.imperial-messenger-contact-copy{display:grid;flex:1;min-width:0;gap:7px}
+.imperial-messenger-contact-copy strong{font:400 17px Georgia,serif}
+.imperial-messenger-contact-copy small{font:12px system-ui;color:#82909a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imperial-messenger-forward{color:#b59661}
+.imperial-messenger-thread{background:#fffdf9c9;border:1px solid #e2ddd2;margin-top:30px}
+.imperial-messenger-thread>header{padding:20px;display:flex;align-items:center;gap:24px;border-bottom:1px solid #e2ddd2;flex-wrap:wrap}
+.imperial-messenger-peer{display:flex;align-items:center;gap:12px}
+.imperial-messenger-peer span{display:flex;flex-direction:column;gap:5px}
+.imperial-messenger-peer strong{font:400 19px Georgia,serif}
+.imperial-messenger-peer small{font:9px system-ui;color:#919ba3;letter-spacing:.13em}
+.imperial-messenger-messages{min-height:280px;max-height:56vh;overflow:auto;padding:26px;display:flex;flex-direction:column;gap:15px}
+.imperial-messenger-messages article{max-width:min(76%,590px);padding:12px 17px;background:#f5f1e7;border:1px solid #e9e1d4;overflow-wrap:anywhere}
+.imperial-messenger-messages article.from-self{margin-left:auto;background:#f8f0da;border-color:#e9d9ac}
+.imperial-messenger-messages article small{color:#87929c;font-size:10px}
+.imperial-messenger-messages article p{white-space:pre-wrap;margin:9px 0 1px;line-height:1.65;font-size:14px}
+.imperial-messenger-muted{text-align:center;color:#8593a1;margin:auto}
+.imperial-messenger-error{padding:10px 24px;color:#a0453a}
+.imperial-messenger-error button{margin-left:10px;text-decoration:underline}
+.imperial-messenger-compose{display:grid;gap:9px;padding:20px 26px;border-top:1px solid #e2ddd2}
+.imperial-messenger-compose label{font-size:10px;color:#7d8b97;letter-spacing:.17em}
+.imperial-messenger-compose textarea{width:100%;min-height:80px;resize:vertical;border:1px solid #d8d0c3;background:#fffefa;color:#263b52;font:14px system-ui;padding:12px}
+.imperial-messenger-compose footer{display:flex;align-items:center;justify-content:space-between;color:#9aa4a9;font-size:11px}
+.imperial-messenger-compose footer button{min-height:40px;padding:9px 20px;border:1px solid #c7ac70;background:#f3ead6;color:#6d5733}
+.imperial-messenger-compose footer button:disabled{opacity:.5;cursor:default}
+@media(max-width:760px){.imperial-messenger-heading{align-items:start;flex-direction:column}.imperial-messenger-directory>button{padding:12px}.imperial-messenger-messages{padding:14px;min-height:190px}.imperial-messenger-messages article{max-width:91%}.imperial-messenger-compose{padding:14px}.imperial-messenger-thread>header{gap:14px}}
