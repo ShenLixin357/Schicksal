@@ -5,10 +5,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { Citizen } from "../citizens";
 import type { MemberPresence } from "../briefing/use-member-presence";
 import { SidebarPresence } from "../briefing/sidebar-presence";
-import { PRIMARY_NAV, COLLECTION_NAV, type SidebarDestination } from "./navigation";
+import { PRIMARY_NAV, COLLECTION_NAV, POINTS_NAV, type SidebarDestination } from "./navigation";
 import { NavigationIcon } from "./navigation-icons";
 
 const COLLECTION_IDS = new Set<string>(["library", "atlas", "photos", "archives"]);
+const POINTS_IDS = new Set<string>(["honors", "market"]);
 
 export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnterLounge, sharedMark,
   presence, members, selfId, renderMemberMark, onToggle, onLogo, onNavigate, onLogout }: {
@@ -27,8 +28,10 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
   onLogout: () => void;
 }) {
   const [collectionExpanded, setCollectionExpanded] = useState(() => COLLECTION_IDS.has(activeSection));
+  const [pointsExpanded, setPointsExpanded] = useState(() => POINTS_IDS.has(activeSection));
   useEffect(() => {
     if (COLLECTION_IDS.has(activeSection)) setCollectionExpanded(true);
+    if (POINTS_IDS.has(activeSection)) setPointsExpanded(true);
   }, [activeSection]);
   const openCollection = () => {
     if (collapsed) {
@@ -38,11 +41,20 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
       setCollectionExpanded(value => !value);
     }
   };
+  const openPoints = () => {
+    if (collapsed) {
+      onToggle();
+      setPointsExpanded(true);
+    } else {
+      setPointsExpanded(value => !value);
+    }
+  };
   return <aside className="sidebar imperial-sidebar" id="imperial-sidebar">
     <div className="side-brand imperial-side-brand">
       <button className="imperial-logo-trigger" type="button" onClick={onLogo}
-        aria-label={loungeOpen ? "返回天命主站" : canEnterLounge ? "进入 Committee Lounge" : "返回首页"}
-        title={loungeOpen ? "返回天命主站" : canEnterLounge ? "进入秘密 Lounge" : "返回首页"}>
+        disabled={!canEnterLounge && !loungeOpen}
+        aria-label={loungeOpen ? "返回天命主站" : canEnterLounge ? "进入 Committee Lounge" : "天命第一帝国标志"}
+        title={loungeOpen ? "返回天命主站" : canEnterLounge ? "进入秘密 Lounge" : "天命第一帝国"}>
         {loungeOpen
           ? <Image src="/committee-restroom-badge.png" width={58} height={58} alt="" unoptimized className="imperial-lounge-mark"/>
           : sharedMark}
@@ -75,8 +87,22 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
             aria-current={activeSection === child.id ? "page" : undefined}
             onClick={() => onNavigate(child.id)}>{child.label}</button>)}
         </div>}
+      </div> : item.id === "honors" ? <div key={item.id} className="imperial-nav-group">
+        <button type="button" className={`imperial-nav-entry ${POINTS_IDS.has(activeSection) ? "active" : ""}`}
+          aria-label="展开或收起积分子菜单" aria-expanded={pointsExpanded && !collapsed}
+          aria-controls="imperial-points-submenu" title={item.label} onClick={openPoints}>
+          <span className="imperial-nav-icon"><NavigationIcon name={item.icon}/></span>
+          <strong>{item.label}</strong>
+          <span className={`imperial-nav-chevron ${pointsExpanded ? "expanded" : ""}`} aria-hidden="true"><NavigationIcon name="chevron" size={15}/></span>
+        </button>
+        {pointsExpanded && !collapsed && <div id="imperial-points-submenu" className="imperial-nav-submenu">
+          {POINTS_NAV.map(child => <button type="button" key={child.id}
+            className={activeSection === child.id ? "active" : ""}
+            aria-current={activeSection === child.id ? "page" : undefined}
+            onClick={() => onNavigate(child.id)}>{child.label}</button>)}
+        </div>}
       </div> : <button type="button" key={item.id}
-        className={`imperial-nav-entry ${activeSection === item.id || item.id === "honors" && activeSection === "market" ? "active" : ""}`}
+        className={`imperial-nav-entry ${activeSection === item.id ? "active" : ""}`}
         aria-current={activeSection === item.id ? "page" : undefined}
         title={item.label} onClick={() => onNavigate(item.id)}>
         <span className="imperial-nav-icon"><NavigationIcon name={item.icon}/></span><strong>{item.label}</strong>
