@@ -31,7 +31,7 @@ export function useBriefingFeed(citizenId: string, refreshKey: string) {
     if (!citizenId) return;
     let active = true;
     let controller: AbortController | null = null;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryTimer: number | null = null;
     const retryDelays = [2000, 5000, 10000];
     const load = async (attempt = 0) => {
       if (retryTimer !== null) {
