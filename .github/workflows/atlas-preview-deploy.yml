@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      CLOUDFLARE_API_TOKEN: \${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: \${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
-      SCHICKSAL_PREVIEW_PASSWORDS: \${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+      SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "\${ATLAS_PREVIEW_D1_ID:-}" ]; then
+          if [ -z "${ATLAS_PREVIEW_D1_ID:-}" ]; then
             npx wrangler d1 create schicksal-atlas-preview-db --no-update-config
             npx wrangler d1 list --json > "$RUNNER_TEMP/atlas-databases-after.json"
             node --input-type=module - "$RUNNER_TEMP/atlas-databases-after.json" <<'NODE'
