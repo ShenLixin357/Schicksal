@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Witch’s Perihelion · Ice Material Lab</title>
+<style>
+:root{color-scheme:dark;--light:#f2e8e1;--muted:#adb1c4;--accent:#d4cbef}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#0c0c18}
+body{font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--light);
+ background:radial-gradient(ellipse 80% 66% at 50% 8%,#382d53,#181627 55%,#0d0d19 96%)}
+main{width:min(94vw,910px);margin:auto;padding:21px 0 45px}
+header{text-align:center;margin:3px 0 16px}
+.kicker{text-transform:uppercase;font-size:10px;letter-spacing:.27em;color:#d2c3e6}
+h1{font:italic 400 clamp(24px,4vw,35px)/1.35 Georgia,serif;margin:4px 0}
+header p{font-size:12px;color:#b5b3c3;margin:4px 0}
+.stage{position:relative;display:grid;place-items:center;overflow:hidden;isolation:isolate;
+ min-height:520px;height:min(75vh,690px);border:1px solid #cbbdeb4d;border-radius:16px;
+ background:radial-gradient(ellipse at 51% 54%,#8274aa36 0,transparent 55%),
+ linear-gradient(180deg,#29243c,#17182e 65%,#121323);
+ box-shadow:inset 0 0 110px #05051198,0 24px 80px #0706109e;cursor:pointer}
+.stage:focus-visible{outline:2px solid #e2d2fb;outline-offset:3px}
+.stage::before{content:"";position:absolute;inset:-4%;pointer-events:none;opacity:.45;
+ background:radial-gradient(ellipse at 28% 20%,#c3b0ec25,transparent 42%),
+ radial-gradient(ellipse at 77% 74%,#ffc88118,transparent 42%)}
+.light-column{position:absolute;left:50%;top:9%;width:62%;height:87%;transform:translateX(-50%);
+ background:linear-gradient(90deg,transparent,#ddd0ff1d 25%,#f8eafa14 50%,#d6b9fc11 74%,transparent);
+ filter:blur(18px);pointer-events:none;mix-blend-mode:screen}
+.card{position:absolute;left:50%;top:50%;width:clamp(172px,28vw,270px);aspect-ratio:2/3;
+ transform:translate(-50%,-50%) rotate(-6deg);box-shadow:0 24px 58px #02020a9c,0 0 38px #baabed32;
+ border-radius:9px;overflow:hidden;isolation:isolate;will-change:transform,filter}
+.card .surface{position:absolute;inset:0;background:#433c62}
+.card .surface img{width:100%;height:100%;object-fit:fill;position:absolute;inset:0}
+.card .art-back{background:
+  radial-gradient(circle at 50% 36%,#e6cce550 0 1%,transparent 9%),
+  repeating-conic-gradient(from 0deg at 50% 34%,transparent 0deg 28deg,#e4c2e015 30deg,transparent 33deg 60deg),
+  linear-gradient(150deg,#3c304b,#67527a 45%,#40334d)}
+.card .art-front{background:
+  radial-gradient(ellipse at 50% 45%,#ffdd9b9c 0,#ffe29f16 17%,transparent 51%),
+  linear-gradient(145deg,#493751,#67507b 46%,#392b4c)}
+.front-motif{position:absolute;inset:12% 15%;border:1px solid #e8c6dc81;box-shadow:inset 0 0 35px #9e719855;
+ display:grid;place-items:center;color:#e8d5b8;font:italic 13px Georgia,serif;text-align:center}
+.front-motif::before{content:"✦";display:block;position:absolute;top:9%;font-size:48px;color:#f3ddbc;filter:drop-shadow(0 0 13px #f7d18f9c)}
+.back-motif{position:absolute;inset:5%;border:2px double #d7bfd88a;border-radius:4px;display:grid;place-items:center}
+.back-motif::before{content:"✦";font-size:102px;color:#e2d2f8ae;font-family:Georgia,serif;
+ text-shadow:0 0 30px #dbb7efcc}
+.asset-note{position:absolute;bottom:7%;left:0;right:0;font:9px sans-serif;text-align:center;letter-spacing:.13em;color:#e8d5e5}
+#frost{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+#iceArt{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;opacity:0;z-index:2}
+#flakeArt{position:absolute;left:50%;top:33%;width:66%;height:43%;object-fit:contain;
+ transform:translate(-50%,-50%) scale(var(--fscale,.2));opacity:var(--fopacity,0);
+ pointer-events:none;z-index:4;filter:drop-shadow(0 0 8px #e0f2ff88)}
+#spark{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none;mix-blend-mode:screen}
+.titletag{position:absolute;left:15px;bottom:13px;color:#c7c0d8;font-size:10px;letter-spacing:.17em}
+.stagehint{position:absolute;right:16px;bottom:13px;color:#dad3e2ae;font-size:10px}
+.controls{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:13px}
+button{cursor:pointer;border:1px solid #c8bce359;background:#dbccf212;border-radius:8px;color:#eee4f5;
+ padding:9px 15px;font-size:12px;min-height:38px}
+button:hover{border-color:#e9d8f5}
+button:focus-visible,input:focus-visible{outline:2px solid #f2d6ff;outline-offset:2px}
+button[aria-pressed="true"]{border-color:#f8e7ffb0;color:#fffafc;background:#d6bbf039}
+button.primary{background:linear-gradient(120deg,#e9d7ef,#b5a6d0);color:#251c32;font-weight:650;border-color:#ebdef0}
+.indicator{text-align:center;color:#b4acc7;font-size:11px;margin:8px 0;min-height:18px}
+.panel{padding:13px 18px;margin-top:12px;border:1px solid #cbbad747;border-radius:12px;background:#131224b9}
+.panel summary{cursor:pointer;font-weight:600;color:#e4d7ef}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-top:13px}
+.grid label{font-size:11px;color:#d2cce1;display:flex;flex-direction:column;gap:4px}
+.grid label output{color:#e4d4f1;float:right;font-variant-numeric:tabular-nums}
+input[type="range"]{width:100%;accent-color:#d4bee9}
+.upload{display:flex;gap:13px;flex-wrap:wrap;margin-top:13px}
+.upload label{flex:1;min-width:210px;font-size:11px;color:#d1c7df;display:flex;flex-direction:column;gap:6px}
+input[type=file]{max-width:100%;font-size:11px}
+.small{font-size:11px;color:#b6abc7;margin:10px 0 0}
+.note{text-align:center;font-size:11px;color:#b5aec2;margin:17px 0}
+#live{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:640px){main{width:96vw}.stage{height:67vh;min-height:450px}.card{width:min(47vw,230px)}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.titletag{left:8px;bottom:9px;font-size:9px}}
+@media(prefers-reduced-motion:reduce){.card{will-change:auto}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="kicker">SCHICKSAL · RARE CARD · MATERIAL STUDY</div>
+<h1>The Witch’s Perihelion</h1>
+<p>冰晶侵蚀 · 光学冰膜 · 非均匀断裂 — 只测试旧女巫卡的冰封材质</p></header>
+<section id="stage" class="stage" role="button" tabindex="0" aria-label="点击推进冰封或碎裂">
+<div class="light-column"></div>
+<div id="card" class="card">
+ <div class="surface art-back" id="backView"><div class="back-motif"></div><div class="asset-note">REFERENCE PLACEHOLDER · BACK</div><img id="backImg" alt="" hidden></div>
+ <div class="surface art-front" id="frontView" hidden><div class="front-motif">THE WITCH’S<br>PERIHELION</div><div class="asset-note">REFERENCE PLACEHOLDER · FRONT</div><img id="frontImg" alt="" hidden></div>
+ <img id="iceArt" alt="" hidden><canvas id="frost"></canvas>
+ <img id="flakeArt" alt="" hidden>
+</div>
+<canvas id="spark"></canvas>
+<div class="titletag">ICE MATERIAL LAB · V1</div><div class="stagehint" id="stageHint">点击冰封 / 碎裂</div>
+<div id="live" role="status" aria-live="polite"></div>
+</section>
+<div class="controls" role="group" aria-label="动画调试">
+ <button id="full" aria-pressed="true">完整流程</button>
+ <button id="freeze" aria-pressed="false">单独看冰晶生长</button>
+ <button id="fracture" aria-pressed="false">单独看碎裂</button>
+ <button id="play" class="primary">✦ 重新播放</button>
+ <button id="pause">暂停</button>
+</div>
+<div id="indicator" class="indicator">冰晶从中心自然生长；完全冻结后点击，冰壳碎裂露出正面</div>
+<details class="panel" open><summary>冰材质调试 · 所有设置立即生效</summary>
+ <div class="grid">
+  <label>晶枝密度 <output id="densityValue">85%</output><input id="density" type="range" min="35" max="150" value="85" step="5"></label>
+  <label>冰膜透明度 <output id="filmValue">27%</output><input id="film" type="range" min="5" max="65" value="27" step="2"></label>
+  <label>折射高光 <output id="lightValue">75%</output><input id="light" type="range" min="10" max="140" value="75" step="5"></label>
+  <label>碎裂力度 <output id="forceValue">85%</output><input id="force" type="range" min="25" max="145" value="85" step="5"></label>
+ </div>
+</details>
+<details class="panel"><summary>导入女巫卡原始素材（可选）</summary>
+<div class="upload">
+<label>原始素材 ZIP（自动寻找 front / back / ice / flake）<input type="file" id="zipFile" accept=".zip,application/zip"></label>
+<label>也可以直接选择多张 PNG / WEBP<input type="file" id="images" multiple accept="image/png,image/webp,image/jpeg"></label>
+</div>
+<p class="small" id="assetStatus">默认先用明确标注的占位卡牌调试光效。导入原画后沿用原图，不重画卡面。ZIP 只解析命中的 4 张图像，不导入任何代码。</p>
+</details>
+<p class="note">这是独立材质实验：不会覆盖原卡、现有动画、Bruma 动画或 Schicksal 主站。</p>
+</main>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),stage=$('stage'),card=$('card');
+const frost=$('frost'),ctx=frost.getContext('2d'),sparks=$('spark'),sx=sparks.getContext('2d');
+const backView=$('backView'),frontView=$('frontView');
+const controls={density:$('density'),film:$('film'),light:$('light'),force:$('force')};
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+let w=260,h=390,sw=700,sh=600,scale=1,mode='full',phase='idle',clock=0,last=0,paused=false,raf=0;
+let filmCanvas=document.createElement('canvas'),filmCtx=filmCanvas.getContext('2d'),pieces=[],glassGenerated=false,assetUrls=[];
+let hasIce=false,hasFlake=false,objectBack=false,objectFront=false;
+function seeded(n){return (Math.sin(n*12.9898+78.233)*43758.5453)%1;}
+function rand(n){let x=seeded(n);return x-Math.floor(x);}
+function val(key){return Number(controls[key].value)/100;}
+function resize(){
+ const br=card.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+ w=Math.max(1,br.width);h=Math.max(1,br.height);sw=sr.width;sh=sr.height;
+ scale=Math.min(window.devicePixelRatio||1,1.45);
+ for(const c of [frost,filmCanvas]){c.width=Math.round(w*scale);c.height=Math.round(h*scale);}
+ for(const c of [sparks]){c.width=Math.round(sw*scale);c.height=Math.round(sh*scale);}
+ ctx.setTransform(scale,0,0,scale,0,0);filmCtx.setTransform(scale,0,0,scale,0,0);
+ sx.setTransform(scale,0,0,scale,0,0);glassGenerated=false;
+ if(phase==='frozen')drawFreeze(ctx,1);
+}
+function drawArm(c,a,progress,armIndex){
+ const cx=w/2,cy=h*.39,R=Math.hypot(w/2,h*.66)*.99;
+ const density=val('density'),light=val('light');
+ const length=R*(.84+rand(armIndex+2)*.18);
+ const N=30;
+ const vecx=Math.cos(a),vecy=Math.sin(a);
+ c.save();
+ for(let j=1;j<=N;j++){
+  const p0=(j-1)/N,p1=j/N;
+  if(p0>progress)break;
+  const upper=Math.min(p1,progress);
+  const lateral0=Math.sin(p0*9+armIndex*2.41)*2.25*p0;
+  const lateral1=Math.sin(upper*9+armIndex*2.41)*2.25*upper;
+  const px=cx+vecx*length*p0-vecy*lateral0,py=cy+vecy*length*p0+vecx*lateral0;
+  const qx=cx+vecx*length*upper-vecy*lateral1,qy=cy+vecy*length*upper+vecx*lateral1;
+  c.beginPath();c.moveTo(px,py);c.lineTo(qx,qy);
+  c.lineWidth=1.15+1.75*(1-upper);
+  c.strokeStyle='rgba(234,248,255,'+(.24+.38*light).toFixed(3)+')';
+  c.shadowColor='rgba(210,241,255,.72)';c.shadowBlur=5*light;c.stroke();
+  c.shadowBlur=0;
+ }
+ // Branches grow in order, but at slightly different velocities and unequal lengths.
+ for(let j=1;j<=9;j++){
+  const at=.16+j*.079;
+  const stagger=at+.023*rand(armIndex*100+j*7);
+  if(progress<=stagger)continue;
+  const grow=smooth((progress-stagger)/(.11+rand(armIndex*13+j)*.045));
+  const originX=cx+vecx*length*at,originY=cy+vecy*length*at;
+  for(const side of [-1,1]){
+   const branchAngle=a+side*(.46+.13*rand(armIndex*21+j));
+   const bLen=length*(.14+.13*rand(j*9+armIndex*4))*(1-at*.55)*grow*density;
+   const kx=Math.cos(branchAngle),ky=Math.sin(branchAngle);
+   c.beginPath();c.moveTo(originX,originY);
+   c.quadraticCurveTo(originX+kx*bLen*.47-ky*2,originY+ky*bLen*.47+kx*2,
+                     originX+kx*bLen,originY+ky*bLen);
+   c.lineWidth=.48+1.1*(1-at);
+   c.strokeStyle='rgba(231,247,255,'+(.28+.44*light).toFixed(3)+')';
+   c.shadowColor='#b6e6ff';c.shadowBlur=3.5*light;c.stroke();c.shadowBlur=0;
+   if(density>.7&&j%2===0){
+    c.beginPath();c.moveTo(originX+kx*bLen*.5,originY+ky*bLen*.5);
+    c.lineTo(originX+kx*bLen*.75+side*1.5,originY+ky*bLen*.75-side*1.5);
+    c.lineWidth=.5;c.stroke();
+   }
+  }
+ }
+ c.restore();
+}
+function drawFreeze(c,progress){
+ c.clearRect(0,0,w,h);
+ const p=clamp(progress),light=val('light'),film=val('film');
+ if(p<=0)return;
+ const cx=w/2,cy=h*.39,maxR=Math.hypot(w/2,h*.65)*1.7;
+ // Optical membrane: pale translucent interior, no opaque white painted sheet.
+ c.save();c.beginPath();c.arc(cx,cy,maxR*p,0,Math.PI*2);c.clip();
+ let veil=c.createRadialGradient(cx,cy,8,cx,cy,maxR);
+ veil.addColorStop(0,'rgba(218,238,255,'+(film*.19).toFixed(3)+')');
+ veil.addColorStop(.49,'rgba(217,235,251,'+(film*.37).toFixed(3)+')');
+ veil.addColorStop(1,'rgba(167,199,229,'+(film*.23).toFixed(3)+')');
+ c.fillStyle=veil;c.fillRect(0,0,w,h);
+ // Slightly blue edge refraction, not a repeated tile or synthetic polygons.
+ const edge=c.createRadialGradient(cx,cy,maxR*p*.90,cx,cy,maxR*p*1.04);
+ edge.addColorStop(0,'rgba(215,244,255,0)');
+ edge.addColorStop(.52,'rgba(211,238,255,'+(light*.12).toFixed(3)+')');
+ edge.addColorStop(1,'rgba(215,243,255,0)');
+ c.fillStyle=edge;c.fillRect(0,0,w,h);
+ c.restore();
+ for(let i=0;i<6;i++){
+  const a=-Math.PI/2+i*Math.PI/3;
+  drawArm(c,a,p,i);
+ }
+ // Icy fine grain and surface highlights are subordinate to the dendrites.
+ c.save();c.beginPath();c.arc(cx,cy,maxR*p,0,Math.PI*2);c.clip();
+ for(let i=0;i<82;i++){
+  const x=rand(i*31+41)*w,y=rand(i*17+9)*h;
+  const length=1.2+rand(i*19+3)*6;
+  c.strokeStyle='rgba(242,253,255,'+(.036*light).toFixed(4)+')';
+  c.lineWidth=.45;c.beginPath();c.moveTo(x,y);c.lineTo(x+length*.35,y-length);c.stroke();
+ }
+ c.restore();
+ if(hasIce){
+  // The original ice sheet is an optional low-opacity texture reference.
+  const im=$('iceArt');c.save();c.globalAlpha=film*.56*p;
+  if(im.complete&&im.naturalWidth)c.drawImage(im,0,0,w,h);
+  c.restore();
+ }
+ if(hasFlake){
+  const im=$('flakeArt');c.save();c.globalAlpha=(.35+.55*light)*smooth(p*2.5);
+  const size=w*.63; if(im.complete&&im.naturalWidth)
+   c.drawImage(im,cx-size/2,cy-size*.48,size,size);
+  c.restore();
+ }
+}
+function createPieces(){
+ pieces=[];const cx=w/2,cy=h*.39;
+ const radius=Math.hypot(w,h)*1.5;
+ const rings=[0,.30,.70,1.25],sectors=16;
+ for(let k=0;k<sectors;k++){
+  const a0=k*Math.PI*2/sectors+Math.sin(k*.8)*.028;
+  const a1=(k+1)*Math.PI*2/sectors+Math.sin((k+1)*.8)*.028;
+  for(let j=0;j<rings.length-1;j++){
+   const r0=radius*rings[j],r1=radius*rings[j+1];
+   const pts=[
+    [cx+Math.cos(a0)*r0,cy+Math.sin(a0)*r0],
+    [cx+Math.cos(a1)*r0,cy+Math.sin(a1)*r0],
+    [cx+Math.cos(a1+.018*rand(k*3+j))*r1,cy+Math.sin(a1+.018*rand(k*3+j))*r1],
+    [cx+Math.cos(a0-.021*rand(k*7+j))*r1,cy+Math.sin(a0-.021*rand(k*7+j))*r1]
+   ];
+   const angle=(a0+a1)/2,noise=rand(k*37+j*19);
+   pieces.push({pts,angle,delay:rand(k*11+j*5)*.17,vel:(.36+.8*noise),rot:(rand(k*9+j*21)-.5)*1.4,mass:.68+.53*rand(k*12+j)});
+  }
+ }
+}
+function cacheFull(){
+ drawFreeze(filmCtx,1);glassGenerated=true;createPieces();
+}
+function drawShatter(t){
+ if(!glassGenerated)cacheFull();
+ ctx.clearRect(0,0,w,h);
+ const force=val('force'),t1=clamp(t);
+ for(const p of pieces){
+  const d=clamp((t1-p.delay)/(1-p.delay)),ease=1-Math.pow(1-d,2.1);
+  const radial=force*190*p.vel*ease;
+  const grav=force*105*d*d/p.mass;
+  const dx=Math.cos(p.angle)*radial,dy=Math.sin(p.angle)*radial+grav;
+  const cx=w/2,cy=h*.39;
+  ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(p.rot*ease);ctx.translate(-cx,-cy);
+  ctx.beginPath();p.pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.clip();
+  ctx.globalAlpha=1-smooth((d-.32)/.68);
+  ctx.drawImage(filmCanvas,0,0,w,h);
+  ctx.strokeStyle='rgba(233,249,255,'+(.3*(1-d)).toFixed(3)+')';
+  ctx.lineWidth=.8;ctx.stroke();
+  ctx.restore();
+ }
+}
+function drawSparkles(t){
+ sx.clearRect(0,0,sw,sh);
+ if(phase!=='breaking')return;
+ const rect=card.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+ const cx=rect.left-sr.left+rect.width*.5,cy=rect.top-sr.top+rect.height*.39;
+ const alpha=(1-smooth(t/.46))*val('light')*.55;
+ if(alpha<=0)return;
+ const grad=sx.createRadialGradient(cx,cy,4,cx,cy,135);
+ grad.addColorStop(0,'rgba(251,250,255,'+alpha.toFixed(3)+')');
+ grad.addColorStop(.14,'rgba(210,237,255,'+(alpha*.43).toFixed(3)+')');
+ grad.addColorStop(1,'rgba(190,220,255,0)');
+ sx.fillStyle=grad;sx.beginPath();sx.arc(cx,cy,135,0,Math.PI*2);sx.fill();
+ for(let i=0;i<34;i++){
+  let a=i*2.39996+rand(i*3)*.2;
+  let r=(12+rand(i*5+3)*147)*smooth(t/.47);
+  let x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
+  sx.fillStyle='rgba(243,250,255,'+(alpha*.8).toFixed(3)+')';
+  sx.beginPath();sx.arc(x,y,.45+rand(i*13)*1.1,0,Math.PI*2);sx.fill();
+ }
+}
+function updateStatus(msg){$('indicator').textContent=msg;$('live').textContent=msg;}
+function setFront(visible){
+ frontView.hidden=!visible;backView.hidden=visible;
+}
+function begin(){
+ clock=0;paused=false;$('pause').textContent='暂停';glassGenerated=false;
+ if(mode==='fracture'){
+   phase='breaking';setFront(true);cacheFull();drawFreeze(ctx,1);updateStatus('晶壳发生非均匀断裂 · 点击可重播');
+ }else{
+   phase='growth';setFront(false);drawFreeze(ctx,0);
+   updateStatus('六枝晶体从中心生长 · 逐渐形成半透明冰膜');
+ }
+}
+function advance(){
+ if(phase==='growth'){phase='frozen';clock=0;drawFreeze(ctx,1);updateStatus('已冻结 · 点击碎裂，直接露出正面');}
+ else if(phase==='frozen'){phase='breaking';clock=0;cacheFull();setFront(true);updateStatus('冰晶碎裂 · 无翻牌');}
+ else begin();
+}
+function frame(now){
+ if(!last)last=now;const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
+ if(!paused)clock+=dt;
+ if(phase==='growth'){
+  const progress=smooth(clock/2.55);
+  drawFreeze(ctx,progress);
+  card.style.filter='brightness('+(1+.035*Math.sin(Math.PI*progress)).toFixed(4)+')';
+  if(clock>=2.55){
+   phase='frozen';clock=0;drawFreeze(ctx,1);
+   updateStatus('冰封完成 · 点击碎裂，露出女巫卡正面');
+  }
+ }else if(phase==='frozen'){
+  if(mode==='full'&&clock>1.0){advance();}
+ }else if(phase==='breaking'){
+  drawShatter(clock/1.03);drawSparkles(clock);
+  if(clock>=1.03){phase='revealed';clock=0;ctx.clearRect(0,0,w,h);sx.clearRect(0,0,sw,sh);
+    updateStatus('揭晓完成 · 点击重播');}
+ }
+ raf=requestAnimationFrame(frame);
+}
+function chooseMode(next){
+ mode=next;for(const k of ['full','freeze','fracture'])$(k).setAttribute('aria-pressed',String(k===next));begin();
+}
+$('full').onclick=()=>chooseMode('full');$('freeze').onclick=()=>chooseMode('freeze');$('fracture').onclick=()=>chooseMode('fracture');
+$('play').onclick=()=>begin();$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'继续':'暂停';last=0;};
+stage.onclick=()=>advance();
+stage.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();advance();}};
+for(const [key,input]of Object.entries(controls)){
+ input.oninput=()=>{$(key+'Value').textContent=input.value+'%';glassGenerated=false;
+  if(phase==='frozen')drawFreeze(ctx,1);
+  if(phase==='growth')drawFreeze(ctx,smooth(clock/2.55));};
+}
+function setAsset(name,blob){
+ const mapping={back:'backImg',front:'frontImg',ice:'iceArt',flake:'flakeArt'};
+ const id=mapping[name];if(!id)return;
+ const url=URL.createObjectURL(blob);assetUrls.push(url);
+ const img=$(id);img.onload=()=>{
+  if(name==='back'){img.hidden=false;objectBack=true}
+  if(name==='front'){img.hidden=false;objectFront=true}
+  if(name==='ice'){hasIce=true;img.hidden=true}
+  if(name==='flake'){hasFlake=true;img.hidden=true}
+  begin();
+ };
+ img.onerror=()=>{$('assetStatus').textContent='图片解码失败：'+name};
+ img.src=url;
+}
+function classify(filename){
+ const n=filename.toLowerCase().split('/').pop();
+ const ext=n.split('.').pop();
+ if(!['png','webp','jpg','jpeg'].includes(ext))return null;
+ if(/flake|snowflake|雪花/.test(n))return 'flake';
+ if(/ice|frost|冰壳|冰封/.test(n))return 'ice';
+ if(/front|正面|card_face/.test(n))return 'front';
+ if(/back|背面|card_back/.test(n))return 'back';
+ return null;
+}
+async function readZip(file){
+ const bytes=new Uint8Array(await file.arrayBuffer()),v=new DataView(bytes.buffer);
+ let end=-1;for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65558);i--){
+  if(v.getUint32(i,true)===0x06054b50){end=i;break;}
+ }
+ if(end<0)throw Error('未找到 ZIP 中央目录');
+ let off=v.getUint32(end+16,true),count=v.getUint16(end+10,true),result={};
+ for(let i=0;i<count;i++){
+  if(v.getUint32(off,true)!==0x02014b50)throw Error('ZIP 中央目录损坏');
+  const method=v.getUint16(off+10,true),compressed=v.getUint32(off+20,true);
+  const nameLen=v.getUint16(off+28,true),extra=v.getUint16(off+30,true),comment=v.getUint16(off+32,true);
+  const local=v.getUint32(off+42,true),name=new TextDecoder().decode(bytes.subarray(off+46,off+46+nameLen));
+  off+=46+nameLen+extra+comment;
+  const kind=classify(name);
+  if(!kind||result[kind])continue;
+  const start=local+30+v.getUint16(local+26,true)+v.getUint16(local+28,true);
+  const raw=bytes.slice(start,start+compressed);
+  let data;
+  if(method===0)data=raw;
+  else if(method===8){
+   if(!window.DecompressionStream)throw Error('浏览器不支持 deflate-raw；可直接选 PNG/WEBP');
+   data=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  }else continue;
+  result[kind]=new Blob([data],{type:name.toLowerCase().endsWith('.webp')?'image/webp':'image/png'});
+ }
+ return result;
+}
+$('zipFile').onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;
+ $('assetStatus').textContent='正在查找原画素材……';
+ try{
+  const found=await readZip(f);
+  for(const [key,blob]of Object.entries(found))setAsset(key,blob);
+  const keys=Object.keys(found);
+  $('assetStatus').textContent=keys.length?'已导入：'+keys.join(' / ')+'。这是实验覆盖层，不会修改原图。':'ZIP 中没有匹配 front/back/ice/flake 的图片，试试直接选图。';
+ }catch(err){$('assetStatus').textContent='ZIP 读取失败：'+err.message;}
+};
+$('images').onchange=e=>{
+ const files=[...e.target.files],loaded=[];
+ for(const f of files){let k=classify(f.name);if(k){setAsset(k,f);loaded.push(k)}}
+ $('assetStatus').textContent=loaded.length?'已导入：'+loaded.join(' / ')+'。':'未识别图片名称，请命名包含 front、back、ice 或 flake。';
+};
+window.addEventListener('resize',()=>{resize();begin();});
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);for(const url of assetUrls)URL.revokeObjectURL(url);});
+resize();begin();raf=requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
