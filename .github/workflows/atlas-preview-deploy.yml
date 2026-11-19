@@ -104,27 +104,48 @@ jobs:
         run: |
           set -euo pipefail
           printf "%s" "$SCHICKSAL_PREVIEW_PASSWORDS" | npx wrangler secret put SCHICKSAL_MEMBER_PASSWORDS --config work/atlas-preview-dist/server/wrangler.json
-      - name: Authenticated Atlas preview smoke test
+      - name: Authenticated Atlas preview smoke test (retry propagation, verify artwork)
         shell: bash
         run: |
           set -euo pipefail
           node --input-type=module - <<'NODE'
           const root="https://schicksal-atlas-preview.m17686100216.workers.dev";
-          const anonymous=await fetch(root+"/", {cache:"no-store"});
-          if(anonymous.status>=500) throw Error("Anonymous site request failed HTTP "+anonymous.status);
+          const waits=[2000,5000,10000,15000,20000];
+          const delay=ms=>new Promise(ok=>setTimeout(ok,ms));
+          async function withRetry(path,options={},good=status=>status<500) {
+            let last;
+            for(let i=0;i<=waits.length;i++){
+              try{
+                const res=await fetch(root+path,{cache:"no-store",...options});
+                last=res;
+                if(good(res.status)) return res;
+                console.log("Preview warming up",path,"HTTP",res.status,"attempt",i+1);
+                await res.body?.cancel();
+              }catch(e){console.log("Preview warming up",path,"connection attempt",i+1);}
+              if(i<waits.length)await delay(waits[i]);
+            }
+            throw Error("Preview remained unavailable on "+path+" (HTTP "+(last?.status??"network")+")");
+          }
+          const anonymous=await withRetry("/",{},code=>code===401 || code===200);
+          console.log("Anonymous gate HTTP "+anonymous.status);
+          const getSession=await withRetry("/api/member-session");
+          if(!getSession.ok)throw Error("Member session handler HTTP "+getSession.status);
           const password=JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS??"{}").amberina;
-          const login=await fetch(root+"/api/member-session", {
+          const login=await withRetry("/api/member-session",{
             method:"POST",headers:{"Content-Type":"application/json",Origin:root},
             body:JSON.stringify({citizenId:"amberina",password})
-          });
+          },code=>code<500);
           if(!login.ok) throw Error("Preview member login failed HTTP "+login.status);
           const cookie=login.headers.get("set-cookie")?.split(";")[0];
           if(!cookie) throw Error("Preview session cookie missing");
-          const doc=await fetch(root+"/", {headers:{Cookie:cookie},cache:"no-store"});
-          if(!doc.ok) throw Error("Authenticated preview homepage failed HTTP "+doc.status);
-          const mark=await fetch(root+"/atlas/amberina-simple-web753.png",{headers:{Cookie:cookie}});
-          if(!mark.ok) throw Error("Official AvS personal mark asset missing HTTP "+mark.status);
-          console.log("Atlas preview login and official-mark asset verified; site "+root);
+          const doc=await withRetry("/",{headers:{Cookie:cookie}},code=>code<500);
+          if(!doc.ok)throw Error("Authenticated homepage HTTP "+doc.status);
+          for(const asset of ["amberina-simple-web753.png","amberina-crystal-sunflowers.png"]){
+            const response=await withRetry("/atlas/"+asset,{headers:{Cookie:cookie}},code=>code<500);
+            if(!response.ok)throw Error("Atlas art missing "+asset+" HTTP "+response.status);
+            console.log("Verified pixel-preserving art",asset,"HTTP",response.status);
+          }
+          console.log("Authenticated live Schicksal Atlas preview verified "+root);
           await fetch(root+"/api/member-session",{method:"DELETE",headers:{Cookie:cookie,Origin:root}});
           NODE
       - name: Summary
