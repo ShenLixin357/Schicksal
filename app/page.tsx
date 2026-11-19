@@ -4,7 +4,7 @@ import Image from "next/image";
 import { CITIZENS, type Citizen } from "./citizens";
 import { SchicksalAtlas } from "./atlas/schicksal-atlas";
 import { GovernmentHandbook } from "./atlas/government-handbook";
-import { atlasCitizenName, officesOf } from "./atlas/atlas-data";
+import { atlasCitizenName, officesOf, CITIZEN_APPEARANCE } from "./atlas/atlas-data";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SpeakerManagement } from "./speaker-management";
 import { startTransition, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
@@ -214,6 +214,10 @@ function Wordmark() {
 }
 
 function CitizenMark({ citizen }: { citizen: Citizen }) {
+  // When a member provides their final artwork, swap its file path in atlas-data.ts.
+  // Until then the existing SVG mark remains the readable fallback across the site.
+  const suppliedMark = CITIZEN_APPEARANCE[citizen.id]?.emblemSrc;
+  if (suppliedMark) return <span className={"citizen-mark " + citizen.motif} style={{"--mark":citizen.markColor} as CSSProperties} aria-hidden="true"><img src={suppliedMark} alt="" style={{width:"100%",height:"100%",objectFit:"contain"}} /></span>;
   let sigil: ReactNode;
   switch (citizen.motif) {
     case "snow":
