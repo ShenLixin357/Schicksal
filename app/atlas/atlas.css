@@ -1,0 +1,135 @@
+
+/* Isolated Schicksal Atlas art direction, intentionally leaves all main-site sidebar styles alone. */
+.schicksal-atlas{
+ --a-ink:#4b2f4e;--a-muted:#89718b;--a-gold:#c59b63;--a-line:rgba(191,145,92,.51);
+ font-family: "Songti SC","STSong","Noto Serif CJK SC",Georgia,serif;max-width:1440px;margin:auto;color:var(--a-ink);isolation:isolate;
+ position:relative;padding:16px 10px 34px;background:radial-gradient(ellipse 55% 38% at 88% 3%,#e9dff5a6,transparent 83%),radial-gradient(ellipse 55% 50% at 15% 94%,#ffefd966,transparent 85%),#fdf9f9;border-radius:13px;
+}
+.schicksal-atlas:before{content:"";position:absolute;right:0;top:0;width:65%;height:153px;pointer-events:none;opacity:.36;background:url("/atlas/stained-window-top.webp") right top/auto 145px no-repeat;mask-image:linear-gradient(90deg,transparent,black)}
+.schicksal-atlas button{font:inherit;cursor:pointer}
+.schicksal-atlas button:focus-visible{outline:2px solid #9b7abf;outline-offset:2px}
+.atlas-page-heading{position:relative;z-index:1;min-height:92px;display:flex;align-items:center;gap:17px;padding:0 14px 16px;margin:0 0 18px;border-bottom:1px solid #ddb994}
+.atlas-page-symbol{width:53px;height:53px;flex:0 0 53px;border:1px solid #d8b177;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#fffefa,#f3e2f1);box-shadow:0 0 0 4px #fff9f4,0 0 0 5px #d9bd98}
+.atlas-page-heading h1{margin:0;color:#4a3150;font-size:clamp(30px,2.9vw,46px);font-weight:500;letter-spacing:.075em;line-height:1.25}
+.atlas-page-heading h1 em{font:italic 20px Georgia,serif;margin-left:15px;letter-spacing:.02em;color:#6b5173}
+.atlas-page-heading p{color:#947e94;font:10px/1.5 Georgia,serif;letter-spacing:.16em;margin:7px 0 0}
+.atlas-upper-grid,.atlas-lower-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:17px;align-items:stretch}
+.atlas-lower-grid{grid-template-columns:1fr 1.15fr;margin-top:18px}
+.atlas-scene-panel{position:relative;min-width:0;aspect-ratio:679/374;border:1px solid #cda075;border-radius:9px;overflow:hidden;box-shadow:0 10px 24px rgba(112,87,159,.15),inset 0 0 0 4px #fff9fa;background:#e5d7ed}
+.atlas-scene-panel:before{content:"";position:absolute;z-index:3;inset:9px;border:1px solid #f4d9b5;pointer-events:none;border-radius:3px}
+.atlas-scene-art{object-fit:cover;filter:saturate(1.05) contrast(1.02)}
+.atlas-scene-halo{position:absolute;inset:0;z-index:1;pointer-events:none;box-shadow:inset 0 0 18px rgba(255,252,248,.84)}
+.atlas-central-emblem{position:absolute;z-index:2;left:51.8%;top:51.5%;transform:translate(-50%,-50%);width:34%;aspect-ratio:1;display:grid;place-items:center;background:radial-gradient(circle,rgba(116,97,190,.90),rgba(93,83,168,.2) 67%,transparent 73%);border-radius:50%}
+.atlas-central-emblem img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 13px #fff5e8)}
+.atlas-member-node{position:absolute;z-index:5;transform:translate(-50%,-50%);width:12%;aspect-ratio:1;border-radius:50%;border:1px solid transparent;background:transparent;transition:box-shadow .22s,border-color .22s;box-shadow:none}
+.atlas-member-node:hover,.atlas-member-node.active,.atlas-member-node:focus-visible{border:1px solid #fff3c4;box-shadow:0 0 0 2px var(--node-color),0 0 20px 5px rgba(255,238,184,.73),inset 0 0 10px rgba(255,255,255,.46)}
+.atlas-node-tooltip{pointer-events:none;opacity:0;position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;font:12px Georgia,serif;border:1px solid #dabb8c;background:#fffaf5;color:#5d4261;padding:3px 9px;border-radius:18px;box-shadow:0 3px 8px #6f588c2a;transition:opacity .2s}
+.atlas-member-node:hover .atlas-node-tooltip,.atlas-member-node:focus-visible .atlas-node-tooltip{opacity:1}
+.atlas-decorated-panel{position:relative;min-width:0;overflow:hidden;isolation:isolate;border-radius:10px;border:1px solid rgba(201,157,113,.68);background:radial-gradient(ellipse at 95% 10%,#f1e3f88f,transparent 45%),linear-gradient(125deg,#fffdfa,#fff8f6 67%,#f9f0f6);box-shadow:0 11px 27px rgba(105,84,124,.095),0 2px 4px rgba(129,87,110,.09),inset 0 0 0 4px #fffaf6,inset 0 0 0 5px #e6cfb4}
+.atlas-decorated-panel:before{content:"";position:absolute;z-index:1;inset:8px;border:1px solid rgba(204,163,112,.49);border-radius:5px;pointer-events:none}
+.atlas-corner{position:absolute;pointer-events:none;z-index:1;object-fit:cover;opacity:.85}
+.atlas-top-right{right:0;top:0;mask-image:radial-gradient(ellipse at 100% 0,black 40%,transparent 90%)}
+.atlas-bottom-left{left:0;bottom:0;mask-image:radial-gradient(ellipse at 0 100%,black 38%,transparent 90%)}
+.atlas-bottom-right{right:0;bottom:0;mask-image:radial-gradient(ellipse at 100% 100%,black 38%,transparent 90%)}
+.atlas-section-heading{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:14px 20px 13px;min-height:59px}
+.atlas-section-heading:after{content:"";height:1px;left:20px;right:19px;bottom:4px;position:absolute;background:linear-gradient(90deg,#bd9668,#ead1b3 60%,#d5b791)}
+.atlas-section-heading h2{margin:0;font-size:clamp(19px,2vw,25px);font-weight:500;letter-spacing:.04em;color:#4d2f4a;white-space:nowrap}
+.atlas-section-heading em{font:italic 12px Georgia,serif;color:#765e78;white-space:nowrap}
+.atlas-heading-icon{font:28px Georgia,serif;line-height:1;color:#bb895a}
+.atlas-record-panel{min-height:0;display:flex;flex-direction:column;padding-bottom:18px}
+.atlas-person-top{display:flex;gap:17px;align-items:center;position:relative;z-index:2;margin:4px 23px 9px;min-height:103px}
+.atlas-sigil-frame{height:91px;width:91px;flex:0 0 91px;display:grid;place-items:center;border:1px solid #ceac7c;border-radius:50%;background:radial-gradient(circle,#fffdfa,#faf4ef);box-shadow:0 0 0 4px #fff7ee,0 0 0 5px #e4ceb2,0 2px 8px #a58baa2b}
+.atlas-sigil-frame .atlas-personal-image{max-width:77%;max-height:77%;object-fit:contain}
+.atlas-person-info{min-width:0;flex:1;position:relative}
+.atlas-person-info h3{margin:0 0 8px;font:500 clamp(23px,2vw,33px)/1.2 Georgia,"Songti SC",serif;color:#603653;overflow-wrap:anywhere}
+.atlas-identity-line{font-size:13px;display:flex;align-items:baseline;gap:14px;line-height:1.65;border-bottom:1px solid rgba(212,183,158,.25)}
+.atlas-identity-line span{color:#937b8c;white-space:nowrap}
+.atlas-identity-line strong{color:#4d3d4d;font-weight:500;overflow-wrap:anywhere}
+.atlas-president-badge{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:3px 10px;border-radius:24px;background:linear-gradient(180deg,#fffddd,var(--atlas-personal));box-shadow:inset 0 1px #fffff3,0 2px 7px #9e816344;border:1px solid #c9a76d;color:#513a39;font-size:12px}
+.atlas-roles{position:relative;z-index:2;margin:1px 22px 0;padding:13px 0 0;border-top:1px solid #d9b896;min-height:111px}
+.atlas-small-title{font-size:14px;display:flex;align-items:baseline;gap:11px;color:#69485c}
+.atlas-small-title small{font:9px Georgia,serif;letter-spacing:.1em;color:#ae94a5}
+.atlas-role-tags{max-width:calc(100% - 115px);display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;margin-top:9px}
+.atlas-role-tags span:not(.atlas-role-empty){display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:5px 8px;border-radius:18px;border:1px solid #e6d1ba;background:#fffdfb;font-size:11px;color:#62495b}
+.atlas-role-tags i{font-style:normal;color:#ba9260}
+.atlas-role-empty{color:#9c8696;font-size:12px}
+.atlas-record-footer{position:relative;z-index:3;margin:1px 0 0 25px;padding-right:135px;min-height:45px}
+.atlas-record-footer button{border:1px solid #caa16b;border-radius:30px;background:linear-gradient(180deg,#fffcda,var(--atlas-personal));font-size:13px;color:#5f4735;min-height:41px;min-width:182px;font-weight:600;padding:7px 12px;box-shadow:0 2px 9px #aa8d642e}
+.atlas-record-footer button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px #ab8b6340}
+.atlas-record-footer button:disabled{opacity:.6;cursor:not-allowed}
+.atlas-person-flower{position:absolute;z-index:2;right:-7px;bottom:-14px;width:clamp(122px,16vw,211px);height:auto;max-height:185px;object-fit:contain;object-position:bottom right;filter:drop-shadow(0 3px 4px #99718a38);pointer-events:none}
+.atlas-org-panel,.atlas-directory-panel{min-height:322px}
+.atlas-org-item{position:relative;z-index:2;display:grid;grid-template-columns:70px minmax(130px,.85fr) minmax(112px,1fr);gap:11px;align-items:center;margin:0 23px;padding:20px 2px;min-height:121px}
+.atlas-org-item+.atlas-org-item{border-top:1px solid #dec4ac}
+.atlas-org-glyph{filter:drop-shadow(0 2px 4px #a598b03c)}
+.atlas-org-label h3{font-size:19px;margin:0 0 5px;font-weight:500;letter-spacing:.02em}
+.atlas-org-label em{display:block;font:italic 11px/1.4 Georgia,serif;color:#987e9c}
+.atlas-org-members{min-width:0;border-left:1px solid #c79a6a;padding-left:13px;font-size:12px;line-height:1.6;color:#674e5f}
+.atlas-org-members strong{display:block;font-weight:500;margin-bottom:4px}
+.atlas-org-members span{overflow-wrap:anywhere}
+.atlas-handbook-button{margin-left:auto;border:1px solid #d4b082;border-radius:23px;background:#fff8f3;color:#77545b;padding:5px 10px;font-size:12px!important;white-space:nowrap;position:relative;z-index:2}
+.atlas-handbook-button:hover{background:#fdf0df}
+.atlas-offices-table{position:relative;z-index:2;border-collapse:collapse;width:calc(100% - 44px);margin:6px 22px 6px;font-size:12px;background:rgba(255,252,249,.88);border:1px solid #e3d0bc}
+.atlas-offices-table th{padding:7px 11px;text-align:left;font-weight:500;background:linear-gradient(#f4e8e5,#faeeea);color:#674a62;border-bottom:1px solid #dfc5b5}
+.atlas-offices-table th:first-child{width:49%}
+.atlas-offices-table td{padding:0;border-bottom:1px solid #edddcf;line-height:1.3}
+.atlas-offices-table td+td{border-left:1px solid #ead4c5}
+.atlas-office-name{display:flex;gap:9px;align-items:center;width:100%;padding:5px 9px;background:none;border:0;color:#583f52;text-align:left;font-size:12px!important;min-height:27px}
+.atlas-office-name:hover,.atlas-office-name[aria-expanded=true]{background:#fff2e4}
+.atlas-office-name>span{font:18px/1 Georgia;color:#ac7d53}
+.atlas-office-people{padding:5px 9px!important;color:#564156}
+.atlas-office-people button{border:0;background:none;padding:0;text-decoration:underline;text-underline-offset:2px;text-decoration-color:#d9c0a2;color:#5f4461;font-size:12px!important}
+.atlas-office-people button:hover{color:#a77c51}
+.atlas-empty-position{color:#a3919d}
+.atlas-description-row td{padding:10px 16px!important;background:linear-gradient(90deg,#fffaf1,#fdf6f8);color:#6d5768;line-height:1.65}
+.atlas-description-row small{display:block;color:#a18d95;font-size:10px;margin-top:3px}
+.atlas-duty-note{position:relative;z-index:1;font-size:10px;color:#b29eaa;margin:8px 23px 16px}
+@media(max-width:1320px){
+ .atlas-upper-grid{grid-template-columns:minmax(0,1fr) minmax(340px,.96fr);gap:12px}
+ .atlas-lower-grid{gap:12px}
+ .atlas-person-top{margin-left:16px;gap:10px}
+ .atlas-sigil-frame{height:68px;width:68px;flex-basis:68px}
+ .atlas-person-info h3{font-size:23px}
+ .atlas-roles{margin-left:17px;margin-right:15px}
+ .atlas-role-tags{max-width:calc(100% - 93px)}
+ .atlas-record-footer{margin-left:18px;padding-right:110px}
+ .atlas-person-flower{max-height:153px;width:145px}
+ .atlas-org-item{grid-template-columns:53px minmax(105px,.88fr) minmax(105px,1fr);gap:7px;margin:0 16px}
+ .atlas-org-glyph{width:52px;height:52px}
+ .atlas-org-label h3{font-size:17px}
+}
+@media(max-width:1100px){
+ .atlas-upper-grid,.atlas-lower-grid{grid-template-columns:minmax(0,1fr)}
+ .atlas-scene-panel{max-width:780px;width:100%;justify-self:center}
+ .atlas-record-panel{min-height:360px;max-width:780px;width:100%;justify-self:center}
+ .atlas-role-tags{max-width:calc(100% - 150px)}
+ .atlas-person-flower{max-height:180px;width:200px}
+ .atlas-org-panel,.atlas-directory-panel{min-height:280px}
+}
+@media(max-width:650px){
+ .schicksal-atlas{padding:6px 0 20px}
+ .atlas-page-heading{gap:11px;min-height:70px;padding:10px 8px}
+ .atlas-page-symbol{height:38px;width:38px;flex-basis:38px}
+ .atlas-page-heading h1{font-size:27px}
+ .atlas-page-heading h1 em{display:block;margin:4px 0 0;font-size:15px}
+ .atlas-page-heading p{font-size:8px}
+ .atlas-scene-panel{width:100%;aspect-ratio:679/374}
+ .atlas-record-panel{min-height:380px}
+ .atlas-section-heading{padding:14px 12px 10px;gap:6px}
+ .atlas-section-heading h2{font-size:18px}
+ .atlas-section-heading em{font-size:10px}
+ .atlas-person-top{margin:12px 12px;gap:10px}
+ .atlas-sigil-frame{width:63px;height:63px;flex-basis:63px}
+ .atlas-person-info h3{font-size:22px}
+ .atlas-identity-line{font-size:12px}
+ .atlas-role-tags{max-width:calc(100% - 115px)}
+ .atlas-person-flower{width:145px;max-height:150px}
+ .atlas-record-footer{padding-right:105px}
+ .atlas-record-footer button{min-width:0;min-height:39px;font-size:12px}
+ .atlas-org-item{grid-template-columns:55px 1fr;min-height:100px}
+ .atlas-org-members{grid-column:2;border-left:0;padding:0}
+ .atlas-org-members strong{display:inline;margin-right:8px}
+ .atlas-handbook-button{padding:4px 6px;font-size:10px!important}
+ .atlas-offices-table{width:calc(100% - 24px);margin:6px 12px}
+}
+@media(prefers-reduced-motion:reduce){.schicksal-atlas *{transition:none!important}}
