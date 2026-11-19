@@ -6,8 +6,6 @@ import { markBriefingViewed, type BriefingTarget } from "./briefing/briefing-dat
 import { useBriefingFeed } from "./briefing/use-briefing-feed";
 import { fetchBriefingFeed, type BriefingFeed } from "./briefing/briefing-loader";
 import { useMemberPresence } from "./briefing/use-member-presence";
-import { SidebarPresence } from "./briefing/sidebar-presence";
-import { Messenger } from "./messenger/messenger";
 import { CITIZENS, AMBERINA_OFFICIAL_COLOR, citizenRepresentativeColor, hasLeaderInsignia, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SchicksalAtlas } from "./atlas/schicksal-atlas";
@@ -31,9 +29,14 @@ import { LoungeLeaderboard } from "./club/minigames/lounge-leaderboard";
 import { VaseExperience } from "./club/vase/vase-experience";
 import { getVase } from "./club/vase/vase-catalogue";
 import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
+import { ImperialSidebar } from "./shell/imperial-sidebar";
+import { ShellPlaceholder } from "./shell/placeholder";
+import { PointsHub } from "./points/points-hub";
+import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
+import type { SidebarDestination } from "./shell/navigation";
 
 type Phase = "opening" | "login" | "welcome" | "system";
-type Section = "home" | "briefing" | "atlas" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "messenger" | "club";
+type Section = "home" | "briefing" | "atlas" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "messenger" | "library" | "club";
 
 type ArchivePhoto = {
   id: string;
@@ -190,19 +193,6 @@ const CLUB_STICKERS = [
 ];
 
 
-const NAV: { id: Section; label: string; en: string }[] = [
-  { id: "home", label: "天命首页", en: "Home" },
-  { id: "briefing", label: "帝国简报台", en: "Briefing" },
-  { id: "messenger", label: "帝国通讯", en: "Correspondence" },
-  { id: "atlas", label: "天命图谱", en: "Schicksal Atlas" },
-  { id: "parliament", label: "帝国政务", en: "Government" },
-  { id: "honors", label: "荣誉与积分", en: "Honors" },
-  { id: "calendar", label: "节日", en: "Calendar" },
-  { id: "market", label: "跳蚤市场", en: "Market" },
-  { id: "photos", label: "家庭影像馆", en: "Photo Archive" },
-  { id: "archives", label: "国家档案馆", en: "Archives" },
-  { id: "profile", label: "个人页", en: "Profile" },
-];
 
 const PARTICLES = [[8,18,1],[17,72,2],[25,34,3],[35,84,1],[43,10,2],[54,68,3],[62,28,1],[71,88,2],[79,44,3],[88,14,2],[92,76,1],[12,48,3]];
 
@@ -216,10 +206,6 @@ function Emblem({ compact = false, highlight, revealed = 8, ceremonial = false }
       <span className="emblem-core" />
     </div>
   );
-}
-
-function Wordmark() {
-  return <div className="wordmark"><strong>SCHICKSAL</strong><span>天命第一帝国</span></div>;
 }
 
 function CitizenMark({ citizen, display = "web" }: { citizen: Citizen; display?: "web" | "official" }) {
@@ -1943,11 +1929,12 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
   citizen: Citizen; logout: () => void; initialBriefing: BriefingFeed | null; initialBriefingOpen: boolean;
 }) {
   const [section,setSection] = useState<Section>("home");
+  const [portal, setPortal] = useState<LoungePassageDirection | null>(null);
+  const portalReturnSection = useRef<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(initialBriefingOpen);
   const [focusedCitizenId, setFocusedCitizenId] = useState<string | null>(null);
-  const [messengerPeerId, setMessengerPeerId] = useState<string | null>(null);
   const [viewedCitizenId,setViewedCitizenId] = useState(citizen.id);
   const [atlasHandbookOpen,setAtlasHandbookOpen] = useState(false);
   const [parliamentDeepLink, setParliamentDeepLink] = useState("");
@@ -1986,10 +1973,27 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
     }
   }, [citizen.id]);
   const enterLounge = () => {
+    if (!CLUB_MEMBER_IDS.has(citizen.id) || portal) return;
+    portalReturnSection.current = section === "club" ? "home" : section;
     setLoungeLanding("committee");
     setLoungeSeatingUnlocked(false);
-    setSection("club");
+    setBriefingOpen(false);
+    setPortal("enter");
+    // Keep the existing personal lounge announcement without holding the
+    // newly requested four-second reveal behind speech synthesis.
     announceCommitteeLounge(citizen, () => setLoungeSeatingUnlocked(true));
+  };
+  const exitLounge = () => {
+    if (portal || section !== "club") return;
+    setPortal("exit");
+  };
+  const swapPortalRoom = () => {
+    if (portal === "enter") {
+      setSection("club");
+      setLoungeSeatingUnlocked(true);
+    } else if (portal === "exit") {
+      setSection(portalReturnSection.current === "club" ? "home" : portalReturnSection.current);
+    }
   };
   const openBriefingDesk = () => { setBriefingOpen(false); setSection("briefing"); };
   const navigateFromBriefing = (target: BriefingTarget, targetId?: string, focus: "proposal" | "speaker" | "debate" | "vote" = "vote") => {
@@ -2008,9 +2012,7 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
     if (target === "referendum") { setSection("parliament"); return; }
     setSection(target);
   };
-  const openMessenger = (memberId: string | null) => {
-    if (memberId && !CITIZENS.some(member => member.id === memberId && !member.locked)) return;
-    setMessengerPeerId(memberId);
+  const openMessenger = (_memberId: string | null) => {
     setBriefingOpen(false);
     setSection("messenger");
     document.querySelector(".system-main")?.scrollTo({ top: 0, behavior: "smooth" });
@@ -2026,23 +2028,22 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
   const openAtlasHandbook = () => { setAtlasHandbookOpen(true); setSection("archives"); };
   const viewedCitizen = CITIZENS.find(c=>c.id===viewedCitizenId && !c.locked) ?? citizen;
   const clubOpen = section === "club" && CLUB_MEMBER_IDS.has(citizen.id);
-  const active = NAV.find((item) => item.id === section) ?? (section === "citizens" || section === "emblem" ? NAV.find(item=>item.id==="atlas") : undefined) ?? { id: "club" as const, label: "委员会 Lounge", en: "Committee Lounge" };
   let content: ReactNode;
   switch (section) {
-    case "messenger": content = <Messenger selfId={citizen.id} members={CITIZENS} peerId={messengerPeerId}
-      onSelect={openMessenger} renderMark={(id) => { const member = CITIZENS.find(item => item.id === id); return member ? <CitizenMark citizen={member} /> : null; }} />; break;
+    case "messenger": content = <ShellPlaceholder kind="messenger" />; break;
+    case "library": content = <ShellPlaceholder kind="library" />; break;
     case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "atlas":
     case "citizens":
     case "emblem": content = <SchicksalAtlas key={focusedCitizenId ?? "atlas-default"} initialCitizenId={focusedCitizenId ?? undefined} onVisitCitizen={openAtlasProfile} onOpenHandbook={openAtlasHandbook}/>; break;
     case "parliament": content = <><div className="atlas-parliament-help"><button type="button" title="查阅图书馆政务手册" onClick={openAtlasHandbook}>▤ 政务手册 ↗</button></div><PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} requestedFocus={parliamentDeepLinkFocus} focusReferendums={parliamentFocus === "referendum"} /></>; break;
-    case "honors": content = <HonorsSection />; break;
+    case "honors": content = <PointsHub honors={<HonorsSection/>} market={<MarketSection/>}/>; break;
     case "calendar": content = <CalendarSection />; break;
-    case "market": content = <MarketSection />; break;
+    case "market": content = <PointsHub initialTab="market" honors={<HonorsSection/>} market={<MarketSection/>}/>; break;
     case "photos": content = <PhotoArchiveSection citizen={citizen} />; break;
     case "archives": content = atlasHandbookOpen ? <AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/> : <ArchivesSection />; break;
     case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
-    case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={() => setSection("home")} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /> : <HomeSection go={setSection} />; break;
+    case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
   }
   return (
@@ -2059,12 +2060,39 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
         sharedMark={<Emblem compact />}
         heroMark={<Emblem compact />}
       />}
-      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); } if(item.id==="profile")setViewedCitizenId(citizen.id);if(item.id==="messenger")setMessengerPeerId(null);if(item.id==="archives")setAtlasHandbookOpen(false);if(item.id==="atlas")setFocusedCitizenId(null);setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="schicksal-sidebar-footer"><SidebarPresence presence={presence} members={CITIZENS} collapsed={sidebarCollapsed} selfId={citizen.id}
-        renderMark={(memberId) => { const member = CITIZENS.find(entry => entry.id === memberId); return member ? <CitizenMark citizen={member} display={clubOpen ? "official" : "web"}/> : null; }}
-        onMember={(memberId) => openMessenger(memberId)} onOpenIndex={() => openMessenger(null)}/>
-        <button type="button" className="schicksal-sidebar-logout" onClick={logout} title="退出登录" aria-label="退出登录">↗</button>
-      </div></aside>
-      <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
+      <ImperialSidebar
+        activeSection={section}
+        collapsed={sidebarCollapsed}
+        loungeOpen={clubOpen}
+        canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)}
+        sharedMark={<Emblem compact />}
+        presence={presence}
+        members={CITIZENS}
+        selfId={citizen.id}
+        renderMemberMark={memberId => {
+          const member = CITIZENS.find(entry => entry.id === memberId);
+          return member ? <CitizenMark citizen={member} display={clubOpen ? "official" : "web"} /> : null;
+        }}
+        onToggle={toggleSidebar}
+        onLogo={() => { if (clubOpen) exitLounge(); else if (CLUB_MEMBER_IDS.has(citizen.id)) enterLounge(); else setSection("home"); }}
+        onNavigate={(target: SidebarDestination) => {
+          if (target === "collection") return;
+          if (target === "messenger") { openMessenger(null); return; }
+          if (target === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); }
+          if (target === "atlas") setFocusedCitizenId(null);
+          if (target === "archives") setAtlasHandbookOpen(false);
+          setBriefingOpen(false);
+          setSection(target);
+          document.querySelector(".system-main")?.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        onLogout={logout}
+      />
+      <section className={`system-main ${clubOpen ? "club-main" : ""}`}>
+        <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
+      </section>
+      {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
+        onSwap={swapPortalRoom} onFinish={() => setPortal(null)}/>}
+
     </main>
   );
 }
