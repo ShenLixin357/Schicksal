@@ -6,7 +6,7 @@ import "./sidebar-presence.css";
 
 type Member = { id: string; username: string; locked?: boolean };
 
-/** Single click opens correspondence. Deliberately no hidden long-press gesture. */
+/** Single click opens correspondence; no hidden gesture shortcuts. */
 export function SidebarPresence({ presence, members, collapsed, selfId, renderMark, onMember }: {
   presence: MemberPresence;
   members: readonly Member[];
