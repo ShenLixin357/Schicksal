@@ -52,7 +52,7 @@
   color: #5c697c;
   font-size: 21px;
   cursor: pointer;
-  transform: none;
+  transform: rotate(90deg);
 }
 .schicksal-sidebar-logout:hover { background: rgba(166,157,142,.10); }
 .schicksal-sidebar-logout:focus-visible { outline: 2px solid #bca16d; outline-offset: 2px; }
