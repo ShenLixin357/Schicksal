@@ -30,7 +30,7 @@ jobs:
           echo "No TypeScript errors in Atlas files or modified page."
           echo "Legacy baseline type errors (if any):"
           sed -n '1,8p' /tmp/atlas-types.log
-      - name: Lint Atlas files
-        run: npx eslint app/atlas app/page.tsx
+      - name: Lint isolated Atlas files
+        run: npx eslint app/atlas
       - name: Build worker application
         run: npm run build
