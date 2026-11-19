@@ -10,8 +10,6 @@ import "./briefing-palette.css";
 import { BriefingBackdrop } from "./briefing-backdrop";
 import { AffairsInbox } from "./affairs-inbox";
 import type { InboxViews } from "./affairs-history";
-import type { MemberPresence } from "./use-member-presence";
-import { MemberPresenceStrip } from "./member-presence-strip";
 
 type FeedState = "loading" | "ready" | "not-connected" | "error";
 type BriefingIconName = "parliament"|"referendum"|"archives"|"lounge"|"games"|"messenger"|"news"|"affairs";
@@ -46,8 +44,6 @@ export type BriefingProps = {
   tasks?: readonly BriefingTask[];
   views?: InboxViews;
   onArchiveChange?: (taskId: string, action: "archive" | "restore") => Promise<void>;
-  presence?: MemberPresence;
-  members?: readonly {id: string; username: string; accent: string; locked?: boolean}[];
   taskState?: FeedState;
   messages?: readonly BriefingMessage[];
   messageState?: FeedState;
@@ -208,7 +204,7 @@ function QuickAccess({onNavigate,canEnterLounge,canEnterGames=canEnterLounge}:Pi
 
 export function BriefingOverlay({
   onClose, onOpenDesk, onNavigate, canEnterLounge, canEnterGames, sharedMark, heroMark,
-  tasks = [], views, onArchiveChange, presence, members, taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews, newsState = "ready",
+  tasks = [], views, onArchiveChange, taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews, newsState = "ready",
 }: BriefingProps & { onClose: () => void; onOpenDesk: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -224,7 +220,6 @@ export function BriefingOverlay({
         <div className="imperial-briefing-brand"><div className="imperial-briefing-logo-slot">{sharedMark}</div><div><strong>SCHICKSAL</strong><small>天命第一帝国</small></div></div>
         <div className="imperial-briefing-topbar-center"><span className="imperial-briefing-header-separator" aria-hidden="true"/><div><h2>帝国简报</h2><small>IMPERIAL BRIEFING</small></div></div><div className="imperial-briefing-topbar-right"><Today/><button ref={closeRef} className="imperial-briefing-close" type="button" aria-label="关闭帝国简报，返回天命首页" onClick={onClose}>×</button></div>
       </header>
-      {presence && members && <div className="imperial-briefing-online-row"><MemberPresenceStrip presence={presence} members={members} compact/></div>}
       <div className="imperial-briefing-content">
         <section className="imperial-briefing-top-grid">
           <article className="imperial-briefing-lead">
@@ -252,7 +247,7 @@ export function BriefingOverlay({
 
 export function BriefingDesk({
   onOpenBriefing, onNavigate, canEnterLounge, canEnterGames, sharedMark,
-  tasks = [], views, onArchiveChange, presence, members, taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews, newsState = "ready",
+  tasks = [], views, onArchiveChange, taskState = "not-connected", messages = [], messageState = "not-connected", news = foundingNews, newsState = "ready",
 }: BriefingProps & { onOpenBriefing: () => void }) {
   return <div className="imperial-briefing-desk">
     <BriefingBackdrop/>
@@ -260,7 +255,6 @@ export function BriefingDesk({
       <div><span className="imperial-briefing-eyebrow">IMPERIAL BRIEFING DESK</span><h1>帝国简报台</h1><p>国家动态、个人事务与快捷通道</p></div>
       <button type="button" className="imperial-briefing-open" onClick={onOpenBriefing} aria-label="打开全屏帝国简报"><span aria-hidden="true">▤</span> 打开简报</button>
     </header>
-    {presence && members && <div className="imperial-briefing-desk-status"><MemberPresenceStrip presence={presence} members={members}/></div>}
     <div className="imperial-briefing-desk-grid">
       <AffairsInbox views={views ?? {pending:[...tasks],participated:[],missed:[],archived:[]}}
         status={taskState} onNavigate={onNavigate}
