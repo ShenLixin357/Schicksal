@@ -102,7 +102,7 @@ input[type=file]{max-width:100%;font-size:11px}
  <button id="play" class="primary">✦ 重新播放</button>
  <button id="pause">暂停</button>
 </div>
-<div id="indicator" class="indicator">冰晶从中心自然生长；完全冻结后点击，冰壳碎裂露出正面</div>
+<div id="indicator" class="indicator">冰晶从中心自然生长；完全冻结后静止，点击才碎裂露出正面</div>
 <details class="panel" open><summary>冰材质调试 · 所有设置立即生效</summary>
  <div class="grid">
   <label>晶枝密度 <output id="densityValue">85%</output><input id="density" type="range" min="35" max="150" value="85" step="5"></label>
@@ -329,7 +329,8 @@ function frame(now){
    updateStatus('冰封完成 · 点击碎裂，露出女巫卡正面');
   }
  }else if(phase==='frozen'){
-  if(mode==='full'&&clock>1.0){advance();}
+  // Original story contract: HOLD the fully frozen card until user clicks.
+  // Never auto-shatter, even when the "complete" sequence is selected.
  }else if(phase==='breaking'){
   drawShatter(clock/1.03);drawSparkles(clock);
   if(clock>=1.03){phase='revealed';clock=0;ctx.clearRect(0,0,w,h);sx.clearRect(0,0,sw,sh);
