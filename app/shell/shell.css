@@ -18,8 +18,8 @@
   display:grid; align-content:center; gap:4px; min-height:46px;
   overflow:hidden;
 }
-.imperial-side-heading strong { font:500 .84rem Georgia,serif; letter-spacing:.085em; white-space:nowrap; color:#273e50; }
-.imperial-side-heading span { font-size:.69rem; letter-spacing:.11em; white-space:nowrap; color:#697b8c; }
+.imperial-side-heading strong { font:400 .9rem var(--serif); letter-spacing:.17em; white-space:nowrap; color:#273e50; }
+.imperial-side-heading span { font:400 7px/1.5 var(--sans); letter-spacing:.18em; white-space:nowrap; color:#697b8c; }
 .imperial-sidebar .imperial-side-utilities { display:flex; flex-direction:column; gap:6px; align-items:center; }
 .imperial-sidebar .sidebar-toggle,
 .imperial-sidebar .imperial-phone {
@@ -30,7 +30,8 @@
 }
 .imperial-sidebar .sidebar-toggle { font:24px/1 Georgia,serif; }
 .imperial-sidebar .sidebar-toggle:hover,.imperial-sidebar .imperial-phone:hover,
-.imperial-sidebar .imperial-logo-trigger:hover { background:rgba(131,118,91,.09); }
+.imperial-sidebar .imperial-logo-trigger:not(:disabled):hover { background:rgba(131,118,91,.09); }
+.imperial-sidebar .imperial-logo-trigger:disabled { cursor:default; }
 .imperial-sidebar :is(.imperial-logo-trigger,.sidebar-toggle,.imperial-phone,
   .imperial-nav-entry,.imperial-nav-submenu button):focus-visible {
   outline:2px solid #ac9063; outline-offset:2px;
@@ -44,7 +45,7 @@
 }
 .imperial-sidebar .imperial-main-nav .imperial-nav-entry > strong {
   display:block; grid-area:auto; flex:1; align-self:auto; min-width:0;
-  font:500 .81rem/1.4 system-ui,-apple-system,sans-serif; letter-spacing:.015em;
+  font:500 .74rem/1.4 var(--sans); letter-spacing:.04em;
   white-space:nowrap; color:inherit;
 }
 .imperial-sidebar .imperial-nav-icon {
@@ -59,7 +60,7 @@
 }
 .imperial-nav-submenu { display:grid; gap:2px; padding:4px 0 9px 36px; border-left:1px solid rgba(150,136,114,.18); margin-left:21px; }
 .imperial-nav-submenu button { border:0; background:transparent; padding:9px 8px; text-align:left;
-  border-radius:4px; color:#72808b; cursor:pointer; font-size:.76rem; }
+  border-radius:4px; color:#72808b; cursor:pointer; font:500 .74rem/1.45 var(--sans); letter-spacing:.04em; }
 .imperial-nav-submenu button:hover { color:#3b5367; background:rgba(77,92,108,.07); }
 .imperial-nav-submenu button.active { color:#72532f; background:rgba(182,153,99,.12); }
 .system.sidebar-collapsed .imperial-sidebar .imperial-side-brand {
@@ -88,7 +89,7 @@
 .club-system .imperial-sidebar .imperial-phone { color:#d0bbdb; }
 .shell-placeholder { min-height:min(65svh,670px); display:flex; flex-direction:column;
   justify-content:center; align-items:center; gap:13px; text-align:center; }
-.shell-placeholder h1 { margin:0; font:400 clamp(2rem,4vw,3rem)/1.3 Georgia,serif; color:#34495b; }
+.shell-placeholder h1 { margin:0; font:400 clamp(2rem,4vw,3rem)/1.3 var(--serif); color:#34495b; }
 .shell-placeholder p { margin:0; font-size:.9rem; letter-spacing:.18em; color:#9b9085; }
 .points-hub-tabs { display:flex; gap:14px; flex-wrap:wrap; border-bottom:1px solid rgba(106,116,124,.17); margin-bottom:25px; }
 .points-hub-tabs button { border:0; border-bottom:2px solid transparent; background:transparent; cursor:pointer;
