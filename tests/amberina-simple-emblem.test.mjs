@@ -59,7 +59,11 @@ test("ALL parliamentary insignia show original even for seat members, candidate,
   for(const mark of marks)assert.match(mark,/display="official"/,"parliament badge missing official mode: "+mark);
   assert.match(section,/electedSpeaker && <CitizenMark citizen=\{electedSpeaker\} display="official"/);
   assert.match(pg,/renderMark=\{\(memberId\).*<CitizenMark citizen=\{member\} display=\{clubOpen \? "official" : "web"\}/);
-  assert.match(pg,/className="side-user"[^]*?<CitizenMark citizen=\{citizen\} display=\{clubOpen \? "official" : "web"\}/);
+  assert.match(pg,/className="schicksal-sidebar-footer"[^]*?<SidebarPresence[^]*?selfId=\{citizen.id\}/);
+  assert.match(pg,/className="schicksal-sidebar-logout" onClick=\{logout\}/);
+  const presence=source("../app/briefing/sidebar-presence.tsx");
+  assert.match(presence,/member.id === selfId/);
+  assert.match(presence,/member.id !== selfId && !member.locked && onlineIds.has\(member.id\)/);
 });
 
 test("user's scores and all other representative colours always use #F3ED87",()=>{
