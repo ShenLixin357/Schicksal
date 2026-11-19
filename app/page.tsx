@@ -2,6 +2,9 @@
 
 import Image from "next/image";
 import { CITIZENS, type Citizen } from "./citizens";
+import { SchicksalAtlas } from "./atlas/schicksal-atlas";
+import { GovernmentHandbook } from "./atlas/government-handbook";
+import { atlasCitizenName, officesOf } from "./atlas/atlas-data";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SpeakerManagement } from "./speaker-management";
 import { startTransition, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
@@ -23,7 +26,7 @@ import { getVase } from "./club/vase/vase-catalogue";
 import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
 
 type Phase = "opening" | "login" | "welcome" | "system";
-type Section = "home" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "club";
+type Section = "home" | "atlas" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "club";
 
 type ArchivePhoto = {
   id: string;
@@ -182,8 +185,7 @@ const CLUB_STICKERS = [
 
 const NAV: { id: Section; label: string; en: string }[] = [
   { id: "home", label: "首页", en: "Home" },
-  { id: "citizens", label: "公民", en: "Citizens" },
-  { id: "emblem", label: "主标志", en: "Emblem" },
+  { id: "atlas", label: "天命图谱", en: "Schicksal Atlas" },
   { id: "parliament", label: "议会", en: "Parliament" },
   { id: "honors", label: "荣誉与积分", en: "Honors" },
   { id: "calendar", label: "节日", en: "Calendar" },
@@ -362,7 +364,7 @@ function HomeSection({ go }: { go: (id: Section) => void }) {
         <article className="festival"><header><span>NEXT OBSERVANCE</span><i>04·19</i></header><b>19</b><h2>National Day</h2><p>国庆日 · 竞赛、Blue Ribbon 与跳蚤市场</p></article>
         <article className="pulse"><header><span>SYSTEM PULSE</span><i>LIVE</i></header>{[["8","Citizens · 公民"],["1","Active Office · 主席"],["4","State Traditions · 传统"]].map(([n,label]) => <div key={label}><b>{n}</b><span>{label}</span></div>)}</article>
       </section>
-      <section className="quick"><header><div><p className="eyebrow">Direct Access</p><h2>快速进入</h2></div><small>IMPERIAL NETWORK / 10 MODULES</small></header><div>{[["parliament","01","议会","查看复辟公投与国家议事记录"],["honors","02","荣誉与积分","查看 Blue Ribbon 与历史审计"],["calendar","03","国家节日","国庆、酸奶节与打火节"],["photos","04","家庭影像馆","上传照片并用成员标志精确分类"],["archives","05","国家档案馆","回到第一帝国最初的文书"]].map(([id,n,title,copy]) => <button key={id} type="button" onClick={() => go(id as Section)}><span>{n}</span><i>↗</i><h3>{title}</h3><p>{copy}</p></button>)}</div></section>
+
     </div>
   );
 }
@@ -1354,8 +1356,26 @@ function ArchivesSection() {
   </>;
 }
 
-function ProfileSection({ citizen }: { citizen: Citizen }) {
-  return <><PageHead eyebrow="Citizen Profile" title="个人身份档案" copy="登录用户名、正式身份、个人标志与历史荣誉在这里汇合。" /><article className="profile" style={{ "--citizen": citizen.accent } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} /><span>{citizen.username}</span></div><div className="profile-copy"><small>AUTHENTICATED CITIZEN</small><h2>{citizen.name}</h2><dl><div><dt>Login Username</dt><dd>{citizen.username}</dd></div><div><dt>Current Office</dt><dd>{citizen.office}</dd></div><div><dt>Personal Mark</dt><dd>{citizen.id === "amberina" ? "Golden Solar Snowflake" : citizen.id === "zxy" ? "Red Flame" : citizen.id === "truth" ? "Yellow Lightning" : "Personal Sigil"}</dd></div><div><dt>Representative Color</dt><dd>{citizen.id === "amberina" ? "Imperial Gold / Yellow" : "待本人确认"}</dd></div></dl></div><div className="profile-score"><span>IMPERIAL POINTS</span><b>{citizen.id === "amberina" ? "128" : "—"}</b><small>Demo record</small></div></article></>;
+function ProfileSection({ citizen, visitor = false, onBack }: { citizen: Citizen; visitor?: boolean; onBack?: () => void }) {
+  const heldOffices = officesOf(citizen.id);
+  return <>
+    {visitor && <button className="atlas-profile-return" type="button" onClick={onBack}>← 返回天命图谱</button>}
+    <PageHead eyebrow="Citizen Profile" title="个人身份档案" copy="身份、个人标志与现任公职在这里汇合。" />
+    {visitor && <p className="atlas-visitor-note">正在以访客身份查看此公民的公开档案。个人账户、设置及私人信息不可访问。</p>}
+    <article className="profile" style={{ "--citizen": citizen.accent } as CSSProperties}>
+      <div className="profile-mark"><CitizenMark citizen={citizen} /><span>{citizen.codename}</span></div>
+      <div className="profile-copy"><small>{visitor ? "PUBLIC CITIZEN PROFILE" : "AUTHENTICATED CITIZEN"}</small>
+        <h2>{atlasCitizenName(citizen)}</h2>
+        <dl>
+          <div><dt>公民代号</dt><dd>{citizen.codename}</dd></div>
+          <div><dt>现任职务</dt><dd>{heldOffices.length ? heldOffices.map(o=>o.title).join(" · ") : "暂无登记公职"}</dd></div>
+          <div><dt>个人标识</dt><dd>以本人最终确认的标识为准</dd></div>
+          <div><dt>个人代表色</dt><dd>{citizen.id === "amberina" ? "#F3ED87" : "待本人确认"}</dd></div>
+        </dl>
+      </div>
+      <div className="profile-score"><span>IMPERIAL POINTS</span><b>{visitor ? "—" : citizen.id === "amberina" ? "128" : "—"}</b><small>{visitor ? "仅展示公开资料" : "Demo record"}</small></div>
+    </article>
+  </>;
 }
 
 function ClubMysticMark({ citizen }: { citizen: Citizen }) {
@@ -1878,6 +1898,8 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
 
 function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [section,setSection] = useState<Section>("home");
+  const [viewedCitizenId,setViewedCitizenId] = useState(citizen.id);
+  const [handbookOpen,setHandbookOpen] = useState(false);
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   useEffect(() => {
@@ -1917,22 +1939,26 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const clubOpen = section === "club" && CLUB_MEMBER_IDS.has(citizen.id);
   const active = NAV.find((item) => item.id === section) ?? { id: "club" as const, label: "委员会 Lounge", en: "Committee Lounge" };
   let content: ReactNode;
+  const profileSubject = CITIZENS.find(item=>item.id===viewedCitizenId && !item.locked) ?? citizen;
+  const visitCitizen = (id:string) => {setViewedCitizenId(id);setSection("profile");};
+  const openHandbook = () => {setHandbookOpen(true);setSection("archives");};
   switch (section) {
-    case "citizens": content = <CitizensSection />; break;
-    case "emblem": content = <EmblemSection />; break;
-    case "parliament": content = <PersistentParliamentSection citizen={citizen} />; break;
+    case "atlas":
+    case "citizens":
+    case "emblem": content = <SchicksalAtlas renderMark={(member)=><CitizenMark citizen={member} />} renderEmblem={()=><CitizenEmblem large />} onVisitCitizen={visitCitizen} onOpenHandbook={openHandbook} />; break;
+    case "parliament": content = <><div className="imperial-handbook-shortcut"><button type="button" title="查阅图书馆政务手册" onClick={openHandbook}>▤ <span>政务手册</span> ↗</button></div><PersistentParliamentSection citizen={citizen} /></>; break;
     case "honors": content = <HonorsSection />; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection />; break;
     case "photos": content = <PhotoArchiveSection citizen={citizen} />; break;
-    case "archives": content = <ArchivesSection />; break;
-    case "profile": content = <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</>; break;
+    case "archives": content = handbookOpen ? <GovernmentHandbook onBack={()=>setHandbookOpen(false)} /> : <ArchivesSection />; break;
+    case "profile": content = <><ProfileSection citizen={profileSubject} visitor={profileSubject.id !== citizen.id} onBack={()=>setSection("atlas")} />{citizen.id === "amberina" && profileSubject.id===citizen.id && <MemberAccessSettings />}</>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={() => setSection("home")} seatingUnlocked={loungeSeatingUnlocked} /> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
   }
   return (
     <main className={`system ${clubOpen ? "club-system" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
-      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => setSection(item.id)}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
+      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if(item.id==="profile")setViewedCitizenId(citizen.id); if(item.id==="archives")setHandbookOpen(false);setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{atlasCitizenName(citizen)}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
     </main>
   );
