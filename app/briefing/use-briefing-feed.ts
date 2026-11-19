@@ -31,7 +31,13 @@ export function useBriefingFeed(citizenId: string, refreshKey: string) {
     if (!citizenId) return;
     let active = true;
     let controller: AbortController | null = null;
-    const load = async () => {
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    const retryDelays = [2000, 5000, 10000];
+    const load = async (attempt = 0) => {
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      }
       controller?.abort();
       const nextController = new AbortController();
       controller = nextController;
@@ -48,7 +54,14 @@ export function useBriefingFeed(citizenId: string, refreshKey: string) {
           setStatus("ready");
         }
       } catch {
-        if (active && !nextController.signal.aborted) setStatus("error");
+        if (active && !nextController.signal.aborted) {
+          // A brief D1 cold-start or competing first-load heartbeat should not
+          // leave the desk stuck in error until the next 60-second poll.
+          if (attempt < retryDelays.length && document.visibilityState === "visible") {
+            setStatus("loading");
+            retryTimer = window.setTimeout(() => { void load(attempt + 1); }, retryDelays[attempt]);
+          } else setStatus("error");
+        }
       }
     };
     void load();
@@ -60,6 +73,7 @@ export function useBriefingFeed(citizenId: string, refreshKey: string) {
     return () => {
       active = false;
       controller?.abort();
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
