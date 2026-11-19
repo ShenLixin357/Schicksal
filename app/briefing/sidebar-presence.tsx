@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import type { MemberPresence } from "./use-member-presence";
 import "./sidebar-presence.css";
 
@@ -43,7 +43,7 @@ export function SidebarPresence({ presence, members, collapsed, selfId, renderMa
     if (!startPoint.current) return;
     if (Math.hypot(startPoint.current.x - event.clientX, startPoint.current.y - event.clientY) > 12) cancelPress();
   };
-  const clickMember = (event: React.MouseEvent<HTMLButtonElement>, memberId: string) => {
+  const clickMember = (event: MouseEvent<HTMLButtonElement>, memberId: string) => {
     if (suppressClick.current) {
       suppressClick.current = false;
       event.preventDefault();
