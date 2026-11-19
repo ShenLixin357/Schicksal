@@ -62,7 +62,16 @@ test("real briefing API enforces signed-in identity and never trusts a spoofed c
   try {
     assert.equal((await briefing.GET(request("/api/briefing?citizenId=amberina"))).status, 401);
     const amberCookie = await login("amberina");
-    await briefing.GET(request("/api/briefing", amberCookie)); // ensure old schema + seed records
+    // Member presence and briefing fire concurrently on the first page load.
+    // They must share schema creation safely rather than racing one another.
+    const [firstBriefing, firstHeartbeat] = await Promise.all([
+      briefing.GET(request("/api/briefing", amberCookie)),
+      presence.POST(new Request("https://test.schicksal.invalid/api/presence", {
+        method: "POST", headers: { cookie: amberCookie, origin: "https://test.schicksal.invalid" },
+      })),
+    ]);
+    assert.equal(firstBriefing.status, 200);
+    assert.equal(firstHeartbeat.status, 200);
     sqlite.exec("UPDATE parliament_items SET stage='voting', version=2, voting_version=2, deadline='2026-11-22' WHERE id='lesson-1-state'");
     sqlite.exec("UPDATE parliament_items SET stage='voting', version=3, voting_version=3, deadline='2026-11-23' WHERE id='lesson-2-citizenship'");
     sqlite.prepare("INSERT INTO parliament_votes (id,item_id,citizen_id,choice,document_version,created_at,updated_at) VALUES (?,?,?,?,?,?,?)")
