@@ -136,6 +136,28 @@ jobs:
         run: |
           set -euo pipefail
           printf "%s" "$SCHICKSAL_PREVIEW_PASSWORDS" | npx wrangler secret put SCHICKSAL_MEMBER_PASSWORDS --config work/briefing-preview-dist/server/wrangler.json
+      - name: Authenticated preview briefing smoke check (no tokens printed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          const root = "https://schicksal-briefing-preview.m17686100216.workers.dev";
+          const passwords = JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS || "{}");
+          const login = await fetch(root + "/api/member-session", {
+            method: "POST", headers: {"Content-Type":"application/json", Origin:root},
+            body:JSON.stringify({ citizenId:"amberina", password:passwords.amberina }),
+          });
+          if (!login.ok) throw new Error("Preview member login failed: HTTP " + login.status);
+          const cookie = login.headers.get("set-cookie")?.split(";")[0];
+          if (!cookie) throw new Error("Preview login did not return a session cookie");
+          const briefing = await fetch(root + "/api/briefing", {headers:{Cookie:cookie}, cache:"no-store"});
+          const payload = await briefing.json();
+          if (!briefing.ok) throw new Error("Preview briefing sync failed: HTTP " + briefing.status + ", " + (payload.error || "no message"));
+          if (!Array.isArray(payload.tasks) || !payload.views || !Array.isArray(payload.views.pending)) throw new Error("Briefing returned malformed inbox view");
+          console.log("Real authenticated preview briefing OK: HTTP " + briefing.status +
+            "; pending=" + payload.views.pending.length + ", archived=" + payload.views.archived.length);
+          await fetch(root + "/api/member-session",{method:"DELETE",headers:{Cookie:cookie,Origin:root}});
+          NODE
       - name: Final summary
         shell: bash
         run: |
