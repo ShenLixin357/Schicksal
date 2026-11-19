@@ -2130,6 +2130,16 @@ export default function Home() {
   }, []);
   const enterSystem = useCallback(() => {
     if (preload.status !== "ready" || preload.citizenId !== citizen.id || !preload.feed || !preload.sessionKey) return;
+    // Never interrupt a mini-game return. A remembered game-room destination
+    // is just as important as the explicit ?lounge=game-room URL.
+    let returningToGame = new URLSearchParams(window.location.search).get("lounge") === "game-room";
+    try { returningToGame ||= window.sessionStorage.getItem(GAME_ROOM_RETURN_KEY) === "game-room"; }
+    catch { /* Explicit route remains authoritative when storage is unavailable. */ }
+    if (returningToGame) {
+      setSystemBriefing({ feed: preload.feed, show: false });
+      setPhase("system");
+      return;
+    }
     // Preserve the existing once-per-login, across-tabs marker without
     // claiming the briefing has appeared before fresh data is available.
     let show = false;
