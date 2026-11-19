@@ -166,3 +166,10 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - New `app/amberina-personal-fog.css` is imported after all other styles; a size-proportional pure CSS layer reproduces the interactive lab's 218px reference size for all physical badge sizes. Do not overlay an opaque circular background; no more oat-green CSS or site-wide palette changes.
 - `CITIZENS.amberina.markColor` returns to official `#F3ED87`; badge rings/office dot hues match. Login and post-login welcome now use official PNG; meeting Speaker remains official.
 - No changes to original PNG or Procreate masters, eight-ray empire symbol, other members' colors, responsive layouts, or data. Isolated preview Worker + D1 only; no production merge/deploy.
+
+### 2026-11-19 · Champagne-gold Amberina badge (user 70/30 blend)
+
+- User selected 70% `#EAD98C` + 30% `#EEDFA1` = `#EBDB92` for **personal icon and its original rings/President halo only**. All other UI remains in official representative colour `#F3ED87`. Meeting elected Speaker on dark background uses original `#F3ED87` PNG and rings.
+- Add derived web-only transparent Simple PNG, preserving alpha + Procreate two-tone. Shared CitizenMark switches image sources and `--mark` hue by context; no other personal marks modified.
+- The previous dark-blue-purple fog is explicitly **removed** from site, including stylesheet and DOM overlay. All old V2.6 UI backgrounds, cabinet/rooms, and gameplay stay unchanged; personal Profile layout untouched.
+- Keep change exclusively in PR #5 isolated preview Worker/D1. Verify full CI and authenticated preview smoke before user review. Never merge/deploy production without explicit approval.

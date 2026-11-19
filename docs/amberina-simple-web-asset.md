@@ -50,3 +50,13 @@ This **supersedes the earlier 35.7% and 75.3% tint decisions** for the active si
 - The same official snowflake now renders at login identity selector, welcome, online sidebar, archives, honors (if the mark appears), regular parliament seats and dark meeting Speaker; only its adaptive fog responds to badge size. The existing dark Speaker exception no longer needs a separate graphic source because all contexts use the official art.
 - Original website V2.6 color palette remains intact; no oat/green site theme is reintroduced. No changes to profile-specific layout.
 - The legacy `web753` PNG is retained as unused historical asset, to avoid destructive changes to source references; no active renderer points to it.
+
+## Finalized champagne-gold web badge (2026-11-19; supersedes purple-fog prototype)
+
+- Web-only Amberina personal Simple main colour: **`#EBDB92`**, computed in RGB as **70% `#EAD98C` + 30% `#EEDFA1`**. RGB channels (235,219,146).
+- `public/amberina-personal-simple-champagne.png` derived **pixel-exactly** from original 800×800 transparent Procreate Simple preview crop `public/amberina-personal-simple-official.png` by applying per-channel delta (-8,-18,+11) to nontransparent pixels. This keeps the exact untouched alpha channel, the original two-tone differences and the official shape/orientation. Derived image SHA-256: `ee49a02590aaf230dbfd22e04df5d910350c238abbad43309fd2344e679c406a`.
+- For all *ordinary* Amberina `CitizenMark` renderings — login/member picker, welcome, sidebar, presence, archives, seats etc. — `markColor`/`--mark` is `#EBDB92`. Existing badge outer circle, inner circle, and President-office-only halo/dots get that same web shade, with prior line opacity values preserved.
+- The **meeting's elected Speaker badge** (dark parliament background) explicitly uses `display="official"`; this switches both artwork and the circle/President halo to **unmodified official colour `#F3ED87`**. Other meeting seat badges continue to use ordinary web marks.
+- All non-badge identity accents (member highlights, Honors & Scoreboard, etc.) remain at official representative `#F3ED87` via `citizenRepresentativeColor`. Other members' colours and the imperial eight-colour emblem are not changed.
+- Remove the experimental `#000A4C` fog completely: CSS import and fog file removed, fog child element removed. The remaining personal badge has transparent backing; no new disk, plate, haze or artwork filter. The official Procreate masters and `public/amberina-personal-simple-official.png` are never edited.
+- The earlier 35.7%/75.3% assets may remain in Git history, but are **not** selected in the active CitizenMark renderer. Original V2.6 page palette and personal Profile layout continue unchanged.

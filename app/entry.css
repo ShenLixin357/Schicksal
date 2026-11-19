@@ -149,8 +149,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 @media (max-width:760px) { .opening .emblem { transform: scale(.8); } .title-reveal h1 { font-size: 4rem; } .title-reveal h2 { font-size: .88rem; } .kicker { margin-bottom: 1rem; } .entry-header { min-height:72px; } .login-shell { padding: 35px 20px; } .login-copy h1 { font-size:3.6rem; } .identity-grid { grid-template-columns:1fr; } .identity-grid > button { border-right:0; } .access-form > footer { align-items:stretch; flex-direction:column; } .access-form .primary { width:100%; } .entry-footer { display:none; } }
 @media (prefers-reduced-motion:reduce) { .opening *, .login * { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 
-/* Amberina Simple artwork is the central glyph only. The original citizen-mark border,
-   inner circle and snow halo remain intact wherever this component already appears. */
+/* Amberina's personal web emblem stays transparent, with no fog/backplate.
+   Keep existing outer/inner border and President office dots in the same --mark hue.
+   The dark parliament Speaker's CSS background is not overridden by this rule. */
+.citizen-mark.personal-simple,
+.citizen-mark.personal-simple.leader {
+  background: transparent;
+  box-shadow: none;
+}
 .citizen-mark.personal-simple .citizen-simple-image {
   position: relative;
   z-index: 1;
