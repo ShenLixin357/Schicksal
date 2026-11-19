@@ -133,3 +133,24 @@
  .atlas-offices-table{width:calc(100% - 24px);margin:6px 12px}
 }
 @media(prefers-reduced-motion:reduce){.schicksal-atlas *{transition:none!important}}
+
+
+.atlas-handbook-page{max-width:1130px;margin:auto;padding:30px clamp(16px,3vw,45px);font-family:"Songti SC",Georgia,serif;background:linear-gradient(130deg,#fffdf8,#f7ecf8);border:1px solid #d8b690;border-radius:12px;color:#4b334e}
+.atlas-handbook-page>header{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #d7b99c;padding-bottom:12px;color:#8d7889;font:10px Georgia;letter-spacing:.12em}
+.atlas-handbook-page>header button{background:none;border:0;color:#875f5b;cursor:pointer}
+.atlas-handbook-page h1{font-size:38px;font-weight:500;margin:25px 0 6px}
+.atlas-handbook-page h1 em{font:italic 21px Georgia;color:#927895;margin-left:10px}
+.atlas-handbook-foreword{color:#8e7b8f;font-size:13px;line-height:1.8;margin-bottom:27px}
+.atlas-handbook-layout{display:grid;grid-template-columns:220px 1fr;gap:22px}
+.atlas-handbook-layout nav{display:flex;flex-direction:column}
+.atlas-handbook-layout nav button{text-align:left;background:none;border:0;border-bottom:1px solid #e4d1bf;color:#654a61;padding:15px 10px;cursor:pointer;font:16px "Songti SC",serif}
+.atlas-handbook-layout nav button.active{background:#f9eace;color:#684731}
+.atlas-handbook-layout nav small{font:12px Georgia;color:#bc945f;margin-right:9px}
+.atlas-handbook-layout nav em{display:block;font:10px Georgia;letter-spacing:.12em;color:#a18b9c;margin-top:3px;margin-left:28px}
+.atlas-handbook-layout article{min-height:320px;border:1px solid #dbbd94;background:#fffaf7;box-shadow:inset 0 0 0 5px #faf0e4;padding:25px 30px}
+.atlas-handbook-layout article p{font:11px Georgia;letter-spacing:.15em;color:#ac8d6b}
+.atlas-handbook-layout article h2{font-size:25px;font-weight:500;margin:19px 0}
+.atlas-handbook-layout article li{font-size:14px;line-height:1.9;margin-bottom:10px}
+.atlas-parliament-help{display:flex;justify-content:flex-end;margin-bottom:12px}
+.atlas-parliament-help button{cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#936f51;border:1px solid #dcc4a2;border-radius:23px;background:#fcf8ef;padding:7px 12px;font:12px "Songti SC",serif}
+@media(max-width:650px){.atlas-handbook-layout{grid-template-columns:1fr}.atlas-handbook-layout nav{flex-direction:row;overflow-x:auto}.atlas-handbook-layout nav button{flex:0 0 146px}.atlas-handbook-page h1{font-size:29px}}
