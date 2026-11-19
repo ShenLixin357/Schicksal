@@ -12,7 +12,7 @@ export function privateLoginResponse(configured: boolean, method = "GET", unavai
       "Vary": "Cookie",
       "X-Robots-Tag": "noindex, nofollow, noarchive",
       "X-Content-Type-Options": "nosniff",
-      "Content-Security-Policy": `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
+      "Content-Security-Policy": `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; img-src data:; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
       "Referrer-Policy": "no-referrer",
     },
   });
