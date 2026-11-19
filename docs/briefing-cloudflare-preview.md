@@ -96,3 +96,7 @@
 - 会话心跳每 30 秒、可见窗口 90 秒，真实显示在线人数与成员名；仅经验证的已登录会员可访问。
 - 不更改已冻结的 V2.6 徽记、插画或视觉背景，不合并 main，不部署生产 Worker/D1。
 - 本次通过 CI 后重新发布**原隔离预览**（Worker `schicksal-briefing-preview`，D1 `schicksal-briefing-preview-db`），使用既有预览密码 Secret。
+
+### 2026-11-19 · Isolated preview sync diagnostic
+
+User browser showed successful member heartbeat but `/api/briefing` 503. Trigger isolated D1 schema diagnostics and authenticated HTTP smoke check on the **preview** environment only. Do not touch production or merge main.
