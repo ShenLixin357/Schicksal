@@ -41,10 +41,11 @@ function SmallPersonalGlyph({citizen,large=false}: {citizen:Citizen,large?:boole
 type AtlasProps={
  onVisitCitizen:(id:string)=>void;
  onOpenHandbook:()=>void;
+ initialCitizenId?:string;
 };
 
-export function SchicksalAtlas({onVisitCitizen,onOpenHandbook}:AtlasProps){
- const [selectedId,setSelectedId]=useState("amberina");
+export function SchicksalAtlas({onVisitCitizen,onOpenHandbook,initialCitizenId}:AtlasProps){
+ const [selectedId,setSelectedId]=useState(initialCitizenId ?? "amberina");
  const [hoverId,setHoverId]=useState<string|null>(null);
  const [expandedOffice,setExpandedOffice]=useState<string|null>(null);
  const selected=CITIZENS.find(c=>c.id===selectedId) ?? CITIZENS[0];
