@@ -104,3 +104,11 @@ User browser showed successful member heartbeat but `/api/briefing` 503. Trigger
 ### 2026-11-19 · Briefing sync cold-start hardening
 
 Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: `GET /api/briefing` responded HTTP 200 with 3 current pending affairs; user-visible initial 503 remains an intermittent first-load behavior to harden. Changes: memoize preview-only schema creation across simultaneous presence/briefing requests, retry transient client GET failures at 2s/5s/10s, regression test simultaneous first-login heartbeat and inbox load. Preview smoke test now must succeed on the deployed Worker before declaring it ready.
+
+
+### 2026-11-19 · Official Amberina Simple emblem and priority-banner preview
+
+- QA-only: the existing proposal titled 国家基础制度框架案 is marked important (red) in the personal affairs UI without mutating parliament data or legal deadlines.
+- Red important cards read 🚨 重要提醒; yellow cards with a real enforceable deadline within 48 hours read ⏰ 紧急. Ordinary and merely expected dates keep neutral wording.
+- Amberina's personal identity mark uses the exact unchanged Simple_FINAL PNG supplied in AvS_Personal_Emblems_Package.zip; official mark color is #F3ED87. The decorative Parhelia edition is not used. The empire's shared eight-color emblem stays unchanged.
+- Redeploy ONLY the pre-existing isolated Worker schicksal-briefing-preview and its distinct preview D1. No production Worker, D1, migrations or secrets may be touched. Confirm live preview HTTP smoke checks before acceptance.
