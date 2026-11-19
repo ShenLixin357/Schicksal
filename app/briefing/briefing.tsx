@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  briefingCountdown, briefingDateTime, briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages, orderedBriefingTasks,
+  briefingCountdown, briefingDeadlineInfo, briefingTaskIndicator, foundingNews, latestNews, latestUnreadMessages, orderedBriefingTasks,
   type BriefingMessage, type BriefingNews, type BriefingTarget, type BriefingTask,
 } from "./briefing-data";
 import "./briefing.css";
@@ -142,13 +142,11 @@ function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
         const dateLabel = task.deadline ? briefingDeadlineInfo(task.deadline).label : "尚未设置";
         const countdown = task.deadline && now !== null
           ? briefingCountdown(task.deadline, now) : task.deadline ? "计算中…" : "—";
-        const left = task.deadlineKind === "deadline" && now !== null ?
-          briefingDateTime(task.deadline) - now : Number.POSITIVE_INFINITY;
-        const urgent = left > 0 && left <= 48 * 3600_000;
-        const tone = task.priority === "important" ? "affair-important" : urgent ? "affair-urgent" : "affair-standard";
+        const indicator = briefingTaskIndicator(task, now ?? Number.NEGATIVE_INFINITY);
+        const tone = indicator.tone;
         return <div className={`imperial-briefing-task-row ${tone}`} key={task.id}>
           <div className="imperial-briefing-task-details">
-            <span className="imperial-briefing-task-category">{task.participation === "required" ? "待投票" : "可参与"}</span>
+            <span className="imperial-briefing-task-category">{indicator.label}</span>
             <strong>{task.title}</strong>
             <small>{task.detail}</small>
             <div className="imperial-briefing-deadline" aria-label="政务时间信息">

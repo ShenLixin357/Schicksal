@@ -46,7 +46,7 @@ export type AuditForBriefing = {
 
 const task = (
   item: ParliamentItemForBriefing,
-  options: Pick<BriefingTask, "id" | "detail" | "category" | "participation" | "focus"> & {
+  options: Pick<BriefingTask, "id" | "detail" | "category" | "participation" | "focus" | "priority"> & {
     title: string; deadline?: string | null; realDeadline?: boolean; createdAt?: string;
   },
 ): BriefingTask => ({
@@ -59,6 +59,7 @@ const task = (
   category: options.category,
   participation: options.participation,
   focus: options.focus,
+  priority: options.priority,
   actionable: true,
   completed: false,
   target: "parliament",
@@ -90,6 +91,8 @@ export function parliamentAffairsTasks(
         title: "新提案征询 · " + item.title,
         detail: "提案已开放，可查看并参与讨论",
         participation: "available", focus: "proposal",
+        // TEMP QA ONLY: display this one existing proposal in red; no parliament data/state changes.
+        priority: item.title === "国家基础制度框架案" ? "important" : "standard",
         createdAt: item.createdAt,
       }));
     }

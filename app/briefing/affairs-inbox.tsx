@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  briefingCountdown, briefingDateTime, briefingDeadlineInfo,
+  briefingCountdown, briefingDateTime, briefingDeadlineInfo, briefingTaskIndicator,
   orderedBriefingTasks, type BriefingTarget, type BriefingTask,
 } from "./briefing-data";
 import type { InboxViews } from "./affairs-history";
@@ -100,13 +100,14 @@ export function AffairsInbox({ views, status, onArchiveChange, onNavigate }: {
           ? briefingDateTime(task.deadline) - now : Number.POSITIVE_INFINITY;
         const urgent = timeLeft > 0 && timeLeft <= 48 * 3600_000;
         const important = task.priority === "important";
-        const tone = important ? "affair-important" : urgent ? "affair-urgent" : "affair-standard";
+        const indicator = briefingTaskIndicator(task, now ?? Number.NEGATIVE_INFINITY);
+        const tone = indicator.tone;
         const countdown = task.deadline ? now !== null ? briefingCountdown(task.deadline, now) : "计算中…" : "—";
         const label = tab === "participated" ? "已参与" : tab === "missed" ? "已错过" :
-          task.participation === "required" ? "尚未投票" : "可参与";
+          indicator.label;
         return <article key={task.id} className={`imperial-briefing-task-row imperial-affair-card ${tone} ${tab === "missed" ? "affair-past" : busy === task.id ? "affair-folding" : ""}`}>
           <div className="imperial-briefing-task-details">
-            <span className="imperial-briefing-task-category">{important ? "重要政务 · " : ""}{label}</span>
+            <span className="imperial-briefing-task-category">{label}</span>
             <strong>{task.title}</strong>
             <small>{task.detail}</small>
             {tab === "participated" && task.completedAt && <small>参与时间：{briefingDeadlineInfo(task.completedAt).label}</small>}

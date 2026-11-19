@@ -10,7 +10,7 @@ const hooks = registerHooks({
 });
 const { buildInboxViews, affairCycleKey } = await import("../app/briefing/affairs-history.ts");
 const { parliamentAffairsTasks } = await import("../app/briefing/briefing-feed.ts");
-const { orderedBriefingTasks } = await import("../app/briefing/briefing-data.ts");
+const { orderedBriefingTasks, briefingTaskIndicator } = await import("../app/briefing/briefing-data.ts");
 hooks.deregister();
 
 const now = Date.parse("2026-11-19T08:00:00+08:00");
@@ -82,4 +82,17 @@ test("priority is important red, then true sub-48h yellow, then standard white",
   ];
   assert.deepEqual(orderedBriefingTasks(tasks,now).map(t=>t.id),
     ["important","urgent","ordinary"]);
+});
+
+test("red and yellow cards show clear warnings; ordinary and planned dates remain neutral", () => {
+  const make = (deadline, kind = "deadline", priority = "standard") =>
+    ({ deadline, deadlineKind: kind, priority, participation: "available" });
+  assert.deepEqual(briefingTaskIndicator(make(null, "expected", "important"), now),
+    { tone: "affair-important", label: "🚨 重要提醒" });
+  assert.deepEqual(briefingTaskIndicator(make("2026-11-20T08:00:00+08:00"), now),
+    { tone: "affair-urgent", label: "⏰ 紧急" });
+  assert.deepEqual(briefingTaskIndicator(make("2026-11-20T08:00:00+08:00", "expected"), now),
+    { tone: "affair-standard", label: "可参与" });
+  assert.deepEqual(briefingTaskIndicator(make("2026-11-30T08:00:00+08:00"), now),
+    { tone: "affair-standard", label: "可参与" });
 });

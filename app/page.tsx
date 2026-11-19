@@ -218,11 +218,15 @@ function Wordmark() {
 }
 
 function CitizenMark({ citizen }: { citizen: Citizen }) {
+  // Official Amberina Simple master: all identity surfaces share this one image.
+  // Do not substitute the Parhelia decorative edition for ordinary citizen marks.
+  if (citizen.id === "amberina") {
+    return <span className="citizen-mark personal-simple" style={{ "--mark": citizen.markColor } as CSSProperties} aria-hidden="true">
+      <Image src="/amberina-personal-simple.png" alt="" width={1470} height={1594} unoptimized className="citizen-simple-image" />
+    </span>;
+  }
   let sigil: ReactNode;
   switch (citizen.motif) {
-    case "snow":
-      sigil = <><path d="M32 7v50M10.4 19.5l43.2 25M10.4 44.5l43.2-25" /><path d="m32 14-6-5m6 5 6-5m-21.5 14-7.4 1.2m7.4-1.2-2.7-7m2.7 25-7.4-1.2m7.4 1.2-2.7 7M32 50l-6 5m6-5 6 5m9.5-14 7.4-1.2M47.5 41l2.7 7m-2.7-25 7.4 1.2M47.5 23l2.7-7" /><rect x="27.5" y="27.5" width="9" height="9" rx="1" transform="rotate(45 32 32)" /></>;
-      break;
     case "flame":
       sigil = <><path d="M35.5 7.5c2.1 11.3-6.6 13.8-5.4 23.1 4.1-2.2 6.8-6 7.5-10.6 7.4 6.5 12 13 11.1 21.5-.9 8.8-7.8 15.4-16.8 15.4-9.6 0-17.1-7-16.7-16.4.3-7 4.6-13.7 12.2-20.2-.4 5.4 1.1 8.7 3.6 10.7-1-9.7 6.3-13.4 4.5-23.5Z" /><path d="M32 51c-5.1 0-8.6-3.8-8.2-8.4.3-3.7 2.5-6.8 6.1-10.2-.1 4.3 1.8 6.3 4 8.1 1.4-2.4 2.1-4.9 1.9-7.7 3.4 3.3 5 6.5 4.5 10.1-.6 4.6-3.6 8.1-8.3 8.1Z" /></>;
       break;

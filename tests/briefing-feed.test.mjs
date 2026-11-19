@@ -96,3 +96,13 @@ test("news contains only final results, not an opening or a live ballot", () => 
   assert.equal(news.every(x => !/开放|投票|辩论/.test(x.title)), true);
   assert.equal(news.every(x => !x.title.includes("法律已生效")), true);
 });
+
+test("temporary red QA flag applies to the named foundation proposal only", () => {
+  const foundation = { ...bill("foundation", "proposal", 1, null), title: "国家基础制度框架案" };
+  const ordinary = { ...bill("other", "proposal", 1, null), title: "其他提案" };
+  const items = parliamentAffairsTasks([foundation, ordinary], [], "amberina");
+  assert.equal(items.find(x => x.targetId === "foundation").priority, "important");
+  assert.equal(items.find(x => x.targetId === "other").priority, "standard");
+  assert.equal(items.find(x => x.targetId === "foundation").deadlineKind, "expected");
+  assert.equal(items.find(x => x.targetId === "foundation").actionable, true);
+});

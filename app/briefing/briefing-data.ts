@@ -67,6 +67,21 @@ export function briefingDeadlineInfo(date: string | null, now = Date.now()) {
   return { label, passed: briefingDateTime(date) < now };
 }
 
+ 
+/**
+ * Card-level priority indicator shared by the login summary and affairs inbox.
+ * A planned/expected date does not qualify as an urgent legal deadline.
+ */
+export function briefingTaskIndicator(
+  task: Pick<BriefingTask, "priority" | "deadline" | "deadlineKind" | "participation">,
+  now = Date.now(),
+) {
+  if (task.priority === "important") return { tone: "affair-important" as const, label: "🚨 重要提醒" };
+  const left = task.deadlineKind === "deadline" ? briefingDateTime(task.deadline) - now : Number.POSITIVE_INFINITY;
+  if (left > 0 && left <= 48 * 3600_000)
+    return { tone: "affair-urgent" as const, label: "⏰ 紧急" };
+  return { tone: "affair-standard" as const, label: task.participation === "required" ? "尚未投票" : "可参与" };
+}
 
 /**
  * UI countdowns are computed in real time, never written to D1 or inferred
