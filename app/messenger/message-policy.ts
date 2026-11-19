@@ -1,4 +1,4 @@
-import { CITIZENS } from "../citizens";
+import { CITIZENS } from "../citizens.ts";
 
 export const MESSENGER_MEMBER_IDS = new Set(CITIZENS.filter(member => !member.locked).map(member => member.id));
 export const MAX_MESSAGE_CHARS = 500;
