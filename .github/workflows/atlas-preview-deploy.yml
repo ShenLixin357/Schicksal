@@ -1,0 +1,138 @@
+name: Deploy isolated Schicksal Atlas preview
+on:
+  push:
+    branches:
+      - design/atlas-rebuild-20261119
+    paths:
+      - .github/workflows/atlas-preview-deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: schicksal-atlas-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[atlas-preview]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CLOUDFLARE_API_TOKEN: \${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: \${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+      SCHICKSAL_PREVIEW_PASSWORDS: \${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Validate preview credentials (never print values)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$SCHICKSAL_PREVIEW_PASSWORDS"
+          node --input-type=module - <<'NODE'
+          if (!/^[a-f0-9]{32}$/i.test(process.env.CLOUDFLARE_ACCOUNT_ID??"")) throw Error("Bad preview account identifier");
+          const passwords=JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS??"{}");
+          if (typeof passwords.amberina!=="string" || passwords.amberina.length<12) throw Error("Preview-only test password missing or too short");
+          NODE
+      - name: Build real private website (no production deploy)
+        run: |
+          npm ci
+          npm run build
+          bash scripts/validate-artifact.sh
+      - name: Check production UUID (read only) and find isolated preview D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > "$RUNNER_TEMP/atlas-databases.json"
+          node --input-type=module - "$RUNNER_TEMP/atlas-databases.json" <<'NODE'
+          import {readFileSync,appendFileSync} from "node:fs";
+          const dbs=JSON.parse(readFileSync(process.argv[2],"utf8"));
+          if(!Array.isArray(dbs)) throw Error("Unexpected D1 response");
+          const production=dbs.filter(d=>d.name==="schicksal-db");
+          if(production.length!==1 || !production[0].uuid) throw Error("Production D1 identity ambiguous — stop");
+          const candidates=dbs.filter(d=>d.name==="schicksal-atlas-preview-db");
+          if(candidates.length>1) throw Error("Ambiguous Atlas preview D1 — stop");
+          const env=process.env.GITHUB_ENV;
+          appendFileSync(env,"PRODUCTION_D1_ID="+production[0].uuid+"\n");
+          if(candidates[0]) appendFileSync(env,"ATLAS_PREVIEW_D1_ID="+candidates[0].uuid+"\n");
+          NODE
+      - name: Provision ONLY new isolated Atlas preview database if absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "\${ATLAS_PREVIEW_D1_ID:-}" ]; then
+            npx wrangler d1 create schicksal-atlas-preview-db --no-update-config
+            npx wrangler d1 list --json > "$RUNNER_TEMP/atlas-databases-after.json"
+            node --input-type=module - "$RUNNER_TEMP/atlas-databases-after.json" <<'NODE'
+          import {readFileSync,appendFileSync} from "node:fs";
+          const dbs=JSON.parse(readFileSync(process.argv[2],"utf8"));
+          const d=dbs.filter(v=>v.name==="schicksal-atlas-preview-db");
+          if(d.length!==1 || !d[0].uuid) throw Error("Atlas preview D1 not verified");
+          if(d[0].uuid===process.env.PRODUCTION_D1_ID) throw Error("Atlas preview D1 equals production — stop");
+          appendFileSync(process.env.GITHUB_ENV,"ATLAS_PREVIEW_D1_ID="+d[0].uuid+"\n");
+          NODE
+          fi
+      - name: Prepare preview-only config and verify no production binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          node --input-type=module - <<'NODE'
+          import {writeFileSync} from "node:fs";
+          writeFileSync("work/atlas-preview-target.json",JSON.stringify({
+            accountId:process.env.CLOUDFLARE_ACCOUNT_ID,
+            previewDatabaseId:process.env.ATLAS_PREVIEW_D1_ID,
+            productionDatabaseId:process.env.PRODUCTION_D1_ID,
+            previewDatabaseName:"schicksal-atlas-preview-db"
+          },null,2));
+          NODE
+          node scripts/cloudflare/prepare-atlas-preview.mjs work/atlas-preview-target.json
+          npx wrangler deploy --dry-run --config work/atlas-preview-dist/server/wrangler.json
+      - name: Apply migrations ONLY to independent Atlas D1
+        run: npx wrangler d1 migrations apply DB --remote --config work/atlas-preview-dist/server/wrangler.json
+      - name: Deploy separate Atlas preview Worker
+        run: npx wrangler deploy --config work/atlas-preview-dist/server/wrangler.json
+      - name: Configure preview-only test login password
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf "%s" "$SCHICKSAL_PREVIEW_PASSWORDS" | npx wrangler secret put SCHICKSAL_MEMBER_PASSWORDS --config work/atlas-preview-dist/server/wrangler.json
+      - name: Authenticated Atlas preview smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          const root="https://schicksal-atlas-preview.m17686100216.workers.dev";
+          const anonymous=await fetch(root+"/", {cache:"no-store"});
+          if(anonymous.status>=500) throw Error("Anonymous site request failed HTTP "+anonymous.status);
+          const password=JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS??"{}").amberina;
+          const login=await fetch(root+"/api/member-session", {
+            method:"POST",headers:{"Content-Type":"application/json",Origin:root},
+            body:JSON.stringify({citizenId:"amberina",password})
+          });
+          if(!login.ok) throw Error("Preview member login failed HTTP "+login.status);
+          const cookie=login.headers.get("set-cookie")?.split(";")[0];
+          if(!cookie) throw Error("Preview session cookie missing");
+          const doc=await fetch(root+"/", {headers:{Cookie:cookie},cache:"no-store"});
+          if(!doc.ok) throw Error("Authenticated preview homepage failed HTTP "+doc.status);
+          const mark=await fetch(root+"/atlas/amberina-simple-web753.png",{headers:{Cookie:cookie}});
+          if(!mark.ok) throw Error("Official AvS personal mark asset missing HTTP "+mark.status);
+          console.log("Atlas preview login and official-mark asset verified; site "+root);
+          await fetch(root+"/api/member-session",{method:"DELETE",headers:{Cookie:cookie,Origin:root}});
+          NODE
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Isolated Schicksal Atlas preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Expected Worker: \`schicksal-atlas-preview\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Expected D1: \`schicksal-atlas-preview-db\`, never \`schicksal-db\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Confirm actual URL from Wrangler deploy output and authenticated smoke test." >> "$GITHUB_STEP_SUMMARY"
