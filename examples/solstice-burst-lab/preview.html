@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Solstice Dendrite · Crystal Burst Lab</title>
+<title>Solstice Dendrite · V1 / Micro Ice A-B Lab</title>
 <style>
 :root{color-scheme:dark;--warm:#f3e7d5}
 *{box-sizing:border-box}
@@ -33,6 +33,7 @@ h1{font:italic 400 clamp(24px,4vw,32px)/1.4 Georgia,serif;margin:3px 0}
 .missing{position:absolute;z-index:10;top:50%;left:50%;transform:translate(-50%,-50%);background:#101b2be8;border:1px solid #f7d9a74f;border-radius:12px;padding:17px 21px;min-width:250px;text-align:center;font:12px/1.8 system-ui,sans-serif}
 .missing[hidden]{display:none}
 .controls{display:flex;justify-content:center;gap:10px;margin:13px 0;flex-wrap:wrap}
+.ab{display:flex;justify-content:center;gap:8px;margin:10px 0 4px;flex-wrap:wrap}.ab button{min-width:120px;padding:10px 14px}.ab button[aria-pressed="true"]{border-color:#fff7df;background:#d7e8f82a;box-shadow:0 0 15px #c6e7ff19;color:#fff9e9}
 button{cursor:pointer;border-radius:9px;background:#ffebc915;color:#f9e9d3;border:1px solid #ffdfb054;font:12px system-ui,sans-serif;padding:12px 16px;min-width:95px}
 button.primary{background:linear-gradient(130deg,#fff6df,#e4c895);color:#253044;border-color:#fff9e9;font-weight:700}
 button:disabled{opacity:.43;cursor:default}
@@ -60,6 +61,7 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <div id="missing" class="missing">导入已定稿四件套 ZIP<br>即可查看真实卡牌的爆发演示</div>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 </section>
+<div class="ab" role="group" aria-label="对比爆发版本"><button id="baseMode" type="button" aria-pressed="true">V1 原版</button><button id="iceMode" type="button" aria-pressed="false">V1 + 微冰晶</button></div>
 <div class="controls"><button id="play" class="primary" disabled>✦ 点击爆发</button><button id="reset" disabled>重播 / 重置</button></div>
 <details class="settings"><summary>素材与定位 · 只用于调试</summary>
 <div class="grid">
@@ -68,14 +70,14 @@ input[type=range]{width:100%;accent-color:#e8cda0}
 <label>雪花核心横向位置<input id="coreX" type="range" min="43" max="57" step=".25" value="50"></label>
 <label>雪花核心纵向位置<input id="coreY" type="range" min="43" max="57" step=".25" value="50"></label>
 <label style="flex-direction:row;align-items:center"><input type="checkbox" id="showCore">显示核心定位标记</label>
-</div><div id="assetMsg" class="small">保留原始牌面、牌背与 Bruma，不重新绘制素材。首次导入后可反复点击重播。</div>
+</div><div id="assetMsg" class="small">V1 保持原有爆发；微冰晶版只新增核心亮纹、少量边缘折射和雪花冻结闪光。切换后点击卡牌对比。</div>
 </details></div>
 <script id="vertSrc" type="x-shader/x-vertex">#version 300 es
 precision highp float;
 out vec2 vUV;
 void main(){
 vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));
-vUV=p*.5;
+vUV=p; // Fullscreen triangle UV spans visible 0..1, not 0..0.5.
 gl_Position=vec4(p*2.0-1.,0.,1.);
 }
 </script>
@@ -87,6 +89,7 @@ uniform vec2 uRes;
 uniform vec2 uCenter;
 uniform float uTime;
 uniform float uMaxR;
+uniform float uIce;
 float sat(float x){return clamp(x,0.,1.);}
 float sm(float a,float b,float x){return smoothstep(a,b,x);}
 float hash(float x){return fract(sin(x*127.1)*43758.5453);}
@@ -126,7 +129,22 @@ float distort=1.+.016*sin(a*6.0)+.008*sin(a*13.0+1.);
 float edge=abs(r-waveR*distort);
 float rim=exp(-pow(edge/13.,2.0))*.12*waveStart*(1.-sm(.98,1.32,t));
 rgb+=vec3(.77,.91,1.)*rim;
-float alpha=sat(core*.8+hot*.83+halo*.41+facets*.84+rim);
+// Micro-ice option: no large polygon facets and no change to V1's central explosion.
+// A very small sixfold ice conduction glimmer lives only within the medallion.
+float coreArms=exp(-pow((sin(a*3.0)*r)/1.55,2.0))
+  *sm(3.0,8.0,r)*(1.0-sm(27.0,38.0,r));
+float coreSweep=sm(0.0,.16,t)*(1.0-sm(.17,.30,t));
+float tinyIce=coreArms*coreSweep*.37;
+// Just two brief, barely perceptible refractive glints along EXISTING light;
+ // they do not spawn geometric shapes or extra particles.
+float glintA=exp(-pow((a-.38)/.045,2.0))
+ *exp(-pow((r-(45.0+260.0*t))/47.0,2.0));
+float glintB=exp(-pow((a+2.26)/.035,2.0))
+ *exp(-pow((r-(36.0+195.0*t))/35.0,2.0));
+float glintLife=sm(.13,.23,t)*(1.0-sm(.37,.61,t));
+float iceLight=(glintA*.11+glintB*.08)*glintLife+tinyIce;
+rgb+=uIce*iceLight*vec3(.90,.97,1.0);
+float alpha=sat(core*.8+hot*.83+halo*.41+facets*.84+rim+uIce*iceLight*.7);
 float end=1.-sm(1.24,1.42,t);
 frag=vec4(rgb*end,alpha*end);
 }
@@ -165,7 +183,7 @@ const names=['Card_Back.png','Card_Front.png','Flower_Bruma.png','Title_Solstice
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
 const fade=(a,b,x)=>smooth((x-a)/(b-a));
-let mode='idle',t=0,last=0,startAt=0,raf=0,W=0,H=0,flakes=[],origin={x:0,y:0},maxRadius=1,glow=null,seed=3127541;
+let mode='idle',t=0,last=0,startAt=0,raf=0,W=0,H=0,flakes=[],origin={x:0,y:0},maxRadius=1,glow=null,seed=3127541,iceDetail=false;
 function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
 function ready(){let ok=!!assets[names[0]]&&!!assets[names[1]];play.disabled=!ok;resetBtn.disabled=!ok;missing.hidden=ok}
 function applyImage(name,blob){
@@ -229,9 +247,9 @@ function resize(){
  if(mode==='idle')drawSnow(0,true);
  refreshGuide();
 }
-function sixflake(ctx,x,y,size,rot,alpha){
+function sixflake(ctx,x,y,size,rot,alpha,flash=0){
  ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.strokeStyle='rgba(245,252,255,'+alpha+')';
- ctx.lineWidth=.85;ctx.lineCap='round';ctx.beginPath();
+ ctx.lineWidth=.85+flash*.34;ctx.shadowColor='rgba(238,251,255,.8)';ctx.shadowBlur=flash*4.2;ctx.lineCap='round';ctx.beginPath();
  for(let i=0;i<6;i++){
   const theta=i*Math.PI/3;
   const ux=Math.cos(theta),uy=Math.sin(theta),px=-uy,py=ux;
@@ -252,7 +270,7 @@ function initSnow(){
    dx:3+rand()*11,period:.5+rand(),phase:rand()*6.283,
    crystal,angle:rand()*6.283,omega:(rand()-.5)*.26,
    size:crystal?4.5+rand()*5.8:.55+rand()*1.5,opacity:.25+rand()*.65,
-   frozen:false,freezeX:0,freezeY:0,freezeAngle:0,time:0});
+   frozen:false,freezeX:0,freezeY:0,freezeAngle:0,freezeAt:-10,time:0});
  }
 }
 function snowStep(dt,radius){
@@ -262,7 +280,7 @@ function snowStep(dt,radius){
   if(f.y>H+13){f.y=-13;f.x=rand()*W}
   const x=f.x+Math.sin(f.time*f.period+f.phase)*f.dx;
   if(radius>=0&&Math.hypot(x-origin.x,f.y-origin.y)<=radius){
-   f.frozen=true;f.freezeX=x;f.freezeY=f.y;f.freezeAngle=f.angle;
+   f.frozen=true;f.freezeX=x;f.freezeY=f.y;f.freezeAngle=f.angle;f.freezeAt=t;
   }
  }
 }
@@ -273,7 +291,9 @@ function drawSnow(dt,still){
   const x=f.frozen?f.freezeX:f.x+Math.sin(f.time*f.period+f.phase)*f.dx;
   const y=f.frozen?f.freezeY:f.y;
   const rot=f.frozen?f.freezeAngle:f.angle;
-  if(f.crystal)sixflake(snow,x,y,f.size,rot,f.opacity);
+  if(f.crystal){const flash=iceDetail&&f.frozen?Math.max(0,1-(t-f.freezeAt)/.15):0;
+   sixflake(snow,x,y,f.size,rot,Math.min(1,f.opacity+flash*.22),flash);
+  }
   else{
    snow.fillStyle='rgba(255,254,248,'+f.opacity+')';
    snow.beginPath();snow.arc(x,y,f.size,0,Math.PI*2);snow.fill();
@@ -331,6 +351,7 @@ function paintGlow(time){
  gl.uniform2f(gl.getUniformLocation(effect,'uCenter'),ox,oy);
  gl.uniform1f(gl.getUniformLocation(effect,'uTime'),time);
  gl.uniform1f(gl.getUniformLocation(effect,'uMaxR'),mr);
+ gl.uniform1f(gl.getUniformLocation(effect,'uIce'),iceDetail?1:0);
  gl.drawArrays(gl.TRIANGLES,0,3);
  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
  gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
@@ -381,6 +402,15 @@ function tick(now){
  }else return;
  raf=requestAnimationFrame(tick);
 }
+function setVariant(ice){
+ if(mode==='burst')return; // Don't change rendering logic mid-burst.
+ iceDetail=ice;
+ $('baseMode').setAttribute('aria-pressed',String(!ice));
+ $('iceMode').setAttribute('aria-pressed',String(ice));
+ idle();
+}
+$('baseMode').onclick=()=>setVariant(false);
+$('iceMode').onclick=()=>setVariant(true);
 function stageAction(){
  if(play.disabled)return;
  if(mode==='burst')return;
