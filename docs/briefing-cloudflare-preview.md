@@ -136,3 +136,11 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - Rename personal glyph URL to `/amberina-personal-simple-web753.png` to prevent reuse of browser-cached login artwork. Maintain Procreate original as `/amberina-personal-simple-official.png` and render meeting elected Speaker's badge in the *official* colour, including matching existing rings/President halo.
 - Keep the shared eight-colour empire emblem, all other citizen colours, Procreate masters, and personal Profile layout unchanged. No invented new circles or status dots.
 - Deploy **only** the existing isolated Worker `schicksal-briefing-preview` / preview-only D1 with existing dedicated credentials. No production Worker, production D1, or main merge. Check 75.3% artwork, authenticated briefing/presence and preview screenshot manually.
+
+### 2026-11-19 · Approved oat-green foundation visual theme (preview only)
+
+- User approved the `燕麦绿_amberina_色彩方案_moodboard.png` with a pale oat-green base and softly layered sage/leaf greens, *not* a dark-mode redesign. Primary `--oat-bg: #ECEEE5`, companion mist `#DEE8D6`, leaf wash `#D8E4CE`, card `#F1F6ED`, border `#C9D6C4`, readable ink `#35483B`.
+- Implemented as an isolated, removable `app/oat-sage-theme.css` imported last by `app/layout.tsx` after existing lounge CSS. It restyles only opening, login, welcome, non-club system shell, ordinary cards, sidebar, home, honours, and full-screen Briefing; no layout sizes, icons, animation paths or JS workflows changed.
+- Existing personal emblems (75.3% web Simple and official-source Speaker exception), President office dots, eight-colour shared emblem, and other citizens' colours are unchanged. Existing urgent/important/red and yellow briefings are unchanged. Profile page's actual component/style intentionally remains as designed previously, pending a separate future task.
+- Excluded Committee Lounge, art scenes, games and the dark parliamentary chamber; broad non-club colours affect only the site's outer shell while parliament content-specific greens remain.
+- Keep all website/DB changes on PR #5 isolated preview branch; never merge, update production Worker/D1, or change Procreate source. Validate tests and authenticated preview smoke.

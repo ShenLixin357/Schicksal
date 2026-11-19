@@ -1,0 +1,243 @@
+/* Schicksal — oat & layered sage, visual exploration approved 2026-11-19.
+   All values below belong to a removable theme layer.
+   Never recolor art assets, the eight-ray imperial emblem, member identities,
+   existing urgent/important state colors, or any protected lounge/game scene. */
+:root {
+  --oat-bg: #eceee5;
+  --oat-mist: #dee8d6;
+  --oat-leafwash: #d8e4ce;
+  --oat-card: #f1f6ed;
+  --oat-card-soft: #eaf1e5;
+  --oat-panel: #e2ebda;
+  --oat-sage: #c9d9c2;
+  --oat-olive: #a8bd9f;
+  --oat-shade: #78916f;
+  --oat-deep: #465e4c;
+  --oat-ink: #35483b;
+  --oat-muted: #657766;
+  --oat-line: #c9d6c4;
+}
+html, body { background: var(--oat-bg); }
+
+/* Home, login, and briefing are the only global surfaces re-themed here.
+   Explicitly exclude the Committee Lounge, private lounges and game-room. */
+.opening, .login, .welcome, .system:not(.club-system), .imperial-briefing-overlay {
+  --ink: var(--oat-ink);
+  --ink-2: var(--oat-deep);
+  --navy: var(--oat-deep);
+  --paper: var(--oat-ink);
+  --muted: var(--oat-muted);
+  --line: rgba(97,122,94,.19);
+  --line-strong: rgba(94,119,89,.32);
+  color: var(--oat-ink);
+}
+.opening {
+  background:
+    radial-gradient(ellipse 70% 60% at 80% 20%,rgba(241,246,235,.67),transparent 74%),
+    radial-gradient(ellipse 70% 70% at 11% 89%,rgba(186,205,176,.30),transparent 74%),
+    linear-gradient(125deg,#eff1e7,var(--oat-mist) 64%,#e7eddf);
+}
+.opening::before {
+  background-image:linear-gradient(rgba(94,124,91,.032) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(94,124,91,.032) 1px,transparent 1px);
+}
+.login {
+  background:
+    radial-gradient(ellipse 56% 74% at 92% 4%,rgba(241,246,235,.92),transparent 73%),
+    radial-gradient(ellipse 58% 77% at 4% 92%,rgba(181,203,171,.48),transparent 76%),
+    linear-gradient(135deg,#eceee4,#dfe8d8 52%,#e9ede3);
+}
+.login::before {
+  background:
+    radial-gradient(circle at 12% 92%,rgba(117,150,111,.09),transparent 39%),
+    radial-gradient(circle at 92% 9%,rgba(157,182,141,.09),transparent 36%),
+    linear-gradient(115deg,transparent 49.95%,rgba(86,117,86,.055) 50%,transparent 50.05%);
+}
+.login-copy > p:last-of-type, .login .entry-header > button,
+.login .identity-grid small, .login .panel-head > small,
+.login .access-form > footer p { color: var(--oat-muted); }
+.login-panel {
+  background:linear-gradient(145deg,rgba(242,247,237,.96),rgba(231,239,224,.93));
+  border-color:var(--oat-line);
+  box-shadow:0 22px 66px rgba(58,83,61,.10);
+}
+.identity-grid > button { background:rgba(244,249,240,.38); }
+.identity-grid > button:hover:not(:disabled) { background:rgba(247,250,244,.82); }
+.identity-grid > button.selected {
+  background:linear-gradient(90deg,color-mix(in srgb,var(--citizen) 10%,#e8f1e1),rgba(241,247,235,.73));
+}
+.login .secure-seal small, .login .panel-head span { color:var(--oat-muted); }
+.login .access-form input { color:var(--oat-ink); }
+.login .access-form input::placeholder { color:#768779; }
+.login .primary {
+  border-color:#99ad8e;
+  color:#3d5b41;
+  background:linear-gradient(125deg,#e5eddd,#d8e5ce);
+}
+.login .primary:hover { background:#b4c8a8; color:#293f31; }
+
+/* Welcome's three large identity rings retain the existing identity color;
+   only the backdrop is layered oat/sage. */
+.welcome {
+  background:
+    radial-gradient(circle at 50% 43%,rgba(246,250,241,.66),transparent 38%),
+    radial-gradient(ellipse 72% 82% at 10% 95%,rgba(184,205,175,.34),transparent 72%),
+    linear-gradient(120deg,#eef0e6,#dfe9d8 60%,#eef1e7);
+}
+.welcome > section > p, .welcome section > small { color:var(--oat-muted); }
+
+/* Ordinary sections and sidebar — do not restyle club-system or profile panels. */
+.system:not(.club-system) {
+  background:
+    radial-gradient(ellipse 42% 62% at 91% 14%,rgba(229,239,220,.82),transparent 78%),
+    radial-gradient(ellipse 52% 72% at 8% 91%,rgba(209,224,201,.64),transparent 78%),
+    var(--oat-bg);
+}
+.system:not(.club-system)::before {
+  opacity:.26;
+  background-image:linear-gradient(rgba(89,116,87,.037) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(89,116,87,.037) 1px,transparent 1px);
+}
+.system:not(.club-system) .sidebar {
+  background:linear-gradient(170deg,rgba(224,235,216,.97),rgba(214,229,204,.96));
+  border-right-color:var(--oat-line);
+  box-shadow:10px 0 30px rgba(75,105,72,.055);
+}
+.system:not(.club-system) .sidebar nav > button { color:#536e55; }
+.system:not(.club-system) .sidebar nav > button > span,
+.system:not(.club-system) .sidebar nav > button > small { color:#697f6a; }
+.system:not(.club-system) .sidebar nav > button:hover {
+  color:var(--oat-ink);
+  background:rgba(245,249,240,.56);
+}
+.system:not(.club-system) .sidebar nav > button.active {
+  color:var(--oat-ink);
+  border-left-color:#799771;
+  background:linear-gradient(90deg,rgba(153,181,141,.31),rgba(234,243,228,.08));
+}
+.system:not(.club-system) .side-user > button,
+.system:not(.club-system) .system-footer,
+.system:not(.club-system) .topbar > div:first-child,
+.system:not(.club-system) .topbar > div:last-child { color:var(--oat-muted); }
+.system:not(.club-system) .topbar {
+  background:rgba(235,241,230,.89);
+  border-bottom-color:var(--oat-line);
+}
+.system:not(.club-system) .topbar > div:first-child strong { color:var(--oat-deep); }
+.system:not(.club-system) .page-head > p,
+.system:not(.club-system) .hero > div:first-child > p:last-of-type,
+.system:not(.club-system) .notice > p,
+.system:not(.club-system) .festival > p,
+.system:not(.club-system) .quick header > small { color:var(--oat-muted); }
+.system:not(.club-system) .page-head h1,
+.system:not(.club-system) .quick header h2 { color:var(--oat-ink); }
+.system:not(.club-system) .status-grid > article,
+.system:not(.club-system) .quick button,
+.system:not(.club-system) .bill,
+.system:not(.club-system) .vote,
+.system:not(.club-system) .market article {
+  background:linear-gradient(138deg,rgba(241,246,237,.94),rgba(225,236,219,.76));
+  border-color:var(--oat-line);
+  box-shadow:0 12px 30px rgba(65,94,69,.052);
+}
+.system:not(.club-system) .festival {
+  background:linear-gradient(145deg,#e0eacb,#eef3e3) !important;
+}
+.system:not(.club-system) .quick button:hover,
+.system:not(.club-system) .archive-list button:hover { background:#f2f7ee; }
+.system:not(.club-system) .registry article {
+  border-color:var(--oat-line);
+  background:linear-gradient(105deg,color-mix(in srgb,var(--citizen) 7%,#eef5e9),rgba(230,239,222,.73));
+}
+.system:not(.club-system) .public-citizen-focus {
+  border-color:var(--oat-line);
+  background:linear-gradient(120deg,#edf4e8,#e0ebd9);
+}
+.system:not(.club-system) .emblem-page > div {
+  background:radial-gradient(circle,rgba(183,209,171,.23),rgba(239,246,233,.44) 65%);
+}
+.system:not(.club-system) .parliament-rules article,
+.system:not(.club-system) .legislative-flow,
+.system:not(.club-system) .session-feed,
+.system:not(.club-system) .active-bill,
+.system:not(.club-system) .division-lobby {
+  border-color:var(--oat-line);
+  background:linear-gradient(135deg,#f1f6ed,#e9f0e5);
+}
+.system:not(.club-system) .honors .leaderboard {
+  border-top-color:var(--oat-line);
+}
+.system:not(.club-system) .honors .leaderboard article { border-bottom-color:var(--oat-line); }
+.system:not(.club-system) .honors .leaderboard p,
+.system:not(.club-system) .honors .leaderboard article > span { color:var(--oat-muted); }
+.system:not(.club-system) .honors .ribbon {
+  background:radial-gradient(ellipse at 50% 30%,rgba(211,227,208,.82),transparent 70%),#e6efe3;
+  border-color:var(--oat-line);
+}
+.system:not(.club-system) .honors .ribbon h2 { color:#4e705e; }
+.system:not(.club-system) .honors .ribbon > div {
+  color:#527661; border-color:#a7bda8;
+  background:#e2ede0;
+  box-shadow:0 0 0 8px #dce8d8,0 0 0 9px #b3c5b1,0 17px 28px rgba(67,94,70,.12);
+}
+.system:not(.club-system) .honors .ribbon > p,
+.system:not(.club-system) .honors .ribbon > small { color:#637968; }
+
+/* The authentic lounge art, dark parliament chamber and identity artwork are
+   explicitly excluded. Semantic urgent (yellow) and important (red) remain. */
+
+/* Briefing overlay/desk is its own layout; preserve the original 8-colour line
+   embroidery and flat empire emblem, only soften paper/card surfaces. */
+html body .imperial-briefing-overlay {
+  background:var(--oat-bg);
+  color:var(--oat-ink);
+}
+html body .imperial-briefing-overlay .imperial-briefing-paper {
+  color:var(--oat-ink);
+  background:
+    radial-gradient(ellipse 50% 62% at 5% 14%,rgba(244,248,239,.70),transparent 78%),
+    radial-gradient(ellipse 44% 65% at 94% 84%,rgba(190,212,178,.29),transparent 76%),
+    linear-gradient(125deg,#e9efe4,#e1ebdc 58%,#edf0e4);
+}
+html body .imperial-briefing-overlay .imperial-briefing-panel,
+html body .imperial-briefing-overlay .imperial-briefing-news-item,
+html body .imperial-briefing-overlay .imperial-briefing-quick-grid > button {
+  border-color:rgba(119,148,113,.26);
+  background:linear-gradient(145deg,rgba(243,248,238,.92),rgba(231,239,226,.78));
+  box-shadow:0 6px 19px rgba(66,92,65,.045);
+}
+html body .imperial-briefing-overlay .imperial-briefing-lead {
+  border-color:rgba(121,147,106,.31);
+  background:linear-gradient(105deg,rgba(243,248,237,.96),rgba(226,237,221,.79) 52%,rgba(218,232,211,.57));
+}
+html body .imperial-briefing-overlay .imperial-briefing-lead h1,
+html body .imperial-briefing-overlay .imperial-briefing-topbar-center h2 { color:#365541; }
+html body .imperial-briefing-overlay .imperial-briefing-lead-copy > p,
+html body .imperial-briefing-overlay .imperial-briefing-topbar-right,
+html body .imperial-briefing-overlay .imperial-briefing-brand small { color:var(--oat-muted); }
+html body .imperial-briefing-overlay .imperial-briefing-primary {
+  background:linear-gradient(125deg,#f4f7ed,#dee9d6);
+  border-color:#aabf9b;
+  color:#4b684c;
+}
+html body .imperial-briefing-overlay .imperial-briefing-primary:hover { background:#f1f6ea; }
+html body .imperial-briefing-overlay .imperial-briefing-news-symbol { background:#e8f1e3; border-color:#bdcfb6; color:#567a61; }
+html body .imperial-briefing-overlay .imperial-briefing-task-row button { color:#486b55; }
+
+/* Responsive behaviour remains in existing component styles. Only a visual
+   token/colour swap here; never change geometry or clickable hit areas. */
+
+/* Readability-only backplate for the pale yellow personal Simple emblem on
+   light oat surfaces. Keep the glyph, border rings, President halo colour,
+   identity and all other members' artwork untouched. Parliamentary stage
+   and personal Profile are intentionally not targeted. */
+.login .identity-grid .citizen-mark.personal-simple,
+.welcome .welcome-mark .citizen-mark.personal-simple,
+.system:not(.club-system) .sidebar .citizen-mark.personal-simple,
+.system:not(.club-system) .registry .citizen-mark.personal-simple,
+.system:not(.club-system) .public-citizen-focus > .citizen-mark.personal-simple,
+.system:not(.club-system) .book-cover-mark .citizen-mark.personal-simple,
+.system:not(.club-system) .reader-author-mark .citizen-mark.personal-simple {
+  background:radial-gradient(circle at 45% 40%,#789274,#647c67 82%);
+  box-shadow:inset 0 0 16px rgba(36,62,43,.17),0 0 0 4px rgba(125,156,114,.10);
+}
