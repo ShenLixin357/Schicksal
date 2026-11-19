@@ -200,9 +200,13 @@ void main(){
  color+=vec3(.61,.77,.98)*frontEdge*.29;
  float pearly=(sin(coarse*18.+uTime*.17+medium*9.)*.5+.5)*.017*uGlint;
  color+=vec3(1.0,.91,.99)*pearly;
- // Sparse physical edge dispersion; no neon chromatic outlines.
- float fresnel=pow(1.0-clamp(abs(uv.x-.5)*.8+abs(uv.y-.5)*.12,0.,1.),4.);
- color+=vec3(.07,.08,.11)*fresnel*.18*uGlint;
+ // Fresnel-inspired rim reflection: strongest at grazing card edges and
+ // along steep microscopic facet normals, never an artificial glowing center.
+ float borderDist=min(min(uv.x,1.-uv.x),min(uv.y,1.-uv.y));
+ float rim=1.-smoothstep(.006,.057,borderDist);
+ float microSlope=pow(clamp(length(normal)*1.7,0.,1.),3.);
+ float grazing=.67*rim+.33*microSlope;
+ color+=mix(vec3(.085,.12,.18),vec3(.12,.10,.16),coarse)*grazing*.48*uGlint;
  frag=vec4(clamp(color,0.,1.),shape);
 }
 </script>
