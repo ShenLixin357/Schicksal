@@ -6,18 +6,22 @@ import "./sidebar-presence.css";
 
 type Member = { id: string; username: string; locked?: boolean };
 
-export function SidebarPresence({ presence, members, collapsed, renderMark, onMember }: {
+export function SidebarPresence({ presence, members, collapsed, selfId, renderMark, onMember }: {
   presence: MemberPresence;
   members: readonly Member[];
   collapsed: boolean;
+  selfId: string;
   renderMark: (memberId: string) => ReactNode;
   onMember: (memberId: string) => void;
 }) {
   const [panelOpen, setPanelOpen] = useState(false);
-  const onlineIds = new Set(presence.online);
-  const online = presence.status === "ready"
-    ? members.filter(member => !member.locked && onlineIds.has(member.id))
-    : [];
+  const onlineIds = new Set(presence.status === "ready" ? presence.online : []);
+  // The signed-in member must remain reachable even during the first presence
+  // heartbeat. Other badges represent currently online members only.
+  const online = [
+    ...members.filter(member => member.id === selfId && !member.locked),
+    ...members.filter(member => member.id !== selfId && !member.locked && onlineIds.has(member.id)),
+  ];
   if (!online.length) return null;
 
   return <section className={`schicksal-sidebar-presence ${collapsed ? "is-collapsed" : ""}`}
