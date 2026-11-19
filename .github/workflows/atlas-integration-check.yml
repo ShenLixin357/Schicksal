@@ -1,0 +1,35 @@
+name: Atlas final integration validation
+on:
+  push:
+    branches:
+      - feature/atlas-library-style-20261119
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Typecheck Atlas and touched page (legacy repo baseline warnings excluded)
+        shell: bash
+        run: |
+          npx tsc --noEmit --pretty false > /tmp/atlas-types.txt 2>&1 || true
+          if grep -E '^app/(atlas/|page\\.tsx)' /tmp/atlas-types.txt; then
+            echo "::error::Type errors in new Atlas or page integration"
+            exit 1
+          fi
+      - name: Atlas lint
+        run: npx eslint app/atlas
+      - name: Full Next Cloudflare build
+        run: npm run build
+      - name: Validate built artifact
+        run: bash scripts/validate-artifact.sh
+      - name: Full repository regression tests
+        run: npm test
