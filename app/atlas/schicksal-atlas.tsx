@@ -17,10 +17,10 @@ export function AtlasGemGlyph({ colors=sharedColors, size=38, className="" }: {c
  return <svg className={className} width={size} height={size} viewBox="-150 -150 300 300" aria-hidden="true" role="presentation">
   <defs><linearGradient id={"atlas-facet-gradient-"+count} x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#fffdf8"/><stop offset="48%" stopColor="#ffffff" stopOpacity=".0"/><stop offset="100%" stopColor="#573c78" stopOpacity=".45"/></linearGradient></defs>
   {colors.map((color,i)=><g key={i} transform={"rotate("+(i*360/count)+")"}>
-    <path d="M0 -138 L16 -57 L0 -2 L-16 -57 Z" fill={color} stroke="#f9dfb5" strokeWidth="2"/>
-    <path d="M0 -138 L16 -57 L0 -2 Z" fill="#ffffff" fillOpacity=".35"/>
-    <path d="M0 -138 L-16 -57 L0 -2 Z" fill="#3c377d" fillOpacity=".14"/>
-    <path d="M-16 -57 L0 -78 L16 -57 L0 -2 Z" fill="#ffffff" fillOpacity=".12" stroke="#f4e8f3" strokeWidth="1"/>
+    <path d="M0 -138 L16.0529 -54 L0 -2 L-16.0529 -54 Z" fill={color} stroke="#f9dfb5" strokeWidth="2"/>
+    <path d="M0 -138 L16.0529 -54 L0 -2 Z" fill="#ffffff" fillOpacity=".35"/>
+    <path d="M0 -138 L-16.0529 -54 L0 -2 Z" fill="#3c377d" fillOpacity=".14"/>
+    <path d="M-16 -57 L0 -78 L16.0529 -54 L0 -2 Z" fill="#ffffff" fillOpacity=".12" stroke="#f4e8f3" strokeWidth="1"/>
   </g>)}
   <circle r="7" fill="#fff9db" stroke="#d19c6a" strokeWidth="2"/>
  </svg>;
