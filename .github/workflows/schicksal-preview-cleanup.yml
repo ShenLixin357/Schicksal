@@ -55,7 +55,7 @@ jobs:
           appendFileSync(process.env.GITHUB_ENV,"VERIFIED_PREVIEW_UUID="+preview[0].uuid+"\n");
           NODE
           npx wrangler deployments list --name schicksal --json > "$RUNNER_TEMP/prod-worker.json"
-node --input-type=module - <<'NODE'
+          node --input-type=module - <<'NODE'
           // Previous Wrangler delete removed the preview Worker before its
           // unrelated KV-listing permission error; confirm it stays absent.
           import {readFileSync} from "node:fs";

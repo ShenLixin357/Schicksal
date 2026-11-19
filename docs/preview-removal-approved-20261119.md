@@ -11,3 +11,7 @@ First cleanup run (44461985962) stopped at Worker delete because Wrangler unexpe
 ## Third pass — Worker already deleted, D1 remains
 
 Confirmed by Cloudflare on 2026-11-19: the first Wrangler deletion partially succeeded in removing the preview Worker, then failed when enumerating KV namespace with insufficient privilege. The second read-only run received Worker-not-found code 10007. The new job requires this Worker to be absent and production Worker to remain deployed before removing only the preview D1 via exact verified UUID. Never attempt to recreate or redeploy preview.
+
+## YAML indentation retry
+
+The third-run workflow parsed no jobs because an embedded Node command lost YAML block indentation. The source has been repaired without changing resource deletion targets, scope or safeguards.
