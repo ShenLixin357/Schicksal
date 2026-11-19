@@ -1,0 +1,36 @@
+name: Atlas UI validation
+on:
+  push:
+    branches:
+      - design/atlas-rebuild-20261119
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  atlas-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check new Atlas surfaces (baseline Cloudflare ambient types are known missing)
+        run: |
+          npx tsc --noEmit --pretty false > /tmp/atlas-types.log 2>&1 || true
+          if grep -E '^app/(atlas/|page\\.tsx)' /tmp/atlas-types.log; then
+            echo "::error::Type errors were found in Atlas or the modified page"
+            exit 1
+          fi
+          echo "No TypeScript errors in Atlas files or modified page."
+          echo "Legacy baseline type errors (if any):"
+          sed -n '1,8p' /tmp/atlas-types.log
+      - name: Lint isolated Atlas files
+        run: npx eslint app/atlas
+      - name: Build worker application
+        run: npm run build
