@@ -8,7 +8,7 @@ export type CitizenAtlasAppearance = {
   webColor?: string;
 };
 export const CITIZEN_APPEARANCE: Record<string, CitizenAtlasAppearance> = {
-  amberina: { personalColor: "#F3ED87", webColor: "#F1E17E", emblemSrc: "/atlas/amberina-simple-web753.png", ornamentSrc: "/atlas/amberina-crystal-sunflowers.webp" },
+  amberina: { personalColor: "#F3ED87", webColor: "#F1E17E", emblemSrc: "/atlas/amberina-simple-web753.png", ornamentSrc: "/atlas/amberina-crystal-sunflowers.png" },
 };
 
 export type ImperialOffice = {
