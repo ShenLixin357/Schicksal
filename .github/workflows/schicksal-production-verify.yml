@@ -1,0 +1,73 @@
+name: Verify live Schicksal production (read only)
+on:
+  push:
+    branches: [main]
+    paths: ["docs/production-postmerge-verify.md"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    environment:
+      name: briefing-preview
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Read-only Cloudflare production deployment and D1 inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          npm ci
+          npx wrangler d1 list --json > "$RUNNER_TEMP/databases.json"
+          node --input-type=module - <<'NODE'
+          import { readFileSync,appendFileSync } from "node:fs";
+          const arr=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/databases.json","utf8"));
+          const prod=arr.filter(x=>x.name==="schicksal-db"),test=arr.filter(x=>x.name==="schicksal-briefing-preview-db");
+          if(prod.length!==1||test.length!==1||!prod[0].uuid||prod[0].uuid===test[0].uuid)throw Error("Unsafe/ambiguous D1 binding");
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,"Production and preview databases remain separate; production D1 unchanged by this verification.\n");
+          NODE
+          npx wrangler deployments list --name schicksal --json > "$RUNNER_TEMP/worker-deployments.json"
+          node --input-type=module - <<'NODE'
+          import { readFileSync,appendFileSync } from "node:fs";
+          const obj=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/worker-deployments.json","utf8"));
+          const rows=Array.isArray(obj)?obj:(obj.deployments??obj.result??[]);
+          if(!Array.isArray(rows)||!rows.length)throw Error("No production Worker deployment returned");
+          const top=rows[0];
+          console.log("Production worker deployments found: "+rows.length);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,"Cloudflare production worker schicksal deployment list present. Latest record metadata: "+JSON.stringify({created_on:top.created_on??top.createdOn??null,id:top.id??null,source:top.source??null})+"\n");
+          NODE
+          npx wrangler d1 execute schicksal-db --remote --json --command "SELECT (SELECT count(*) FROM member_credentials) AS credentials, (SELECT count(*) FROM parliament_items) AS items, (SELECT count(*) FROM parliament_votes) AS votes" > "$RUNNER_TEMP/production-counts.json"
+          node --input-type=module - <<'NODE'
+          import { readFileSync,appendFileSync } from "node:fs";
+          const raw=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/production-counts.json","utf8"));
+          const rows=Array.isArray(raw)?raw:[raw];
+          const count=rows.flatMap(x=>x.results??x.result??[]).find(x=>typeof x.credentials==="number");
+          if(!count||count.credentials<5||count.items<4)throw Error("Production core row counts regressed or unreadable");
+          console.log("Production counts still: "+JSON.stringify(count));
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,"Production data preserved: "+JSON.stringify(count)+"\n");
+          NODE
+      - name: Test unauthenticated API route signatures (no member secrets)
+        shell: bash
+        run: |
+          node --input-type=module - <<'NODE'
+          import {appendFileSync} from "node:fs";
+          const host="https://schicksal.m17686100216.workers.dev";
+          for(const path of ["/api/briefing","/api/presence"]){
+            let res;
+            try{res=await fetch(host+path,{signal:AbortSignal.timeout(15000),redirect:"manual"});}
+            catch(e){console.log(path+" not reachable from CI: "+String(e).slice(0,140));continue;}
+            const body=(await res.text()).slice(0,200);
+            console.log(path+" responded HTTP "+res.status+" content-type "+res.headers.get("content-type"));
+            const recognized=res.status===401&&res.headers.get("content-type")?.includes("json")&&(/请先登录/.test(body));
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY,path+": HTTP "+res.status+", recognized new API "+Boolean(recognized)+"\n");
+          }
+          NODE
