@@ -24,7 +24,7 @@ const hooks = registerHooks({ resolve(specifier, context, nextResolve) {
   if (specifier === "cloudflare:workers") return { url: "data:text/javascript,export const env=globalThis.__schicksalPrivateSiteEnv;", shortCircuit: true };
   if (specifier === "vinext/server/app-router-entry") return { url: "data:text/javascript,export default globalThis.__schicksalPrivateSiteHandler;", shortCircuit: true };
   if (specifier === "vinext/server/image-optimization") return { url: "data:text/javascript,export const DEFAULT_DEVICE_SIZES=[640];export const DEFAULT_IMAGE_SIZES=[32];export const handleImageOptimization=(...args)=>globalThis.__schicksalPrivateSiteHandler.image(...args);", shortCircuit: true };
-  if (specifier.endsWith(".css?inline")) return nextResolve(specifier, context);
+  if (specifier.endsWith(".css?inline") || specifier.endsWith(".png?inline")) return nextResolve(specifier, context);
   if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier)) return nextResolve(`${specifier}.ts`, context);
   return nextResolve(specifier, context);
 } });
