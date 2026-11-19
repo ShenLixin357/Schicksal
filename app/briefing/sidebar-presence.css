@@ -20,3 +20,48 @@
 .club-system .schicksal-sidebar-presence{border-color:rgba(211,180,237,.14)}
 .club-system .schicksal-sidebar-presence-popover{background:#1d1727;border-color:#695774}
 @media(max-width:760px){.schicksal-sidebar-presence{order:2;padding:4px 0;margin:0;border-top:0}.schicksal-sidebar-presence-marks{min-height:30px;gap:2px}.schicksal-sidebar-presence-marks button .citizen-mark{width:26px;height:26px}.sidebar-collapsed .schicksal-sidebar-presence{display:none}.public-citizen-focus{padding:16px 24px 16px 14px;gap:10px}.public-citizen-focus>.citizen-mark{width:50px;height:50px}}
+
+/* The presence rail already identifies the member. The former bottom AvS card
+   is gone; only a lightweight sign-out action remains alongside the rail. */
+.schicksal-sidebar-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 4px 0;
+  margin-top: 5px;
+  border-top: 1px solid rgba(91,112,128,.13);
+}
+.schicksal-sidebar-footer > .schicksal-sidebar-presence {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border-top: 0;
+}
+.schicksal-sidebar-logout {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #5c697c;
+  font-size: 21px;
+  cursor: pointer;
+  transform: none;
+}
+.schicksal-sidebar-logout:hover { background: rgba(166,157,142,.10); }
+.schicksal-sidebar-logout:focus-visible { outline: 2px solid #bca16d; outline-offset: 2px; }
+.club-system .schicksal-sidebar-footer { border-top-color: rgba(211,180,237,.14); }
+.club-system .schicksal-sidebar-logout { color: #c9b9d8; }
+.sidebar-collapsed .schicksal-sidebar-footer { flex-direction: column; gap: 9px; padding: 10px 0 0; }
+.sidebar-collapsed .schicksal-sidebar-footer > .schicksal-sidebar-presence { flex: 0 0 auto; }
+@media (max-width:760px) {
+  .schicksal-sidebar-footer { order: 2; min-height: 36px; padding: 4px 0; margin: 0; border-top: 0; }
+  .sidebar-collapsed .schicksal-sidebar-footer { flex-direction: row; margin-left: auto; padding: 0; }
+  .sidebar-collapsed .schicksal-sidebar-footer > .schicksal-sidebar-presence { display: none; }
+}
