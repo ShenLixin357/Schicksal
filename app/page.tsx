@@ -5,7 +5,7 @@ import { BriefingDesk, BriefingOverlay } from "./briefing/briefing";
 import { markBriefingViewed, type BriefingTarget } from "./briefing/briefing-data";
 import { useBriefingFeed } from "./briefing/use-briefing-feed";
 import { useMemberPresence } from "./briefing/use-member-presence";
-import { MemberPresenceStrip } from "./briefing/member-presence-strip";
+import { SidebarPresence } from "./briefing/sidebar-presence";
 import { CITIZENS, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SpeakerManagement } from "./speaker-management";
@@ -373,8 +373,14 @@ function HomeSection({ go }: { go: (id: Section) => void }) {
   );
 }
 
-function CitizensSection() {
-  return <><PageHead eyebrow="Citizen Registry" title="公民名册" copy="八个彩色棱分别象征八位公民；八棱共同构成帝国的共同主标志。" /><div className="registry">{CITIZENS.map((citizen,index) => <article key={citizen.id} className={citizen.locked ? "sealed" : ""} style={{ "--citizen": citizen.accent } as CSSProperties}><b>0{index + 1}</b><CitizenMark citizen={citizen} /><div><small>{citizen.office}</small><h2>{citizen.name}</h2><p>{citizen.codename}</p></div></article>)}</div><p className="note">八个棱在视觉原型中均有独立颜色；其余身份、年龄顺序及最终代表色仍待八位公民正式确认。</p></>;
+function CitizensSection({ focusedId, onClearFocus }: { focusedId?: string | null; onClearFocus?: () => void }) {
+  const focused = focusedId ? CITIZENS.find(member => member.id === focusedId && !member.locked) : undefined;
+  return <><PageHead eyebrow="Citizen Registry" title="公民名册" copy="八个彩色棱分别象征八位公民；八棱共同构成帝国的共同主标志。" />
+    {focused && <article className="public-citizen-focus" style={{ "--citizen": focused.accent } as CSSProperties} aria-label={focused.username + "的公开公民档案"}>
+      <CitizenMark citizen={focused}/>
+      <div><small>PUBLIC CITIZEN RECORD · 公民公开资料</small><strong>{focused.name}</strong><span>{focused.username} · {focused.office}</span></div>
+      <button type="button" onClick={onClearFocus} aria-label="返回完整公民名册">×</button>
+    </article>}<div className="registry">{CITIZENS.map((citizen,index) => <article key={citizen.id} className={citizen.locked ? "sealed" : ""} style={{ "--citizen": citizen.accent } as CSSProperties}><b>0{index + 1}</b><CitizenMark citizen={citizen} /><div><small>{citizen.office}</small><h2>{citizen.name}</h2><p>{citizen.codename}</p></div></article>)}</div><p className="note">八个棱在视觉原型中均有独立颜色；其余身份、年龄顺序及最终代表色仍待八位公民正式确认。</p></>;
 }
 
 function EmblemSection() {
@@ -1902,6 +1908,7 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
+  const [focusedCitizenId, setFocusedCitizenId] = useState<string | null>(null);
   const [parliamentDeepLink, setParliamentDeepLink] = useState("");
   const [parliamentDeepLinkFocus, setParliamentDeepLinkFocus] = useState<"proposal" | "speaker" | "debate" | "vote">("vote");
   const [parliamentFocus, setParliamentFocus] = useState<"all" | "referendum">("all");
@@ -1981,12 +1988,19 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
     if (target === "referendum") { setSection("parliament"); return; }
     setSection(target);
   };
+  const openPublicCitizen = (memberId: string) => {
+    if (!CITIZENS.some(member => member.id === memberId && !member.locked)) return;
+    setFocusedCitizenId(memberId);
+    setBriefingOpen(false);
+    setSection("citizens");
+    document.querySelector(".system-main")?.scrollTo({top:0,behavior:"smooth"});
+  };
   const clubOpen = section === "club" && CLUB_MEMBER_IDS.has(citizen.id);
   const active = NAV.find((item) => item.id === section) ?? { id: "club" as const, label: "委员会 Lounge", en: "Committee Lounge" };
   let content: ReactNode;
   switch (section) {
-    case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} presence={presence} members={CITIZENS} />; break;
-    case "citizens": content = <CitizensSection />; break;
+    case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
+    case "citizens": content = <CitizensSection focusedId={focusedCitizenId} onClearFocus={() => setFocusedCitizenId(null)} />; break;
     case "emblem": content = <EmblemSection />; break;
     case "parliament": content = <PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} requestedFocus={parliamentDeepLinkFocus} focusReferendums={parliamentFocus === "referendum"} />; break;
     case "honors": content = <HonorsSection />; break;
@@ -2006,16 +2020,16 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
         onNavigate={navigateFromBriefing}
         tasks={briefingFeed.tasks}
         taskState={briefingFeed.status}
-        presence={presence}
-        members={CITIZENS}
         news={briefingFeed.news}
         newsState={briefingFeed.status}
         canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)}
         sharedMark={<Emblem compact />}
         heroMark={<Emblem compact />}
       />}
-      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); } setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
-      <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><MemberPresenceStrip presence={presence} members={CITIZENS} compact/><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
+      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); } setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<SidebarPresence presence={presence} members={CITIZENS} collapsed={sidebarCollapsed}
+        renderMark={(memberId) => { const member = CITIZENS.find(entry => entry.id === memberId); return member ? <CitizenMark citizen={member}/> : null; }}
+        onMember={openPublicCitizen}/><div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
+      <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
     </main>
   );
 }
