@@ -100,3 +100,7 @@
 ### 2026-11-19 · Isolated preview sync diagnostic
 
 User browser showed successful member heartbeat but `/api/briefing` 503. Trigger isolated D1 schema diagnostics and authenticated HTTP smoke check on the **preview** environment only. Do not touch production or merge main.
+
+### 2026-11-19 · Briefing sync cold-start hardening
+
+Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: `GET /api/briefing` responded HTTP 200 with 3 current pending affairs; user-visible initial 503 remains an intermittent first-load behavior to harden. Changes: memoize preview-only schema creation across simultaneous presence/briefing requests, retry transient client GET failures at 2s/5s/10s, regression test simultaneous first-login heartbeat and inbox load. Preview smoke test now must succeed on the deployed Worker before declaring it ready.
