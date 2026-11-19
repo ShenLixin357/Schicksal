@@ -1,0 +1,103 @@
+name: Delete isolated Schicksal preview after verified production release
+on:
+  push:
+    branches: ["feature/briefing-v2-shell-20261118"]
+    paths: ["docs/preview-removal-approved-20261119.md"]
+permissions:
+  contents: read
+  checks: read
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: briefing-preview
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Verify main has successful Cloudflare production release
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          const repo="ShenLixin357/Schicksal";
+          const expected="8036ebea431cef8af6af222d047c828805de5446";
+          const headers={Accept:"application/vnd.github+json",Authorization:"Bearer "+process.env.GITHUB_TOKEN};
+          const get=async path=>{
+            const res=await fetch("https://api.github.com/repos/"+repo+path,{headers});
+            if(!res.ok)throw Error("GitHub verification failed "+res.status);
+            return res.json();
+          };
+          const main=await get("/branches/main");
+          if(main.commit.sha!==expected)throw Error("main head changed: reverify before deletion");
+          const checks=await get("/commits/"+expected+"/check-runs");
+          const prod=checks.check_runs?.find(x=>x.name==="Workers Builds: schicksal"&&x.status==="completed"&&x.conclusion==="success");
+          if(!prod)throw Error("No successful production Cloudflare build for main");
+          console.log("Production main and Cloudflare build success confirmed.");
+          NODE
+      - name: Verify Worker names, D1 isolation and production APIs
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          npm ci
+          npx wrangler d1 list --json > "$RUNNER_TEMP/d1-before.json"
+          node --input-type=module - <<'NODE'
+          import { readFileSync, appendFileSync } from "node:fs";
+          const rows=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/d1-before.json","utf8"));
+          const prod=rows.filter(x=>x.name==="schicksal-db"), preview=rows.filter(x=>x.name==="schicksal-briefing-preview-db");
+          if(prod.length!==1||preview.length!==1||!prod[0].uuid||!preview[0].uuid||prod[0].uuid===preview[0].uuid)throw Error("Unsafe DB names/UUIDs");
+          appendFileSync(process.env.GITHUB_ENV,"VERIFIED_PREVIEW_UUID="+preview[0].uuid+"\n");
+          NODE
+          npx wrangler deployments list --name schicksal --json > "$RUNNER_TEMP/prod-worker.json"
+          npx wrangler deployments list --name schicksal-briefing-preview --json > "$RUNNER_TEMP/preview-worker.json"
+          node --input-type=module - <<'NODE'
+          import { readFileSync } from "node:fs";
+          for(const name of ["prod","preview"]){
+            const raw=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/"+name+"-worker.json","utf8"));
+            const rows=Array.isArray(raw)?raw:(raw.deployments??raw.result??[]);
+            if(!Array.isArray(rows)||!rows.length)throw Error(name+" Worker not deployed");
+          }
+          NODE
+          node --input-type=module - <<'NODE'
+          const root="https://schicksal.m17686100216.workers.dev";
+          for(const path of ["/api/briefing","/api/presence"]){
+            const r=await fetch(root+path,{signal:AbortSignal.timeout(15000),redirect:"manual"});
+            const body=(await r.text()).slice(0,400);
+            if(r.status!==401||!r.headers.get("content-type")?.includes("json")||!body.includes("请先登录"))
+              throw Error("Production API verification failed "+path+" HTTP "+r.status);
+          }
+          console.log("Production guarded briefing and presence routes verified.");
+          NODE
+      - name: Delete ONLY preview Worker
+        run: |
+          set -euo pipefail
+          test -n "$VERIFIED_PREVIEW_UUID"
+          npx wrangler delete --name schicksal-briefing-preview --force
+          echo "Preview Worker deletion successful."
+      - name: Delete ONLY preview D1 and verify production remains
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > "$RUNNER_TEMP/d1-before-delete.json"
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from "node:fs";
+          const rows=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/d1-before-delete.json","utf8"));
+          const p=rows.filter(x=>x.name==="schicksal-db"),t=rows.filter(x=>x.name==="schicksal-briefing-preview-db");
+          if(p.length!==1||t.length!==1||p[0].uuid===t[0].uuid||t[0].uuid!==process.env.VERIFIED_PREVIEW_UUID)
+            throw Error("Preview DB changed; refuse deletion");
+          NODE
+          npx wrangler d1 delete schicksal-briefing-preview-db --skip-confirmation
+          npx wrangler d1 list --json > "$RUNNER_TEMP/d1-after.json"
+          node --input-type=module - <<'NODE'
+          import {readFileSync,appendFileSync} from "node:fs";
+          const rows=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/d1-after.json","utf8"));
+          if(rows.some(x=>x.name==="schicksal-briefing-preview-db")||rows.filter(x=>x.name==="schicksal-db").length!==1)
+            throw Error("D1 cleanup not confirmed or production missing");
+          console.log("Preview D1 removed; production database intact.");
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,"Dedicated preview Worker and D1 removed; production preserved.\n");
+          NODE
