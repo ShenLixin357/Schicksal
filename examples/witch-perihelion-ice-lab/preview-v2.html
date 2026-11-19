@@ -30,7 +30,7 @@ header p{font-size:12px;color:#b5b3c3;margin:4px 0}
  transform:translate(-50%,-50%) rotate(-6deg);box-shadow:0 24px 58px #02020a9c,0 0 38px #baabed32;
  border-radius:9px;overflow:hidden;isolation:isolate;will-change:transform,filter}
 .card .surface{position:absolute;inset:0;background:#433c62}
-#iceGPU{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+#iceGPU,#iceFallback{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}#iceFallback{display:none}
 .card{clip-path:circle(0px at 50% 39%);transform:translate(-50%,-50%) rotate(-6deg);transition:none}
 #frost{mix-blend-mode:normal}
 #spark{filter:drop-shadow(0 0 4px #d7bff75a)}
@@ -95,7 +95,7 @@ input[type=file]{max-width:100%;font-size:11px}
 <div id="card" class="card">
  <div class="surface art-back" id="backView"><div class="back-motif"></div><div class="asset-note">REFERENCE PLACEHOLDER · BACK</div><img id="backImg" alt="" hidden></div>
  <div class="surface art-front" id="frontView" hidden><div class="front-motif">THE WITCH’S<br>PERIHELION</div><div class="asset-note">REFERENCE PLACEHOLDER · FRONT</div><img id="frontImg" alt="" hidden></div>
- <img id="iceArt" alt="" hidden><canvas id="iceGPU" aria-hidden="true"></canvas><canvas id="frost"></canvas>
+ <img id="iceArt" alt="" hidden><canvas id="iceGPU" aria-hidden="true"></canvas><canvas id="iceFallback" aria-hidden="true"></canvas><canvas id="frost"></canvas>
  <img id="flakeArt" alt="" hidden>
 </div>
 <canvas id="spark"></canvas>
@@ -210,7 +210,7 @@ void main(){
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id),stage=$('stage'),card=$('card');
-const frost=$('frost'),ctx=frost.getContext('2d'),sparks=$('spark'),sx=sparks.getContext('2d'),iceGPU=$('iceGPU');
+const frost=$('frost'),ctx=frost.getContext('2d'),sparks=$('spark'),sx=sparks.getContext('2d'),iceGPU=$('iceGPU'),iceFallbackCanvas=$('iceFallback');
 const backView=$('backView'),frontView=$('frontView');
 const controls={density:$('density'),film:$('film'),light:$('light'),force:$('force')};
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
@@ -231,7 +231,7 @@ function initIceGPU(){
  if(iceGL||iceFallback)return;
  try{
   const gl=iceGPU.getContext('webgl2',{alpha:true,antialias:false,preserveDrawingBuffer:true,premultipliedAlpha:false});
-  if(!gl){iceFallback=iceGPU.getContext('2d',{alpha:true});return;}
+  if(!gl){iceFallback=iceFallbackCanvas.getContext('2d',{alpha:true});iceGPU.style.display='none';iceFallbackCanvas.style.display='block';return;}
   const pr=gl.createProgram();
   gl.attachShader(pr,compile(gl,gl.VERTEX_SHADER,$('iceVertex').textContent));
   gl.attachShader(pr,compile(gl,gl.FRAGMENT_SHADER,$('iceFragment').textContent));
@@ -250,7 +250,7 @@ function initIceGPU(){
  }catch(e){
   // If initialization fails, keep the alternate 2D rendering path.
   iceGL=null;iceShader=null;
-  try{iceFallback=iceGPU.getContext('2d');}catch(x){iceFallback=null;}
+  try{iceFallback=iceFallbackCanvas.getContext('2d');iceGPU.style.display='none';iceFallbackCanvas.style.display='block';}catch(x){iceFallback=null;}
   $('assetStatus').textContent='WebGL 冰材质不可用，已启用冰晶画布备用模式：'+e.message;
  }
 }
@@ -264,7 +264,7 @@ function uploadBackTexture(){
 }
 function renderIce(progress){
  const p=clamp(progress);
- iceGPU.style.opacity='1';
+ iceGPU.style.opacity='1';iceFallbackCanvas.style.opacity='1';
  if(!iceGL){
   const c=iceFallback;if(!c)return;
   c.clearRect(0,0,w,h);if(p<=0)return;
@@ -301,7 +301,7 @@ function resize(){
  const br=card.getBoundingClientRect(),sr=stage.getBoundingClientRect();
  w=Math.max(1,br.width);h=Math.max(1,br.height);sw=sr.width;sh=sr.height;
  scale=Math.min(window.devicePixelRatio||1,1.45);
- for(const c of [frost,filmCanvas,iceGPU]){c.width=Math.round(w*scale);c.height=Math.round(h*scale);}
+ for(const c of [frost,filmCanvas,iceGPU,iceFallbackCanvas]){c.width=Math.round(w*scale);c.height=Math.round(h*scale);}
  for(const c of [sparks]){c.width=Math.round(sw*scale);c.height=Math.round(sh*scale);}
  ctx.setTransform(scale,0,0,scale,0,0);filmCtx.setTransform(scale,0,0,scale,0,0);
  sx.setTransform(scale,0,0,scale,0,0);
@@ -449,7 +449,7 @@ function cacheFull(){
  renderIce(1);
  drawFreeze(filmCtx,1);
  filmCtx.save();filmCtx.globalCompositeOperation='destination-over';
- filmCtx.drawImage(iceGPU,0,0,w,h);filmCtx.restore();
+ filmCtx.drawImage(iceGL?iceGPU:iceFallbackCanvas,0,0,w,h);filmCtx.restore();
  // Backward-compatible permanent opaque substrate even without WebGL.
  // Every pixel of the frozen shell is covered before the card switches to front.
  filmCtx.save();filmCtx.globalCompositeOperation='destination-over';
@@ -470,7 +470,7 @@ function outlineFracture(c,alpha,progress){
 function drawShatter(t){
  if(!glassGenerated)cacheFull();
  renderIce(1);
- iceGPU.style.opacity='0';
+ iceGPU.style.opacity='0';iceFallbackCanvas.style.opacity='0';
  ctx.clearRect(0,0,w,h);
  const force=val('force'),q=clamp(t),crack=smooth(q/.23);
  const pre=smooth((q-.17)/.83);
@@ -555,7 +555,7 @@ function hideClip(){
 }
 function begin(){
  clock=0;last=0;paused=false;$('pause').textContent='暂停';glassGenerated=false;
- iceGPU.style.opacity='1';card.classList.remove('frozen');
+ iceGPU.style.opacity='1';iceFallbackCanvas.style.opacity='1';card.classList.remove('frozen');
  card.style.filter='none';
  sx.clearRect(0,0,sw,sh);
  if(mode==='fracture'){
@@ -617,7 +617,7 @@ function frame(now){
   if(clock>=BREAK){
    phase='revealed';clock=0;
    ctx.clearRect(0,0,w,h);sx.clearRect(0,0,sw,sh);
-   iceGPU.style.opacity='0';
+   iceGPU.style.opacity='0';iceFallbackCanvas.style.opacity='0';
    updateStatus('冰壳已碎裂 · 正面完全显现 · 点击重播');
   }
  }
