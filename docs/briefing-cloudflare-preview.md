@@ -152,3 +152,10 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - Removed dark green backplate/shadow CSS entirely for Amberina's Simple in login, welcome and normal system surfaces. Only the original identity circle outlines and President office outer dots remain. Personal glyph PNG and officially approved 75.3% color were not modified.
 - Blue Ribbon retains the original blue badge, red/yellow important/urgent flags retain semantic appearance. No layout/interaction/illustration changes; separate Profile design is postponed.
 - Only modify `app/oat-sage-theme.css`, its matching test, and this preview note on isolated PR #5. Never merge or touch production or Procreate masters.
+
+### 2026-11-19 · Complete UI palette rollback (user request; supersedes ALL oat/sage theme changes)
+
+- User disliked both oat-green previews and explicitly requested the full site colours return to the *pre-theme* V2.6 design. The oat-sage CSS import and the entire theme CSS file are deleted. Previous `app/layout.tsx` and `.github/workflows/briefing-v2.yml` are restored byte-for-byte to commit `8355532c8450a0df42543907b56f3363ed89adb5` (the last commit before any oat theme work).
+- Also remove temporary oat-sage theme regression test because the theme no longer exists. Existing independent personal mark fixes, 75.3%-tint and official-colour parliament Speaker exception, President office dots, V2.6 ivory backgrounds, and all data/UI functionality remain exactly as on the pre-theme commit.
+- **Do not introduce any new personal-mark background yet.** The user wants to choose a pale backdrop colour first; no new colour or badge can be assumed approved.
+- Isolated Worker + separate preview D1 only. Do not touch production Worker, main branch, or member data.
