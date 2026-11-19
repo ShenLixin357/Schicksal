@@ -1,0 +1,208 @@
+/* Imperial Briefing V2.5 — pearlescent paper / disciplined eight-colour embroidery.
+ * No standalone emblem artwork is introduced here. Both marks reuse the
+ * existing site's Emblem compact component, unmodified.
+ *
+ * Visual language:
+ * 1) warm ivory is always the continuous sheet;
+ * 2) coloured hairlines are confined to existing frames/edges;
+ * 3) cards borrow a single near-transparent colour wash by function.
+ * Decorative layers remain behind text and never replace readable content.
+ */
+.imperial-briefing-overlay .imperial-briefing-paper {
+  --ib-ivory: #faf8f2;
+  --ib-line: rgba(166, 161, 151, .22);
+  background:
+    radial-gradient(ellipse 50% 65% at 7% 4%, rgba(255,255,255,.66),transparent 74%),
+    radial-gradient(ellipse 43% 52% at 97% 72%, rgba(227,235,236,.14),transparent 78%),
+    var(--ib-ivory);
+}
+
+/* Fine spectral guilloché follows the existing waves, rather than introducing
+ * a separate decorative language. In the main sheet it remains at the edges. */
+.imperial-briefing-paper > .imperial-briefing-canvas { opacity:.73; }
+.imperial-briefing-canvas .imperial-briefing-edge-ribbon { opacity:.54; }
+.imperial-briefing-canvas .imperial-briefing-facet-group { opacity:.48; }
+.imperial-briefing-canvas .imperial-briefing-construction-lines { opacity:.32; }
+.imperial-briefing-overlay .imperial-briefing-wave-embroidery { opacity:.62; }
+
+/* The hero remains milk-white; a tiny warm-to-blue tint unifies the logo with
+ * the paper rather than producing a saturated coloured backdrop. */
+.imperial-briefing-overlay .imperial-briefing-lead {
+  border-color: rgba(199,167,126,.30);
+  background:
+    radial-gradient(ellipse 47% 83% at 91% 32%, rgba(213,230,236,.26),transparent 77%),
+    radial-gradient(ellipse 46% 48% at 12% 97%, rgba(246,227,207,.18),transparent 76%),
+    linear-gradient(114deg, rgba(255,253,247,.97),rgba(251,249,243,.88) 57%,rgba(247,249,247,.82));
+}
+.imperial-briefing-overlay .imperial-briefing-lead::before {
+  content:""; position:absolute; z-index:0; pointer-events:none;
+  left:-60px; bottom:-88px; width:260px; height:180px;
+  border:1px solid rgba(198,165,113,.15); border-radius:50%;
+  box-shadow:0 0 0 18px rgba(139,179,200,.025),0 0 0 45px rgba(219,170,193,.025);
+  transform:rotate(-25deg);
+}
+.imperial-briefing-overlay .imperial-briefing-lead-copy { position:relative; z-index:3; }
+
+/* The only large emblem is still <Emblem compact /> as used by the sidebar.
+ * Avoid applying colours, masks or filters to the actual eight rays. */
+.imperial-briefing-emblem-art > .emblem.compact {
+  filter:drop-shadow(0 4px 7px rgba(70,105,126,.10));
+}
+
+/* Affairs = champagne and powder blue; Messages = pearl pink and lilac.
+ * Both intentionally retain the same opacity and border treatment. */
+.imperial-briefing-overlay .imperial-briefing-panel,
+.imperial-briefing-desk .imperial-briefing-panel {
+  border-color:rgba(166,181,191,.31);
+  box-shadow:0 5px 18px rgba(65,87,106,.045),inset 0 1px rgba(255,255,255,.52);
+}
+.imperial-briefing-overlay .imperial-briefing-tasks,
+.imperial-briefing-desk .imperial-briefing-tasks {
+  background:
+    radial-gradient(ellipse 62% 110% at 100% 0%,rgba(236,222,195,.36),transparent 76%),
+    radial-gradient(ellipse 70% 100% at 0% 100%,rgba(213,230,238,.30),transparent 78%),
+    rgba(251,250,247,.82);
+}
+.imperial-briefing-overlay .imperial-briefing-messages,
+.imperial-briefing-desk .imperial-briefing-messages {
+  background:
+    radial-gradient(ellipse 70% 115% at 98% 6%,rgba(232,214,227,.39),transparent 74%),
+    radial-gradient(ellipse 62% 110% at 0% 100%,rgba(213,233,230,.28),transparent 76%),
+    rgba(252,250,248,.83);
+}
+/* Matching corner-ripple motif in each information panel: a watermark, never
+   a third pictogram or emblem. */
+.imperial-briefing-tasks::after,
+.imperial-briefing-messages::after {
+  content:""; position:absolute; right:-32px; top:-34px;
+  width:164px; height:132px; pointer-events:none; opacity:.28;
+  background:repeating-radial-gradient(ellipse at 93% 10%,
+    transparent 0 14px,rgba(163,174,177,.24) 15px 16px,
+    transparent 17px 30px);
+  mask-image:linear-gradient(135deg,#000,transparent 92%);
+}
+.imperial-briefing-messages::after { opacity:.22; }
+
+/* Eight soft chromatic washes cycle through news cards; the 1px edge highlight
+   already communicates the colour without thick frames or saturated blocks. */
+.imperial-briefing-news-item {
+  border-color:rgba(161,177,186,.28);
+  box-shadow:0 4px 14px rgba(56,85,108,.035);
+}
+.imperial-briefing-news-item:nth-child(8n+1) {
+  background:radial-gradient(ellipse 96% 94% at 100% 0%,rgba(242,222,176,.30),transparent 76%),linear-gradient(145deg,#fcfaf5,#fbfaf6);
+}
+.imperial-briefing-news-item:nth-child(8n+2) {
+  background:radial-gradient(ellipse 96% 94% at 100% 0%,rgba(201,224,241,.40),transparent 78%),linear-gradient(145deg,#fafbfd,#f9fafb);
+}
+.imperial-briefing-news-item:nth-child(8n+3) {
+  background:radial-gradient(ellipse 95% 93% at 100% 0%,rgba(239,205,210,.32),transparent 76%),linear-gradient(145deg,#fdf9f9,#fcfaf8);
+}
+.imperial-briefing-news-item:nth-child(8n+4) {
+  background:radial-gradient(ellipse 94% 92% at 100% 0%,rgba(199,224,209,.36),transparent 76%),linear-gradient(145deg,#fafbf8,#fafaf7);
+}
+.imperial-briefing-news-item:nth-child(8n+5) {
+  background:radial-gradient(ellipse 93% 91% at 100% 0%,rgba(209,235,237,.37),transparent 77%),linear-gradient(145deg,#f9fcfb,#fafaf8);
+}
+.imperial-briefing-news-item:nth-child(8n+6) {
+  background:radial-gradient(ellipse 93% 91% at 100% 0%,rgba(236,209,226,.33),transparent 77%),linear-gradient(145deg,#fdf9fc,#fbfaf9);
+}
+.imperial-briefing-news-item:nth-child(8n+7) {
+  background:radial-gradient(ellipse 94% 92% at 100% 0%,rgba(242,215,191,.32),transparent 76%),linear-gradient(145deg,#fcfaf7,#fafaf8);
+}
+.imperial-briefing-news-item:nth-child(8n+8) {
+  background:radial-gradient(ellipse 94% 92% at 100% 0%,rgba(218,209,235,.32),transparent 76%),linear-gradient(145deg,#fbfafc,#faf9fb);
+}
+/* One pearl curve in the margin of every news card, very low contrast. */
+.imperial-briefing-news-item::after {
+  content:""; position:absolute; right:-47px; top:-38px; width:128px;height:112px;
+  pointer-events:none; opacity:.20;
+  background:repeating-radial-gradient(ellipse at 100% 0%,transparent 0 17px,rgba(146,167,182,.24) 18px 19px,transparent 20px 33px);
+  mask-image:linear-gradient(125deg,#000,transparent 94%);
+}
+
+/* Six shortcuts read as a unified pale-coloured ribbon, not six white buttons. */
+.imperial-briefing-quick-grid > button {
+  border-color:rgba(171,184,188,.30);
+  background:linear-gradient(120deg,rgba(253,250,243,.93),rgba(245,240,228,.72));
+}
+.imperial-briefing-quick-grid > button:nth-child(2) {
+  background:linear-gradient(120deg,rgba(251,252,253,.92),rgba(224,235,245,.70));
+}
+.imperial-briefing-quick-grid > button:nth-child(3) {
+  background:linear-gradient(120deg,rgba(254,251,250,.92),rgba(243,229,231,.73));
+}
+.imperial-briefing-quick-grid > button:nth-child(4) {
+  background:linear-gradient(120deg,rgba(251,252,248,.92),rgba(226,239,229,.72));
+}
+.imperial-briefing-quick-grid > button:nth-child(5) {
+  background:linear-gradient(120deg,rgba(251,253,253,.93),rgba(226,241,240,.72));
+}
+.imperial-briefing-quick-grid > button:nth-child(6) {
+  background:linear-gradient(120deg,rgba(252,250,253,.92),rgba(236,230,243,.69));
+}
+.imperial-briefing-quick-grid > button:disabled {
+  opacity:.63; filter:saturate(.65);
+}
+@media(max-width:680px) {
+  .imperial-briefing-paper > .imperial-briefing-canvas { opacity:.35; }
+  .imperial-briefing-overlay .imperial-briefing-wave-embroidery { opacity:.40; }
+  .imperial-briefing-overlay .imperial-briefing-lead::before { opacity:.3; }
+  .imperial-briefing-news-item::after { opacity:.12; }
+  .imperial-briefing-tasks::after,.imperial-briefing-messages::after { opacity:.13; }
+}
+@media(prefers-reduced-transparency:reduce) {
+  .imperial-briefing-panel { backdrop-filter:none; }
+}
+
+
+/* V2.6: the original angular paper ornaments have been replaced, not layered.
+   Softly tinted oval washes are the only large marginal shapes. */
+.imperial-briefing-canvas .imperial-briefing-oval-group { opacity:.66; }
+.imperial-briefing-overlay .imperial-briefing-paper > .imperial-briefing-canvas { opacity:.80; }
+.imperial-briefing-oval-halo {
+  position:absolute;
+  width:84%; height:71%;
+  top:13%; left:9%;
+  border-radius:50%;
+  transform:rotate(-22deg);
+  background:
+    radial-gradient(ellipse at 44% 44%,
+      rgba(231,218,239,.31) 0%,
+      rgba(214,232,240,.22) 39%,
+      rgba(237,231,207,.12) 67%,
+      transparent 84%);
+  box-shadow:inset 0 0 0 1px rgba(182,195,207,.12);
+  pointer-events:none;
+}
+.imperial-briefing-hero-art::before,
+.imperial-briefing-hero-art::after {
+  border-color:rgba(163,184,198,.12);
+  box-shadow:none;
+}
+@media(max-width:980px) {
+  .imperial-briefing-canvas .imperial-briefing-oval-group { opacity:.49; }
+  .imperial-briefing-oval-halo { opacity:.66; }
+}
+@media(max-width:680px) {
+  .imperial-briefing-canvas .imperial-briefing-oval-group { opacity:.36; }
+  .imperial-briefing-oval-halo { opacity:.47; }
+}
+
+
+/* Parliament affairs: countdown and deadline labels follow the approved V2.6
+   card language. No changes to the ivory paper, ellipses or emblem. */
+.imperial-briefing-task-details { min-width:0; flex:1 1 auto; }
+.imperial-briefing-task-details > strong { overflow-wrap:anywhere; }
+.imperial-briefing-task-category {
+  display:inline-block; width:max-content; padding:2px 7px; margin-bottom:5px;
+  border:1px solid rgba(146,166,181,.19); border-radius:10px;
+  background:linear-gradient(90deg,rgba(238,227,202,.39),rgba(220,235,242,.42));
+  color:#627d91; font-size:.62rem; letter-spacing:.04em;
+}
+.imperial-briefing-deadline { display:flex; flex-wrap:wrap; gap:3px 12px; padding-top:6px; }
+.imperial-briefing-deadline span,.imperial-briefing-deadline time {
+  display:inline; margin:0; color:#697e8d; font-size:.71rem; font-variant-numeric:tabular-nums;
+}
+.imperial-briefing-deadline time { color:#8d6b41; font-weight:600; }
+.imperial-briefing-task-row > button { align-self:center; }

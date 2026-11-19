@@ -41,3 +41,12 @@ The original export contained 313 application records and one archive photo. Log
 Use Node 24 and `npm ci`, then `npm run dev`. Production builds use `npm run build`. Checks include `npm run test:records`, `npm run test:migration`, `npm run test:minigames` and `npm run test:solitaire`.
 
 The independent Worker validates member sessions on the server, protects private APIs and photo bytes, and derives authorship and manager permissions from the verified member. It does not depend on Google or ChatGPT sign-in. Different game difficulties keep separate personal-best boards, and queued records remain scoped to their member.
+
+## Personal emblem and colour governance
+
+Before editing Amberina's personal mark, name, or any identity-colour UI,
+read [AGENTS.md](AGENTS.md) and the authoritative
+[Amberina identity colour policy](docs/amberina-identity-color-policy.md).
+Official representative colour is `#F3ED87`; approved stronger emblem-only
+colour is `#EECF58`. New emblem/name display contexts require an explicit
+question about whether the colour should be strengthened.

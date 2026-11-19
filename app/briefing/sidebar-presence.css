@@ -1,0 +1,22 @@
+.schicksal-sidebar-presence{position:relative;flex:0 0 auto;padding:11px 8px 10px;margin:4px 0 0;border-top:1px solid rgba(91,112,128,.13)}
+.schicksal-sidebar-presence-marks{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:34px}
+.schicksal-sidebar-presence-marks button,.schicksal-sidebar-presence-popover button,.schicksal-sidebar-presence-opener{border:0;border-radius:6px;padding:2px;background:transparent;display:grid;place-items:center;cursor:pointer}
+.schicksal-sidebar-presence-marks button .citizen-mark,.schicksal-sidebar-presence-popover button .citizen-mark{width:31px;height:31px}
+.schicksal-sidebar-presence button:hover{background:rgba(166,157,142,.10)}
+.schicksal-sidebar-presence button:focus-visible{outline:2px solid #bca16d;outline-offset:2px}
+.schicksal-sidebar-presence.is-collapsed{padding:10px 0 8px;margin:4px 0 0;display:flex;justify-content:center}
+.schicksal-sidebar-presence-opener{min-width:42px;min-height:33px;position:relative}
+.schicksal-sidebar-presence-thumbnail{display:inline-grid;place-items:center}
+.schicksal-sidebar-presence-thumbnail+.schicksal-sidebar-presence-thumbnail{margin-left:-11px}
+.schicksal-sidebar-presence-thumbnail .citizen-mark{width:27px;height:27px}
+.schicksal-sidebar-presence-popover{position:absolute;bottom:0;left:calc(100% + 10px);z-index:45;display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-width:88px;max-width:250px;padding:9px;border:1px solid rgba(125,140,153,.25);border-radius:9px;background:#fbf9f3;box-shadow:0 8px 26px rgba(38,53,64,.13)}
+.public-citizen-focus{--citizen:#b2a88a;position:relative;display:flex;align-items:center;gap:21px;margin:22px 0 8px;padding:24px;border:1px solid color-mix(in srgb,var(--citizen) 31%,#e6e0d5);background:linear-gradient(120deg,color-mix(in srgb,var(--citizen) 9%,#fffefa),#fffcf6)}
+.public-citizen-focus>.citizen-mark{width:71px;height:71px;flex:0 0 auto}
+.public-citizen-focus>div{min-width:0;display:grid;gap:6px}
+.public-citizen-focus small{color:#728391;font-size:.62rem;letter-spacing:.15em}
+.public-citizen-focus strong{font:400 clamp(1.15rem,2.2vw,1.65rem) Georgia,serif;color:#284459;overflow-wrap:anywhere}
+.public-citizen-focus span{color:var(--citizen);font-size:.78rem}
+.public-citizen-focus button{position:absolute;right:12px;top:10px;border:0;background:transparent;color:#70818c;cursor:pointer;padding:5px 8px}
+.club-system .schicksal-sidebar-presence{border-color:rgba(211,180,237,.14)}
+.club-system .schicksal-sidebar-presence-popover{background:#1d1727;border-color:#695774}
+@media(max-width:760px){.schicksal-sidebar-presence{order:2;padding:4px 0;margin:0;border-top:0}.schicksal-sidebar-presence-marks{min-height:30px;gap:2px}.schicksal-sidebar-presence-marks button .citizen-mark{width:26px;height:26px}.sidebar-collapsed .schicksal-sidebar-presence{display:none}.public-citizen-focus{padding:16px 24px 16px 14px;gap:10px}.public-citizen-focus>.citizen-mark{width:50px;height:50px}}

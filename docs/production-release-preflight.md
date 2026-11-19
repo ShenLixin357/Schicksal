@@ -1,0 +1,3 @@
+# Production D1 preflight — 2026-11-19
+
+The user requested production release of PR #5 and removal of the isolated preview after verified completion. This triggers a read-only safety job on the existing preview branch. It uses the existing preview-scoped Cloudflare token to read production D1 (if permitted), verify that production and preview D1 UUIDs are different, capture a Cloudflare Time Travel bookmark, and verify a temporary SQL export in isolated in-memory SQLite. No SQL contents are printed, uploaded or committed. If the existing token cannot read production, fail closed; do not widen access silently. No production mutation, deployment or resource deletion occurs in this preflight.

@@ -1,7 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { CITIZENS, type Citizen } from "./citizens";
+import { BriefingDesk, BriefingOverlay } from "./briefing/briefing";
+import { markBriefingViewed, type BriefingTarget } from "./briefing/briefing-data";
+import { useBriefingFeed } from "./briefing/use-briefing-feed";
+import { useMemberPresence } from "./briefing/use-member-presence";
+import { SidebarPresence } from "./briefing/sidebar-presence";
+import { CITIZENS, AMBERINA_OFFICIAL_COLOR, citizenRepresentativeColor, hasLeaderInsignia, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SpeakerManagement } from "./speaker-management";
 import { startTransition, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
@@ -23,7 +28,7 @@ import { getVase } from "./club/vase/vase-catalogue";
 import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
 
 type Phase = "opening" | "login" | "welcome" | "system";
-type Section = "home" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "club";
+type Section = "home" | "briefing" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "club";
 
 type ArchivePhoto = {
   id: string;
@@ -181,7 +186,8 @@ const CLUB_STICKERS = [
 
 
 const NAV: { id: Section; label: string; en: string }[] = [
-  { id: "home", label: "首页", en: "Home" },
+  { id: "home", label: "天命首页", en: "Home" },
+  { id: "briefing", label: "帝国简报台", en: "Briefing" },
   { id: "citizens", label: "公民", en: "Citizens" },
   { id: "emblem", label: "主标志", en: "Emblem" },
   { id: "parliament", label: "议会", en: "Parliament" },
@@ -211,12 +217,19 @@ function Wordmark() {
   return <div className="wordmark"><strong>SCHICKSAL</strong><span>天命第一帝国</span></div>;
 }
 
-function CitizenMark({ citizen }: { citizen: Citizen }) {
+function CitizenMark({ citizen, display = "web" }: { citizen: Citizen; display?: "web" | "official" }) {
+  const leaderClass = hasLeaderInsignia(citizen) ? " leader" : "";
+  // Beige-page Simple uses the approved emphasized gold; official in parliament
+  // and on other non-ivory surfaces. This colour NEVER flows into score/other UI.
+  // Original circles and President-only points inherit the exact same --mark hue.
+  const markColor = display === "official" && citizen.id === "amberina" ? AMBERINA_OFFICIAL_COLOR : citizen.markColor;
+  if (citizen.id === "amberina") {
+    return <span className={`citizen-mark personal-simple${leaderClass}`} style={{ "--mark": markColor } as CSSProperties} aria-hidden="true">
+      <Image src={display === "official" ? "/amberina-personal-simple-official.png" : "/amberina-personal-simple-gold-eecf58.png"} alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
+    </span>;
+  }
   let sigil: ReactNode;
   switch (citizen.motif) {
-    case "snow":
-      sigil = <><path d="M32 7v50M10.4 19.5l43.2 25M10.4 44.5l43.2-25" /><path d="m32 14-6-5m6 5 6-5m-21.5 14-7.4 1.2m7.4-1.2-2.7-7m2.7 25-7.4-1.2m7.4 1.2-2.7 7M32 50l-6 5m6-5 6 5m9.5-14 7.4-1.2M47.5 41l2.7 7m-2.7-25 7.4 1.2M47.5 23l2.7-7" /><rect x="27.5" y="27.5" width="9" height="9" rx="1" transform="rotate(45 32 32)" /></>;
-      break;
     case "flame":
       sigil = <><path d="M35.5 7.5c2.1 11.3-6.6 13.8-5.4 23.1 4.1-2.2 6.8-6 7.5-10.6 7.4 6.5 12 13 11.1 21.5-.9 8.8-7.8 15.4-16.8 15.4-9.6 0-17.1-7-16.7-16.4.3-7 4.6-13.7 12.2-20.2-.4 5.4 1.1 8.7 3.6 10.7-1-9.7 6.3-13.4 4.5-23.5Z" /><path d="M32 51c-5.1 0-8.6-3.8-8.2-8.4.3-3.7 2.5-6.8 6.1-10.2-.1 4.3 1.8 6.3 4 8.1 1.4-2.4 2.1-4.9 1.9-7.7 3.4 3.3 5 6.5 4.5 10.1-.6 4.6-3.6 8.1-8.3 8.1Z" /></>;
       break;
@@ -232,7 +245,7 @@ function CitizenMark({ citizen }: { citizen: Citizen }) {
     default:
       sigil = <><path d="M18 18h28v28H18z" /><path d="m18 18 28 28m0-28L18 46" /></>;
   }
-  return <span className={`citizen-mark ${citizen.motif}`} style={{ "--mark": citizen.markColor } as CSSProperties} aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{sigil}</svg></span>;
+  return <span className={`citizen-mark ${citizen.motif}${leaderClass}`} style={{ "--mark": markColor } as CSSProperties} aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{sigil}</svg></span>;
 }
 
 function Opening({ done }: { done: () => void }) {
@@ -295,7 +308,7 @@ function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: (
           <div className="panel-head"><div><span>STEP 01</span><h2>选择身份</h2></div><small>05 / 08 IDENTIFIED</small></div>
           <div className="identity-grid">
             {CITIZENS.map((item) => (
-              <button type="button" disabled={item.locked} key={item.id} onClick={() => { setSelectedId(item.id); setError(""); }} className={`${selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`} style={{ "--citizen": item.accent } as CSSProperties}>
+              <button type="button" disabled={item.locked} key={item.id} onClick={() => { setSelectedId(item.id); setError(""); }} className={`${selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`} style={{ "--citizen": citizenRepresentativeColor(item) } as CSSProperties}>
                 <CitizenMark citizen={item} /><span><strong>{item.username}</strong><small>{item.locked ? "RECORD SEALED" : item.name}</small></span><i />
               </button>
             ))}
@@ -320,7 +333,7 @@ function Welcome({ citizen, enter }: { citizen: Citizen; enter: () => void }) {
     return () => { window.clearTimeout(fadeTimer); window.clearTimeout(enterTimer); };
   }, [enter]);
   return (
-    <main className={`welcome ${leaving ? "leaving" : ""}`} style={{ "--citizen": citizen.markColor } as CSSProperties}>
+    <main className={`welcome ${leaving ? "leaving" : ""}`} style={{ "--citizen": citizenRepresentativeColor(citizen), "--identity-mark": citizen.markColor } as CSSProperties}>
       <div className="welcome-rings" aria-hidden="true"><i /><i /><i /></div>
       <section>
         <p className="eyebrow">Identity Confirmed · 身份已确认</p>
@@ -367,8 +380,14 @@ function HomeSection({ go }: { go: (id: Section) => void }) {
   );
 }
 
-function CitizensSection() {
-  return <><PageHead eyebrow="Citizen Registry" title="公民名册" copy="八个彩色棱分别象征八位公民；八棱共同构成帝国的共同主标志。" /><div className="registry">{CITIZENS.map((citizen,index) => <article key={citizen.id} className={citizen.locked ? "sealed" : ""} style={{ "--citizen": citizen.accent } as CSSProperties}><b>0{index + 1}</b><CitizenMark citizen={citizen} /><div><small>{citizen.office}</small><h2>{citizen.name}</h2><p>{citizen.codename}</p></div></article>)}</div><p className="note">八个棱在视觉原型中均有独立颜色；其余身份、年龄顺序及最终代表色仍待八位公民正式确认。</p></>;
+function CitizensSection({ focusedId, onClearFocus }: { focusedId?: string | null; onClearFocus?: () => void }) {
+  const focused = focusedId ? CITIZENS.find(member => member.id === focusedId && !member.locked) : undefined;
+  return <><PageHead eyebrow="Citizen Registry" title="公民名册" copy="八个彩色棱分别象征八位公民；八棱共同构成帝国的共同主标志。" />
+    {focused && <article className="public-citizen-focus" style={{ "--citizen": citizenRepresentativeColor(focused) } as CSSProperties} aria-label={focused.username + "的公开公民档案"}>
+      <CitizenMark citizen={focused}/>
+      <div><small>PUBLIC CITIZEN RECORD · 公民公开资料</small><strong>{focused.name}</strong><span>{focused.username} · {focused.office}</span></div>
+      <button type="button" onClick={onClearFocus} aria-label="返回完整公民名册">×</button>
+    </article>}<div className="registry">{CITIZENS.map((citizen,index) => <article key={citizen.id} className={citizen.locked ? "sealed" : ""} style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><b>0{index + 1}</b><CitizenMark citizen={citizen} /><div><small>{citizen.office}</small><h2>{citizen.name}</h2><p>{citizen.codename}</p></div></article>)}</div><p className="note">八个棱在视觉原型中均有独立颜色；其余身份、年龄顺序及最终代表色仍待八位公民正式确认。</p></>;
 }
 
 function EmblemSection() {
@@ -448,12 +467,12 @@ function ParliamentSection({ citizen }: { citizen: Citizen }) {
         <header><div><i /><span>CHAMBER LIVE · 议场进行中</span></div><small>INTERACTIVE DEMO · 互动原型</small></header>
         <div className="chamber-room">
           <div className="speaker-dais"><small>本次会议议长 · SPEAKER</small><strong>待会议选出</strong><span>主持发言顺序与程序问题</span></div>
-          {chamberSides.map((side, sideIndex) => <div className={`chamber-benches side-${sideIndex + 1}`} key={sideIndex}>{side.map((member) => <div className={`${member.id === citizen.id ? "current" : ""} ${member.locked ? "sealed" : ""}`} key={member.id} style={{ "--citizen": member.accent } as CSSProperties}><CitizenMark citizen={member} /><span><strong>{member.username}</strong><small>{member.locked ? "席位待确认" : member.id === citizen.id ? "当前登录" : "在席"}</small></span></div>)}</div>)}
+          {chamberSides.map((side, sideIndex) => <div className={`chamber-benches side-${sideIndex + 1}`} key={sideIndex}>{side.map((member) => <div className={`${member.id === citizen.id ? "current" : ""} ${member.locked ? "sealed" : ""}`} key={member.id} style={{ "--citizen": citizenRepresentativeColor(member) } as CSSProperties}><CitizenMark citizen={member} display="official" /><span><strong>{member.username}</strong><small>{member.locked ? "席位待确认" : member.id === citizen.id ? "当前登录" : "在席"}</small></span></div>)}</div>)}
           <div className="dispatch-table"><span>议案文本</span><b>S</b><small>AMENDMENTS<br />修正案 {String(amendments).padStart(2, "0")}</small></div>
         </div>
 
         <section className="floor-speech">
-          <div className="speaker-identity"><CitizenMark citizen={citizen} /><span><small>正在发言 · ON THE FLOOR</small><strong>{citizen.codename}</strong></span></div>
+          <div className="speaker-identity"><CitizenMark citizen={citizen} display="official" /><span><small>正在发言 · ON THE FLOOR</small><strong>{citizen.codename}</strong></span></div>
           <blockquote>“{proposalSummary}”</blockquote>
           <div className="chamber-actions">
             <button type="button" onClick={() => { setHearHear((count) => count + 1); addEvent("议场反应", `${citizen.codename} 喊出“说得好！”`); }}><span>说得好！</span><small>HEAR, HEAR! · {hearHear}</small></button>
@@ -546,7 +565,7 @@ const AGE_BAND_META: Record<ProposerAgeBand, string> = {
   unknown: "尚未确认",
 };
 
-function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
+function PersistentParliamentSection({ citizen, requestedItemId = "", requestedFocus = "vote", focusReferendums = false }: { citizen: Citizen; requestedItemId?: string; requestedFocus?: "proposal" | "speaker" | "debate" | "vote"; focusReferendums?: boolean }) {
   const [items, setItems] = useState<ParliamentItem[]>([]);
   const [activeId, setActiveId] = useState("");
   const [comments, setComments] = useState<ParliamentComment[]>([]);
@@ -560,11 +579,11 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
   const [floorRequests, setFloorRequests] = useState<ParliamentFloorRequest[]>([]);
   const [resultReactions, setResultReactions] = useState<ParliamentResultReaction[]>([]);
   const [session, setSession] = useState<ParliamentSession>({ citizenId: citizen.id, stageManager: false, speakerManager: false, meetingSpeaker: false, platformAuthenticated: false });
-  const [filter, setFilter] = useState<"all" | ParliamentStage>("all");
+  const [filter, setFilter] = useState<"all" | ParliamentStage>(focusReferendums ? "resolved" : "all");
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [casePanel, setCasePanel] = useState<"stage" | "text" | "procedure" | "history">("stage");
   const [liveRecordOpen, setLiveRecordOpen] = useState(false);
-  const [resolvedShelf, setResolvedShelf] = useState<"all" | "passed" | "rejected" | "referendum">("all");
+  const [resolvedShelf, setResolvedShelf] = useState<"all" | "passed" | "rejected" | "referendum">(focusReferendums ? "referendum" : "all");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -643,18 +662,33 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
   useEffect(() => {
     let active = true;
     const params = new URLSearchParams({ citizenId: citizen.id });
+    if (requestedItemId) params.set("itemId", requestedItemId);
     fetch(`/api/parliament?${params.toString()}`)
       .then(async (response) => {
         const board = await response.json() as ParliamentBoard;
         if (!response.ok) throw new Error(board.error || "议会资料暂时无法读取。");
-        if (active) applyBoard(board);
+        if (active) {
+          if (requestedItemId && board.activeItem?.id !== requestedItemId) {
+            setStatus("原待办对应的议案已无法找到，请从议事清单重新选择。");
+            setWorkspaceOpen(false);
+          } else {
+            applyBoard(board);
+            if (requestedItemId) { setWorkspaceOpen(true); setCasePanel("stage"); }
+          }
+        }
       })
       .catch((error: unknown) => { if (active) setStatus(error instanceof Error ? error.message : "议会资料暂时无法读取。"); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [citizen.id]);
+  }, [citizen.id, requestedItemId]);
 
   const activeItem = items.find((item) => item.id === activeId) ?? items[0];
+  useEffect(() => {
+    if (!requestedItemId || !workspaceOpen || !activeItem || activeItem.id !== requestedItemId) return;
+    const anchor = { proposal: "parliament-proposal-discussion", speaker: "parliament-speaker-election", debate: "parliament-debate-session", vote: "parliament-vote-actions" }[requestedFocus];
+    const frame = window.requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: "center", behavior: "auto" }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [requestedItemId, requestedFocus, workspaceOpen, activeItem?.id, activeItem?.stage, meeting?.speakerStatus, meeting?.debateStartedAt]);
 
   useEffect(() => {
     if (!activeItem) return;
@@ -889,14 +923,14 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
   const journeyStages: ParliamentStage[] = ["proposal", "debate", "amendment", "voting", "resolved"];
   const journeyIndex = activeItem ? journeyStages.indexOf(activeItem.stage) : -1;
   const renderMarks = (citizenIds: string[], emptyCopy = "尚无人") => citizenIds.length
-    ? <div className="public-mark-list">{citizenIds.map((id) => { const member = citizenFor(id); return member ? <span key={id}><CitizenMark citizen={member} /><small>{member.username}</small></span> : null; })}</div>
+    ? <div className="public-mark-list">{citizenIds.map((id) => { const member = citizenFor(id); return member ? <span key={id}><CitizenMark citizen={member} display="official" /><small>{member.username}</small></span> : null; })}</div>
     : <p className="mark-list-empty">{emptyCopy}</p>;
-  const renderCommentThread = () => <div className="comment-thread">{comments.length ? comments.map((comment) => { const author = citizenFor(comment.citizenId); const meta = COMMENT_TYPE_META[comment.commentType] ?? COMMENT_TYPE_META.comment; const parent = comment.parentId ? comments.find((entry) => entry.id === comment.parentId) : null; return <article key={comment.id} className={comment.commentType === "system" ? "system-event" : ""}><div>{author ? <CitizenMark citizen={author} /> : <span className="system-mark">S</span>}</div><section><header><strong>{comment.commentType === "system" ? "议会书记席" : author?.username ?? comment.citizenId}</strong><span>{meta.cn} · {meta.en}</span><time>{new Date(comment.createdAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</time></header>{parent && <small className="parent-reference">回复：{parent.body.slice(0, 80)}</small>}{comment.quoteText && <blockquote className="comment-quote">{comment.quoteText}</blockquote>}<p>{comment.body}</p>{comment.commentType !== "system" && <button className="reply-action" type="button" onClick={() => setReplyTo(comment.id)}>回复此发言</button>}</section></article>; }) : <div className="docket-empty">还没有讨论，写下第一条评论。</div>}</div>;
+  const renderCommentThread = () => <div className="comment-thread">{comments.length ? comments.map((comment) => { const author = citizenFor(comment.citizenId); const meta = COMMENT_TYPE_META[comment.commentType] ?? COMMENT_TYPE_META.comment; const parent = comment.parentId ? comments.find((entry) => entry.id === comment.parentId) : null; return <article key={comment.id} className={comment.commentType === "system" ? "system-event" : ""}><div>{author ? <CitizenMark citizen={author} display="official" /> : <span className="system-mark">S</span>}</div><section><header><strong>{comment.commentType === "system" ? "议会书记席" : author?.username ?? comment.citizenId}</strong><span>{meta.cn} · {meta.en}</span><time>{new Date(comment.createdAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</time></header>{parent && <small className="parent-reference">回复：{parent.body.slice(0, 80)}</small>}{comment.quoteText && <blockquote className="comment-quote">{comment.quoteText}</blockquote>}<p>{comment.body}</p>{comment.commentType !== "system" && <button className="reply-action" type="button" onClick={() => setReplyTo(comment.id)}>回复此发言</button>}</section></article>; }) : <div className="docket-empty">还没有讨论，写下第一条评论。</div>}</div>;
   const renderSeat = (side: "proposal" | "question", seatIndex: number) => {
     const seat = seats.find((entry) => entry.side === side && entry.seatIndex === seatIndex);
     const occupant = seat ? citizenFor(seat.citizenId) : null;
     const selectable = !meeting?.seatsLocked && !meeting?.debateStartedAt && meeting?.speakerCitizenId !== citizen.id && (!occupant || occupant.id === citizen.id);
-    return <button type="button" key={`${side}-${seatIndex}`} className={`${seat?.citizenId === citizen.id ? "mine" : ""} ${meeting?.currentFloorCitizenId === seat?.citizenId ? "floor" : ""} ${occupant ? "occupied" : "empty"}`} disabled={busy || !selectable} onClick={() => chooseSeat(side, seatIndex)}>{occupant ? <><CitizenMark citizen={occupant} /><span><strong>{occupant.username}</strong><small>{meeting?.currentFloorCitizenId === occupant.id ? "正在发言" : `第 ${seatIndex} 席`}</small></span></> : <><b>＋</b><span><strong>选择此席</strong><small>第 {seatIndex} 席</small></span></>}</button>;
+    return <button type="button" key={`${side}-${seatIndex}`} className={`${seat?.citizenId === citizen.id ? "mine" : ""} ${meeting?.currentFloorCitizenId === seat?.citizenId ? "floor" : ""} ${occupant ? "occupied" : "empty"}`} disabled={busy || !selectable} onClick={() => chooseSeat(side, seatIndex)}>{occupant ? <><CitizenMark citizen={occupant} display="official" /><span><strong>{occupant.username}</strong><small>{meeting?.currentFloorCitizenId === occupant.id ? "正在发言" : `第 ${seatIndex} 席`}</small></span></> : <><b>＋</b><span><strong>选择此席</strong><small>第 {seatIndex} 席</small></span></>}</button>;
   };
 
   return <>
@@ -970,7 +1004,7 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
             {session.stageManager ? <><div className="stage-prerequisites"><span className={activeItem.routing !== "pending_review" ? "ready" : "blocked"}>{activeItem.routing !== "pending_review" ? "✓ 分流已确认" : "! 分流待确认"}</span><span className={activeItem.pendingAmendmentCount === 0 ? "ready" : "blocked"}>{activeItem.pendingAmendmentCount === 0 ? "✓ 无待审修正" : `! ${activeItem.pendingAmendmentCount} 项修正待审`}</span><span className={activeItem.body.length > 12 ? "ready" : "blocked"}>{activeItem.body.length > 12 ? "✓ 正文已存在" : "! 正文未完成"}</span></div><div className="stage-control-row"><label><span>将议案置于</span><select value={stageTarget} onChange={(event) => setStageTarget(event.target.value as ParliamentStage)}>{(Object.keys(PARLIAMENT_STAGE_META) as ParliamentStage[]).map((stage) => <option key={stage} value={stage}>{PARLIAMENT_STAGE_META[stage].cn}</option>)}</select></label>{stageTarget === "resolved" && <label><span>结案结果</span><select value={finalOutcome} onChange={(event) => setFinalOutcome(event.target.value)}><option value="pending">按冻结版本票数自动判定</option><option value="passed">最高领导人裁决：通过</option><option value="rejected">最高领导人裁决：未通过</option></select></label>}<label className="stage-reason"><span>阶段变化理由 *</span><input value={stageReason} onChange={(event) => setStageReason(event.target.value)} maxLength={500} placeholder="理由会进入永久审计记录" /></label><button type="button" onClick={transitionStage} disabled={busy || stageReason.trim().length < 4 || (stageTarget === activeItem.stage && stageTarget !== "resolved")}>确认切换阶段</button></div></> : <p>{citizen.id === "amberina" ? <>你的内部身份是宇宙霸主，但当前浏览器尚未完成最高领导人身份验证。<a href="/signin-with-chatgpt?return_to=%2F">验证身份后启用阶段控制</a></> : "你可以评论、提出修正并在投票阶段表决，但不能改变议案所处阶段。"}</p>}
           </section>}
 
-          {casePanel === "stage" && activeItem.stage === "proposal" && <section className="async-proposal-discussion">
+          {casePanel === "stage" && activeItem.stage === "proposal" && <section className="async-proposal-discussion" id="parliament-proposal-discussion">
             <header><div><p className="eyebrow">Asynchronous Deliberation · 异步沟通</p><h3>引用条文，在提案下继续讨论</h3></div><span>{comments.filter((comment) => comment.commentType !== "system").length} COMMENTS</span></header>
             <form className="comment-composer" onSubmit={addComment}>{replyTo && <div className="replying-to"><span>正在回复：{comments.find((comment) => comment.id === replyTo)?.body.slice(0, 60)}</span><button type="button" onClick={() => setReplyTo("")}>取消</button></div>}<label className="quote-field"><span>引用当前正文（可选，必须逐字一致）</span><textarea value={commentQuote} onChange={(event) => setCommentQuote(event.target.value)} maxLength={1_500} rows={2} placeholder="粘贴你正在评论的具体条文" /></label><textarea value={commentBody} onChange={(event) => setCommentBody(event.target.value)} maxLength={1_500} rows={4} placeholder={`以“${citizen.codename}”身份写下评论…`} required /><footer><small>提案阶段不进入实时议场；评论和引用可以异步完成。</small><button className="primary" type="submit" disabled={busy}>提交评论 <span>→</span></button></footer></form>
             {renderCommentThread()}
@@ -978,14 +1012,14 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
 
           {casePanel === "stage" && session.speakerManager && ["proposal", "deferred", "debate", "amendment"].includes(activeItem.stage) && <SpeakerManagement key={activeItem.id} meeting={meeting} stage={activeItem.stage} busy={busy} onAction={(payload, success) => sendAction({ ...payload, itemId: activeItem.id }, success)} />}
 
-          {casePanel === "stage" && ["debate", "amendment"].includes(activeItem.stage) && <section className={`meeting-workspace ${meeting?.speakerStatus === "elected" ? "chamber-ready" : ""} ${meeting?.debateStartedAt ? "session-live" : ""}`}>
+          {casePanel === "stage" && ["debate", "amendment"].includes(activeItem.stage) && <section id="parliament-debate-session" className={`meeting-workspace ${meeting?.speakerStatus === "elected" ? "chamber-ready" : ""} ${meeting?.debateStartedAt ? "session-live" : ""}`}>
             <header><div><p className="eyebrow">The Chamber · 实时议场</p><h3>{meeting?.debateStartedAt ? "面对面辩论正在进行" : "议长选举与议场就座"}</h3></div><span>{meeting?.debateStartedAt ? "CHAMBER LIVE" : "BEFORE DEBATE"}</span></header>
 
             {(!meeting || meeting.speakerStatus === "not_configured") && <div className="speaker-election-empty"><p>本次议场尚未开放议长选举。三位委员可以在议长管理中开放选举，或直接指定本次会议议长。原有讨论和正式发言会保留。</p></div>}
 
-            {meeting?.speakerStatus === "open" && <section className="speaker-election">
+            {meeting?.speakerStatus === "open" && <section className="speaker-election" id="parliament-speaker-election">
               <header><div><small>SPEAKER ELECTION · 实时公开</small><strong>截止 {new Date(meeting.speakerElectionDeadline).toLocaleString("zh-CN")}</strong></div><button type="button" onClick={standForSpeaker} disabled={busy || mySpeakerCandidacy}>{mySpeakerCandidacy ? "你已参选" : "参选本次议长"}</button></header>
-              <div className="speaker-candidate-grid">{speakerCandidates.length ? speakerCandidates.map((candidate) => { const candidateCitizen = citizenFor(candidate.citizenId); const candidateVotes = speakerVotes.filter((vote) => vote.candidateCitizenId === candidate.citizenId); return <article key={candidate.id} className={mySpeakerVote === candidate.citizenId ? "selected" : ""}><div>{candidateCitizen && <CitizenMark citizen={candidateCitizen} />}<span><small>CANDIDATE</small><strong>{candidateCitizen?.username ?? candidate.citizenId}</strong></span><b>{candidateVotes.length}</b></div>{renderMarks(candidateVotes.map((vote) => vote.voterCitizenId), "等待第一票")}<button type="button" onClick={() => castSpeakerVote(candidate.citizenId)} disabled={busy}>{mySpeakerVote === candidate.citizenId ? "已投给此人" : "公开投票"}</button></article>; }) : <p className="docket-empty">暂时还没有人参选本次会议议长。</p>}</div>
+              <div className="speaker-candidate-grid">{speakerCandidates.length ? speakerCandidates.map((candidate) => { const candidateCitizen = citizenFor(candidate.citizenId); const candidateVotes = speakerVotes.filter((vote) => vote.candidateCitizenId === candidate.citizenId); return <article key={candidate.id} className={mySpeakerVote === candidate.citizenId ? "selected" : ""}><div>{candidateCitizen && <CitizenMark citizen={candidateCitizen} display="official" />}<span><small>CANDIDATE</small><strong>{candidateCitizen?.username ?? candidate.citizenId}</strong></span><b>{candidateVotes.length}</b></div>{renderMarks(candidateVotes.map((vote) => vote.voterCitizenId), "等待第一票")}<button type="button" onClick={() => castSpeakerVote(candidate.citizenId)} disabled={busy}>{mySpeakerVote === candidate.citizenId ? "已投给此人" : "公开投票"}</button></article>; }) : <p className="docket-empty">暂时还没有人参选本次会议议长。</p>}</div>
             </section>}
 
             {meeting?.speakerStatus === "tie_pending" && <section className="speaker-tie"><span>{tiedSpeakerCandidates.length ? "议长选举平票" : "本次选举无人参选"}</span><h3>{tiedSpeakerCandidates.length ? "等待委员裁决" : "等待重新开放选举或直接指定议长"}</h3><p>原始票数与投票者保持公开，不会被裁决覆盖。</p>{session.speakerManager && tiedSpeakerCandidates.length > 0 && <div>{tiedSpeakerCandidates.map((candidateId) => <button type="button" key={candidateId} onClick={() => resolveSpeakerTie(candidateId)} disabled={busy}>裁决由 {citizenFor(candidateId)?.username ?? candidateId} 担任议长</button>)}</div>}</section>}
@@ -993,7 +1027,7 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
             {meeting?.speakerStatus === "elected" && <>
               <div className={`schicksal-chamber ${meeting.debateStartedAt ? "live" : "seating"}`}>
                 <section className="chamber-side proposal-side"><header><small>PROPOSING BENCH</small><strong>提案方</strong></header><div>{[1,2,3,4].map((index) => renderSeat("proposal", index))}</div></section>
-                <section className="chamber-centre"><article><small>本次会议议长 · SPEAKER</small>{electedSpeaker && <CitizenMark citizen={electedSpeaker} />}<strong>{electedSpeaker?.username ?? meeting.speakerCitizenId}</strong><span>{meeting.debateStartedAt ? "议长权限已生效" : "等待成员就座"}</span></article><div className="dispatch-box"><small>ORDER PAPER</small><b>{activeItem.serialCode}</b><span>{meeting.debateStartedAt ? `当前发言：${currentFloorCitizen?.username ?? "等待议长点名"}` : "席位将在开会时锁定"}</span></div></section>
+                <section className="chamber-centre"><article><small>本次会议议长 · SPEAKER</small>{electedSpeaker && <CitizenMark citizen={electedSpeaker} display="official" />}<strong>{electedSpeaker?.username ?? meeting.speakerCitizenId}</strong><span>{meeting.debateStartedAt ? "议长权限已生效" : "等待成员就座"}</span></article><div className="dispatch-box"><small>ORDER PAPER</small><b>{activeItem.serialCode}</b><span>{meeting.debateStartedAt ? `当前发言：${currentFloorCitizen?.username ?? "等待议长点名"}` : "席位将在开会时锁定"}</span></div></section>
                 <section className="chamber-side question-side"><header><small>QUESTIONING BENCH</small><strong>质询方</strong></header><div>{[1,2,3,4].map((index) => renderSeat("question", index))}</div></section>
               </div>
               {!meeting.debateStartedAt && <div className="seating-status"><span>{session.meetingSpeaker ? "你是本次会议议长；确认成员就座后即可宣布开会。" : meeting.speakerCitizenId === citizen.id ? "你已经当选本次会议议长。" : mySeat ? `你已选择${mySeat.side === "proposal" ? "提案方" : "质询方"}第 ${mySeat.seatIndex} 席。` : "请选择提案方或质询方的一个空席。"}</span>{session.meetingSpeaker && <button type="button" onClick={startDebateSession} disabled={busy}>宣布开会并锁定席位</button>}</div>}
@@ -1001,7 +1035,7 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
               {meeting.debateStartedAt && <section className="live-floor">
                 <header><div><p className="eyebrow">Live Floor · 议场程序</p><h3>{currentFloorCitizen ? `${currentFloorCitizen.username} 正在发言` : "等待议长准许发言"}</h3></div><span>{session.meetingSpeaker ? "SPEAKER CONTROL" : "MEMBER ACTIONS"}</span></header>
                 {!session.meetingSpeaker && <><div className="floor-request-actions"><button type="button" onClick={() => sendAction({ action: "add_comment", itemId: activeItem.id, commentType: "reaction", body: "说得好！" }, "“说得好！”已经进入议场记录。")}>说得好！<small>HEAR, HEAR</small></button><button type="button" onClick={() => requestFloor("speech")}>请求发言<small>TAKE THE FLOOR</small></button><button type="button" onClick={() => requestFloor("give_way")}>请求插话<small>GIVE WAY</small></button><button type="button" onClick={() => requestFloor("point_order")}>程序问题<small>POINT OF ORDER</small></button></div><label className="floor-request-note"><span>给议长的简短说明（可选）</span><input value={floorRequestBody} onChange={(event) => setFloorRequestBody(event.target.value)} maxLength={500} placeholder="例如：我想回应第二条" /></label></>}
-                {session.meetingSpeaker && <div className="speaker-console"><h4>待处理请求</h4>{floorRequests.filter((request) => request.status === "pending").length ? floorRequests.filter((request) => request.status === "pending").map((request) => <article key={request.id}><div>{citizenFor(request.citizenId) && <CitizenMark citizen={citizenFor(request.citizenId)!} />}<span><strong>{citizenFor(request.citizenId)?.username ?? request.citizenId}</strong><small>{request.requestType === "speech" ? "请求发言" : request.requestType === "give_way" ? "请求插话" : "程序问题"}{request.body ? ` · ${request.body}` : ""}</small></span></div><footer><button type="button" onClick={() => decideFloorRequest(request.id, "rejected")}>拒绝</button><button type="button" onClick={() => decideFloorRequest(request.id, "accepted")}>接受</button></footer></article>) : <p>当前没有等待处理的议场请求。</p>}</div>}
+                {session.meetingSpeaker && <div className="speaker-console"><h4>待处理请求</h4>{floorRequests.filter((request) => request.status === "pending").length ? floorRequests.filter((request) => request.status === "pending").map((request) => <article key={request.id}><div>{citizenFor(request.citizenId) && <CitizenMark citizen={citizenFor(request.citizenId)!} display="official" />}<span><strong>{citizenFor(request.citizenId)?.username ?? request.citizenId}</strong><small>{request.requestType === "speech" ? "请求发言" : request.requestType === "give_way" ? "请求插话" : "程序问题"}{request.body ? ` · ${request.body}` : ""}</small></span></div><footer><button type="button" onClick={() => decideFloorRequest(request.id, "rejected")}>拒绝</button><button type="button" onClick={() => decideFloorRequest(request.id, "accepted")}>接受</button></footer></article>) : <p>当前没有等待处理的议场请求。</p>}</div>}
                 {meeting.currentFloorCitizenId === citizen.id && <form className="comment-composer floor-speech-composer" onSubmit={addFloorSpeech}><header><span>ON THE FLOOR</span><strong>你已获得正式发言权</strong></header><label className="quote-field"><span>引用当前正文（可选）</span><textarea value={commentQuote} onChange={(event) => setCommentQuote(event.target.value)} maxLength={1_500} rows={2} /></label><textarea value={commentBody} onChange={(event) => setCommentBody(event.target.value)} maxLength={1_500} rows={4} placeholder="写下你的正式发言…" required /><footer><small>提交后进入本次会议正式记录。</small><button className="primary" type="submit" disabled={busy}>发表正式发言 <span>→</span></button></footer></form>}
                 <div className="chamber-record"><button type="button" aria-expanded={liveRecordOpen} onClick={() => setLiveRecordOpen(!liveRecordOpen)}><span>会议发言记录</span><small>{comments.filter((comment) => comment.commentType !== "system").length} 条 · {liveRecordOpen ? "收起" : "展开"}</small></button>{liveRecordOpen && renderCommentThread()}</div>
               </section>}
@@ -1014,7 +1048,7 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
             <div className="amendment-list">{amendments.length ? amendments.map((amendment) => { const author = citizenFor(amendment.citizenId); return <article key={amendment.id} className={amendment.status}><header><div><strong>{author?.username ?? amendment.citizenId}</strong><time>{new Date(amendment.createdAt).toLocaleDateString("zh-CN")}</time></div><span>{amendment.status === "pending" ? "等待决定" : amendment.status === "accepted" ? "已接受" : "已否决"}</span></header><div className="amendment-diff"><blockquote><small>删除 / 原文</small><del>{amendment.targetQuote}</del></blockquote><blockquote><small>新增 / 建议</small><ins>{amendment.proposedText}</ins></blockquote></div><p><b>理由</b>{amendment.reason}</p>{session.stageManager && amendment.status === "pending" && <footer><button type="button" onClick={() => decideAmendment(amendment.id, "rejected")} disabled={busy}>否决并留档</button><button type="button" onClick={() => decideAmendment(amendment.id, "accepted")} disabled={busy}>接受并生成新版本</button></footer>}</article>; }) : <div className="docket-empty">暂无正式修正案。</div>}</div>
           </section>}
 
-          {casePanel === "stage" && activeItem.stage === "voting" && <section className="division-public">
+          {casePanel === "stage" && activeItem.stage === "voting" && <section className="division-public" id="parliament-vote-actions">
             <header><div><p className="eyebrow">Division · 正式表决</p><h3>选择后，个人标志实时公开</h3></div><span>FROZEN TEXT · v{activeItem.votingVersion}</span></header>
             <div className="division-public-grid">
               <article className={myVote === "support" ? "chosen support" : ""}><header><small>AYE</small><strong>赞成 · {support}</strong></header>{renderMarks(currentVotes.filter((vote) => vote.choice === "support").map((vote) => vote.citizenId))}<button type="button" onClick={() => castVote("support")} disabled={busy}>投赞成票</button></article>
@@ -1043,7 +1077,7 @@ function PersistentParliamentSection({ citizen }: { citizen: Citizen }) {
 }
 
 function HonorsSection() {
-  const rows = [["宇宙霸主","Amberina von Schicksal","128","#f3c969"],["怪盗 基德","Citizen 04","114","#65cae9"],["我说 真的","Citizen 03","98","#eecf58"],["哈利 波特","Citizen 05","82","#a99ce6"]];
+  const rows = [["宇宙霸主","Amberina von Schicksal","128",AMBERINA_OFFICIAL_COLOR],["怪盗 基德","Citizen 04","114","#65cae9"],["我说 真的","Citizen 03","98","#eecf58"],["哈利 波特","Citizen 05","82","#a99ce6"]];
   return <><PageHead eyebrow="Honors & Scoreboard" title="荣誉与积分" copy="每一次得分都有原因，每一次荣耀都有可审计的来处。" /><div className="honors"><div className="leaderboard">{rows.map(([code,name,points,color],index) => <article key={code} style={{ "--citizen": color } as CSSProperties}><span>0{index + 1}</span><i /><div><h2>{code}</h2><p>{name}</p></div><b>{points}<small>PTS</small></b></article>)}</div><article className="ribbon"><p>IMPERIAL DISTINCTION</p><h2>BLUE<br />RIBBON</h2><div>S</div><small>年度最高荣誉 · 可作为实体在跳蚤市场流通</small></article></div><p className="note">积分为视觉 Demo 数据；正式规则与 Blue Ribbon 权利尚待确认。</p></>;
 }
 
@@ -1188,7 +1222,7 @@ function PhotoArchiveSection({ citizen }: { citizen: Citizen }) {
     <section className="photo-filters" aria-labelledby="photo-filter-title">
       <header><div><p className="eyebrow">Exact Combination</p><h2 id="photo-filter-title">标志筛选</h2></div><button type="button" onClick={() => setFilterSubjects([])} disabled={!filterSubjects.length}>查看全部 · CLEAR</button></header>
       <div className="mark-filter-row" role="group" aria-label="按人物标志筛选照片">
-        {PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={filterSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={filterSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setFilterSubjects)} style={{ "--citizen": subject.accent } as CSSProperties}><PhotoSubjectMark subject={subject} /><span><strong>{subject.username}</strong><small>{subject.id === "empire" ? "全体合照" : subject.locked ? "身份待补" : "精确人物标签"}</small></span></button>)}
+        {PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={filterSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={filterSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setFilterSubjects)} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}><PhotoSubjectMark subject={subject} /><span><strong>{subject.username}</strong><small>{subject.id === "empire" ? "全体合照" : subject.locked ? "身份待补" : "精确人物标签"}</small></span></button>)}
       </div>
       <p>当前分类：<strong>{filterLabel}</strong><span>{filterSubjects.length ? "只显示人物组合完全一致的照片" : "显示影像馆中的全部照片"}</span></p>
     </section>
@@ -1208,7 +1242,7 @@ function PhotoArchiveSection({ citizen }: { citizen: Citizen }) {
             <label className="archive-field"><span>年份 / 时期</span><input value={era} onChange={(event) => setEra(event.target.value)} maxLength={80} placeholder="例如：六人时期" /></label>
           </div>
           <label className="archive-field"><span>照片说明</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={800} rows={3} placeholder="这张照片发生了什么？由谁提供？" /></label>
-          <fieldset className="upload-subjects"><legend>照片中恰好有哪些人 *</legend><p>若是当时全体成员的合照，请只选“天命全体照”。</p><div>{PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={uploadSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={uploadSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setUploadSubjects)} title={subject.username} style={{ "--citizen": subject.accent } as CSSProperties}><PhotoSubjectMark subject={subject} /><span>{subject.id === "empire" ? "天命" : subject.username}</span></button>)}</div></fieldset>
+          <fieldset className="upload-subjects"><legend>照片中恰好有哪些人 *</legend><p>若是当时全体成员的合照，请只选“天命全体照”。</p><div>{PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={uploadSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={uploadSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setUploadSubjects)} title={subject.username} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}><PhotoSubjectMark subject={subject} /><span>{subject.id === "empire" ? "天命" : subject.username}</span></button>)}</div></fieldset>
           <button className="primary archive-submit" type="submit" disabled={uploading}>{uploading ? "ARCHIVING…" : "收入影像馆"}<span>→</span></button>
           <p className="upload-status" role="status">{status || "上传后会自动切换到对应的标志分类。"}</p>
         </form>
@@ -1317,7 +1351,7 @@ function ArchivesSection() {
           <span className="book-page-edges" aria-hidden="true" />
           <span className="book-cover-art"><Image src="/archive-queen-cover.png" alt="童话式女王立于月光花园中的剪影书封" fill sizes="(max-width: 760px) 82vw, 430px" priority={false} unoptimized /></span>
           <span className="book-cover-wash" aria-hidden="true" />
-          <span className="book-cover-mark"><CitizenMark citizen={CITIZENS[0]} /></span>
+          <span className="book-cover-mark" style={{ "--mark": CITIZENS[0].markColor } as CSSProperties}><CitizenMark citizen={CITIZENS[0]} /></span>
           <span className="book-cover-copy"><small>SCHICKSAL NATIONAL ARCHIVES</small><strong>如何从零<br />建立一个国家</strong><i>AvS 著</i></span>
           <span className="book-spine"><b>SCHICKSAL</b><i>国家档案馆</i></span>
         </button>
@@ -1336,7 +1370,7 @@ function ArchivesSection() {
       <header className="reader-topbar"><div><span>《如何从零建立一个国家》</span><i>{chapter.lesson}</i></div><button type="button" onClick={() => setBookOpen(false)}>合上书 ×</button></header>
       <div className="archive-book-spread">
         <aside className="reader-verso">
-          <div className="reader-author-mark"><CitizenMark citizen={CITIZENS[0]} /></div>
+          <div className="reader-author-mark" style={{ "--mark": CITIZENS[0].markColor } as CSSProperties}><CitizenMark citizen={CITIZENS[0]} /></div>
           <small>SCHICKSAL FIRST EMPIRE<br />NATIONAL ARCHIVES</small>
           <h2>{chapter.title}</h2>
           <p>{chapter.note}</p>
@@ -1355,7 +1389,7 @@ function ArchivesSection() {
 }
 
 function ProfileSection({ citizen }: { citizen: Citizen }) {
-  return <><PageHead eyebrow="Citizen Profile" title="个人身份档案" copy="登录用户名、正式身份、个人标志与历史荣誉在这里汇合。" /><article className="profile" style={{ "--citizen": citizen.accent } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} /><span>{citizen.username}</span></div><div className="profile-copy"><small>AUTHENTICATED CITIZEN</small><h2>{citizen.name}</h2><dl><div><dt>Login Username</dt><dd>{citizen.username}</dd></div><div><dt>Current Office</dt><dd>{citizen.office}</dd></div><div><dt>Personal Mark</dt><dd>{citizen.id === "amberina" ? "Golden Solar Snowflake" : citizen.id === "zxy" ? "Red Flame" : citizen.id === "truth" ? "Yellow Lightning" : "Personal Sigil"}</dd></div><div><dt>Representative Color</dt><dd>{citizen.id === "amberina" ? "Imperial Gold / Yellow" : "待本人确认"}</dd></div></dl></div><div className="profile-score"><span>IMPERIAL POINTS</span><b>{citizen.id === "amberina" ? "128" : "—"}</b><small>Demo record</small></div></article></>;
+  return <><PageHead eyebrow="Citizen Profile" title="个人身份档案" copy="登录用户名、正式身份、个人标志与历史荣誉在这里汇合。" /><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} /><span>{citizen.username}</span></div><div className="profile-copy"><small>AUTHENTICATED CITIZEN</small><h2>{citizen.name}</h2><dl><div><dt>Login Username</dt><dd>{citizen.username}</dd></div><div><dt>Current Office</dt><dd>{citizen.office}</dd></div><div><dt>Personal Mark</dt><dd>{citizen.id === "amberina" ? "Golden Solar Snowflake" : citizen.id === "zxy" ? "Red Flame" : citizen.id === "truth" ? "Yellow Lightning" : "Personal Sigil"}</dd></div><div><dt>Representative Color</dt><dd>{citizen.id === "amberina" ? "Imperial Gold / Yellow" : "待本人确认"}</dd></div></dl></div><div className="profile-score"><span>IMPERIAL POINTS</span><b>{citizen.id === "amberina" ? "128" : "—"}</b><small>Demo record</small></div></article></>;
 }
 
 function ClubMysticMark({ citizen }: { citizen: Citizen }) {
@@ -1386,7 +1420,7 @@ function AmberinaLounge({ visitor, ownerProfile, onBack }: { visitor: Citizen; o
   return <MafraerLounge onBack={onBack} ownerName={loungeMaskName(CITIZENS[0], ownerProfile)} visitorName={loungeMaskName(visitor)} isOwner={visitor.id === "amberina"} ownerAvatar={<ClubAvatar citizen={CITIZENS[0]} profile={ownerProfile} />} />;
 }
 
-function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen; leave: () => void; seatingUnlocked: boolean }) {
+function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom = "committee" }: { citizen: Citizen; leave: () => void; seatingUnlocked: boolean; initialRoom?: "committee" | "game-room" }) {
   const [rankingsOpen, setRankingsOpen] = useState(false);
   const [effect, setEffect] = useState<"idle" | "moon" | "cat" | "pumpkin" | "portrait" | "scroll" | "vase" | "table">("idle");
   const [moonlight, setMoonlight] = useState(false);
@@ -1407,7 +1441,7 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked }: { citizen: Citizen
   const [maskAvatar, setMaskAvatar] = useState("sigil");
   const [clubStatus, setClubStatus] = useState("");
   const [saving, setSaving] = useState(false);
-  const [roomView, setRoomView] = useState<"committee" | "amberina" | "chryser" | "truth" | "game-room">("committee");
+  const [roomView, setRoomView] = useState<"committee" | "amberina" | "chryser" | "truth" | "game-room">(initialRoom);
   const [fanTransition, setFanTransition] = useState<"enter" | "exit" | null>(null);
   const [fireplaceOpening, setFireplaceOpening] = useState(false);
   const [globeOpening, setGlobeOpening] = useState(false);
@@ -1880,6 +1914,35 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [section,setSection] = useState<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(false);
+  const [focusedCitizenId, setFocusedCitizenId] = useState<string | null>(null);
+  const [parliamentDeepLink, setParliamentDeepLink] = useState("");
+  const [parliamentDeepLinkFocus, setParliamentDeepLinkFocus] = useState<"proposal" | "speaker" | "debate" | "vote">("vote");
+  const [parliamentFocus, setParliamentFocus] = useState<"all" | "referendum">("all");
+  const [loungeLanding, setLoungeLanding] = useState<"committee" | "game-room">("committee");
+  const briefingFeed = useBriefingFeed(citizen.id, section);
+  const presence = useMemberPresence(citizen.id);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/briefing-session", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => response.ok ? await response.json() as { citizenId?: string; briefingSessionKey?: string | null } : null)
+      .then((session) => {
+        if (controller.signal.aborted || session?.citizenId !== citizen.id || !session.briefingSessionKey) return;
+        // The display marker (not the authentication token) is shared between tabs.
+        // It changes on each new login and survives refresh in that login session.
+        try {
+          // A returning mini-game should not be interrupted by a full-screen overlay.
+          // Do not mark the briefing as viewed until it actually appears.
+          if (new URLSearchParams(window.location.search).get("lounge") === "game-room") return;
+          if (markBriefingViewed(window.localStorage, session.briefingSessionKey)) setBriefingOpen(true);
+        } catch {
+          try {
+            if (markBriefingViewed(window.sessionStorage, session.briefingSessionKey)) setBriefingOpen(true);
+          } catch { setBriefingOpen(true); }
+        }
+      }).catch(() => undefined);
+    return () => controller.abort();
+  }, [citizen.id]);
   useEffect(() => {
     try { setSidebarCollapsed(window.localStorage.getItem("schicksal:sidebar-collapsed") === "true"); } catch { /* Keep the navigation expanded when storage is unavailable. */ }
   }, []);
@@ -1910,29 +1973,69 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
     }
   }, [citizen.id]);
   const enterLounge = () => {
+    setLoungeLanding("committee");
     setLoungeSeatingUnlocked(false);
     setSection("club");
     announceCommitteeLounge(citizen, () => setLoungeSeatingUnlocked(true));
+  };
+  const openBriefingDesk = () => { setBriefingOpen(false); setSection("briefing"); };
+  const navigateFromBriefing = (target: BriefingTarget, targetId?: string, focus: "proposal" | "speaker" | "debate" | "vote" = "vote") => {
+    setBriefingOpen(false);
+    setParliamentDeepLink(target === "parliament" ? targetId || "" : "");
+    setParliamentDeepLinkFocus(focus);
+    setParliamentFocus(target === "referendum" ? "referendum" : "all");
+    if (target === "club") { enterLounge(); return; }
+    if (target === "games") {
+      if (!CLUB_MEMBER_IDS.has(citizen.id)) return; // game room currently belongs to Committee Lounge
+      setLoungeLanding("game-room");
+      setLoungeSeatingUnlocked(true);
+      setSection("club");
+      return;
+    }
+    if (target === "referendum") { setSection("parliament"); return; }
+    setSection(target);
+  };
+  const openPublicCitizen = (memberId: string) => {
+    if (!CITIZENS.some(member => member.id === memberId && !member.locked)) return;
+    setFocusedCitizenId(memberId);
+    setBriefingOpen(false);
+    setSection("citizens");
+    document.querySelector(".system-main")?.scrollTo({top:0,behavior:"smooth"});
   };
   const clubOpen = section === "club" && CLUB_MEMBER_IDS.has(citizen.id);
   const active = NAV.find((item) => item.id === section) ?? { id: "club" as const, label: "委员会 Lounge", en: "Committee Lounge" };
   let content: ReactNode;
   switch (section) {
-    case "citizens": content = <CitizensSection />; break;
+    case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
+    case "citizens": content = <CitizensSection focusedId={focusedCitizenId} onClearFocus={() => setFocusedCitizenId(null)} />; break;
     case "emblem": content = <EmblemSection />; break;
-    case "parliament": content = <PersistentParliamentSection citizen={citizen} />; break;
+    case "parliament": content = <PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} requestedFocus={parliamentDeepLinkFocus} focusReferendums={parliamentFocus === "referendum"} />; break;
     case "honors": content = <HonorsSection />; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection />; break;
     case "photos": content = <PhotoArchiveSection citizen={citizen} />; break;
     case "archives": content = <ArchivesSection />; break;
     case "profile": content = <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</>; break;
-    case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={() => setSection("home")} seatingUnlocked={loungeSeatingUnlocked} /> : <HomeSection go={setSection} />; break;
+    case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={() => setSection("home")} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
   }
   return (
     <main className={`system ${clubOpen ? "club-system" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
-      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => setSection(item.id)}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<div className="side-user" style={{ "--citizen": citizen.accent } as CSSProperties}><CitizenMark citizen={citizen} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
+      {briefingOpen && <BriefingOverlay
+        onClose={() => { setBriefingOpen(false); setSection("home"); }}
+        onOpenDesk={openBriefingDesk}
+        onNavigate={navigateFromBriefing}
+        tasks={briefingFeed.tasks}
+        taskState={briefingFeed.status}
+        news={briefingFeed.news}
+        newsState={briefingFeed.status}
+        canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)}
+        sharedMark={<Emblem compact />}
+        heroMark={<Emblem compact />}
+      />}
+      <aside className="sidebar" id="imperial-sidebar"><div className="side-brand"><Emblem compact /><Wordmark /><button className="sidebar-toggle" type="button" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-controls="imperial-navigation" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} title={sidebarCollapsed ? "展开导航" : "收起导航"}>{sidebarCollapsed ? "›" : "‹"}</button></div><nav id="imperial-navigation" aria-label="帝国主导航">{NAV.map((item,index) => <button type="button" key={item.id} className={section === item.id ? "active" : ""} title={`${item.label} · ${item.en}`} aria-label={`${String(index + 1).padStart(2,"0")} ${item.label} ${item.en}`} onClick={() => { if (item.id === "parliament") { setParliamentDeepLink(""); setParliamentFocus("all"); } setSection(item.id); }}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong><small>{item.en}</small></button>)}</nav>{CLUB_MEMBER_IDS.has(citizen.id) && <button className={`club-portal ${clubOpen ? "active" : ""}`} type="button" onClick={enterLounge} aria-label="进入 Committee Lounge"><Image src="/committee-restroom-badge.png" width={90} height={90} alt="南瓜与小幽灵组成的 Committee Lounge 入口" unoptimized /><span><strong>神秘入口</strong><small>COMMITTEE LOUNGE</small></span><i aria-hidden="true" /></button>}<SidebarPresence presence={presence} members={CITIZENS} collapsed={sidebarCollapsed}
+        renderMark={(memberId) => { const member = CITIZENS.find(entry => entry.id === memberId); return member ? <CitizenMark citizen={member} display={clubOpen ? "official" : "web"}/> : null; }}
+        onMember={openPublicCitizen}/><div className="side-user" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><CitizenMark citizen={citizen} display={clubOpen ? "official" : "web"} /><div><strong>{citizen.name}</strong><span>{citizen.codename}</span></div><button type="button" onClick={logout} aria-label="退出登录">↗</button></div></aside>
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>{!clubOpen && <header className="topbar"><div><span>IMPERIAL CORE /</span><strong>{active.en.toUpperCase()}</strong></div><div><span><i /> SYSTEM ONLINE</span><b>FIRST EMPIRE · 2026</b></div></header>}<div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>{!clubOpen && <footer className="system-footer"><span>SCHICKSAL · 天命第一帝国</span><span>PERSISTENT ARCHIVES &amp; PARLIAMENT</span></footer>}</section>
     </main>
   );

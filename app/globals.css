@@ -769,7 +769,7 @@
 .book-cover-art { overflow: hidden; }
 .book-cover-art img { object-fit: cover; }
 .book-cover-wash { background: linear-gradient(180deg,rgba(255,250,236,.17),transparent 31%,rgba(14,44,78,.08) 72%,rgba(11,37,68,.3)); box-shadow: inset 0 0 0 8px rgba(247,237,207,.6),inset 0 0 0 10px rgba(27,73,114,.34); }
-.book-cover-mark { position: absolute; z-index: 3; top: 8.5%; left: 50%; width: 68px; height: 68px; border: 1px solid rgba(72,143,190,.42); border-radius: 50%; background: rgba(245,250,248,.66); backdrop-filter: blur(6px); display: grid; place-items: center; transform: translateX(-50%); box-shadow: 0 9px 22px rgba(47,82,109,.12); }
+.book-cover-mark { position: absolute; z-index: 3; top: 8.5%; left: 50%; width: 68px; height: 68px; border: 1px solid color-mix(in srgb,var(--mark) 42%,transparent); border-radius: 50%; background: rgba(245,250,248,.66); backdrop-filter: blur(6px); display: grid; place-items: center; transform: translateX(-50%); box-shadow: 0 9px 22px rgba(47,82,109,.12); }
 .book-cover-mark .citizen-mark { width: 49px; height: 49px; }
 .book-cover-copy { position: absolute; z-index: 3; top: 20%; left: 12%; right: 10%; display: flex; flex-direction: column; align-items: center; color: #173f69; text-align: center; text-shadow: 0 1px rgba(255,255,255,.7); }
 .book-cover-copy small { font-size: 6px; letter-spacing: .23em; }
@@ -800,7 +800,7 @@
 .reader-topbar button { border: 0; background: transparent; color: #6e6555; font-size: .68rem; cursor: pointer; }
 .archive-book-spread { display: grid; grid-template-columns: minmax(260px,.72fr) minmax(0,1.7fr); min-height: 770px; background: linear-gradient(90deg,#eee5d2 0,#fbf5e8 43%,#c8baa0 43.2%,#f8f0df 44.2%,#fcf8ed 100%); }
 .reader-verso { padding: clamp(32px,5vw,58px); border-right: 1px solid rgba(91,73,42,.18); display: flex; flex-direction: column; color: #49443b; }
-.reader-author-mark { width: 70px; height: 70px; border: 1px solid rgba(59,116,159,.27); border-radius: 50%; background: rgba(226,239,244,.55); display: grid; place-items: center; }.reader-author-mark .citizen-mark { width: 52px; height: 52px; }
+.reader-author-mark { width: 70px; height: 70px; border: 1px solid color-mix(in srgb,var(--mark) 27%,transparent); border-radius: 50%; background: rgba(226,239,244,.55); display: grid; place-items: center; }.reader-author-mark .citizen-mark { width: 52px; height: 52px; }
 .reader-verso > small { margin-top: 37px; color: #7d725f; font-size: 6px; line-height: 1.8; letter-spacing: .17em; }
 .reader-verso h2 { margin: 16px 0 17px; font: 400 clamp(2rem,3.5vw,3.45rem)/1.08 var(--serif); letter-spacing: -.04em; }
 .reader-verso > p { margin: 0; color: #756d60; font-size: .75rem; line-height: 1.7; }
@@ -1251,8 +1251,10 @@
 }
 
 /* Committee Restroom v17 — transformed sigils and reciprocal room magic. */
-.citizen-mark.snow { color: #f3c969; background: radial-gradient(circle,rgba(255,224,126,.2),transparent 67%); box-shadow: inset 0 0 17px rgba(255,215,105,.11),0 0 18px rgba(242,193,74,.18); }
-.citizen-mark.snow::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; background: repeating-conic-gradient(from 0deg,rgba(243,201,105,.72) 0 2deg,transparent 2deg 30deg); -webkit-mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); opacity: .62; }
+/* The existing outer halo/dots indicate the President office, not Amberina or login state.
+   Existing CitizenMark circles remain in place; unrelated art gains no new adornment. */
+.citizen-mark.leader { color: var(--mark); background: radial-gradient(circle,color-mix(in srgb,var(--mark) 20%,transparent),transparent 67%); box-shadow: inset 0 0 17px color-mix(in srgb,var(--mark) 11%,transparent),0 0 18px color-mix(in srgb,var(--mark) 18%,transparent); }
+.citizen-mark.leader::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; background: repeating-conic-gradient(from 0deg,var(--mark) 0 2deg,transparent 2deg 30deg); -webkit-mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); opacity: .62; }
 
 .club-mystic-mark { position: relative; flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; display: inline-grid; place-items: center; isolation: isolate; }
 .club-mystic-mark::before { content: ""; position: absolute; inset: 4px; border: 1px solid currentColor; border-radius: 50%; opacity: .34; }

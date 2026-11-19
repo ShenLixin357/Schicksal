@@ -116,13 +116,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 
 .welcome { overflow: hidden; display: grid; place-items: center; text-align: center; background: radial-gradient(circle at 50% 47%,color-mix(in srgb,var(--citizen) 16%,white),#eef5f7 40%,#f4efe4 78%); }
 .welcome::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,transparent 49.95%,rgba(49,88,116,.08) 50%,transparent 50.05%),linear-gradient(transparent 49.95%,rgba(49,88,116,.065) 50%,transparent 50.05%); }
-.welcome-rings { position: absolute; width: min(76vw,720px); aspect-ratio: 1; border: 1px solid color-mix(in srgb,var(--citizen) 15%,transparent); border-radius: 50%; animation: welcomeRing 1.6s ease-out both; }
-.welcome-rings i { position: absolute; inset: 14%; border: 1px solid color-mix(in srgb,var(--citizen) 10%,transparent); border-radius: 50%; }
+.welcome-rings { position: absolute; width: min(76vw,720px); aspect-ratio: 1; border: 1px solid color-mix(in srgb,var(--identity-mark,var(--citizen)) 15%,transparent); border-radius: 50%; animation: welcomeRing 1.6s ease-out both; }
+.welcome-rings i { position: absolute; inset: 14%; border: 1px solid color-mix(in srgb,var(--identity-mark,var(--citizen)) 10%,transparent); border-radius: 50%; }
 .welcome-rings i:nth-child(2) { inset: 29%; }.welcome-rings i:nth-child(3) { inset: 44%; }
 .welcome > section { position: relative; z-index: 2; padding: 65px 22px; animation: fadeUp 1s .15s both; }
-.welcome-mark { position: relative; width: 82px; height: 82px; margin: 32px auto 23px; border: 1px solid color-mix(in srgb,var(--citizen) 30%,transparent); display: grid; place-items: center; transform: rotate(45deg); }
+.welcome-mark { position: relative; width: 82px; height: 82px; margin: 32px auto 23px; border: 1px solid color-mix(in srgb,var(--identity-mark,var(--citizen)) 30%,transparent); display: grid; place-items: center; transform: rotate(45deg); }
 .welcome-mark .citizen-mark { width: 52px; height: 52px; border: 0; transform: rotate(-45deg); }
-.welcome-mark > i { position: absolute; inset: -1px; border-top: 1px solid var(--citizen); animation: scan 2.4s ease-in-out infinite; }
+.welcome-mark > i { position: absolute; inset: -1px; border-top: 1px solid var(--identity-mark,var(--citizen)); animation: scan 2.4s ease-in-out infinite; }
 .welcome section > small { color: #778397; font-size: 7px; letter-spacing: .38em; }
 .welcome h1 { margin: 12px 0 17px; font: 400 clamp(2.8rem,6vw,5.7rem) var(--serif); letter-spacing: -.045em; }
 .welcome-meta { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 14px; color: var(--citizen); font-size: 7px; letter-spacing: .18em; text-transform: uppercase; }
@@ -148,3 +148,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 @media (max-width:1100px) { .login-shell { grid-template-columns: minmax(0,1fr); gap: 38px; align-items: start; } .login-copy h1 { font-size: 4.5rem; } .secure-seal { display:none; } }
 @media (max-width:760px) { .opening .emblem { transform: scale(.8); } .title-reveal h1 { font-size: 4rem; } .title-reveal h2 { font-size: .88rem; } .kicker { margin-bottom: 1rem; } .entry-header { min-height:72px; } .login-shell { padding: 35px 20px; } .login-copy h1 { font-size:3.6rem; } .identity-grid { grid-template-columns:1fr; } .identity-grid > button { border-right:0; } .access-form > footer { align-items:stretch; flex-direction:column; } .access-form .primary { width:100%; } .entry-footer { display:none; } }
 @media (prefers-reduced-motion:reduce) { .opening *, .login * { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+/* Amberina's personal web emblem stays transparent, with no fog/backplate.
+   Keep existing outer/inner border and President office dots in the same --mark hue.
+   The dark parliament Speaker's CSS background is not overridden by this rule. */
+.citizen-mark.personal-simple,
+.citizen-mark.personal-simple.leader {
+  background: transparent;
+  box-shadow: none;
+}
+.citizen-mark.personal-simple .citizen-simple-image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  filter: none;
+}

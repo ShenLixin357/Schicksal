@@ -1,0 +1,58 @@
+/* Imperial Briefing V3.2 · functional inbox only. Do not change V2.6 artwork. */
+.imperial-affairs-inbox .imperial-briefing-block-header { margin-bottom:11px; }
+.imperial-affairs-heading-symbol { display:inline-grid; place-items:center; width:27px; color:#aa8856; font-size:24px; }
+.imperial-affairs-tabs { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin:7px 0 0; }
+.imperial-affairs-tabs button { background:transparent; border:1px solid transparent; border-radius:7px; color:#7a8d9d; padding:7px 9px; font:500 .77rem/1.3 ui-sans-serif,system-ui,sans-serif; cursor:pointer; white-space:nowrap; }
+.imperial-affairs-tabs button.active { background:rgba(226,235,241,.65); border-color:rgba(137,157,170,.25); color:#355a72; }
+.imperial-affairs-tabs button span { margin-left:3px; font-size:.62rem; opacity:.72; }
+.imperial-affairs-tabs button:focus-visible { outline:2px solid #c49b60; outline-offset:2px; }
+.imperial-affairs-description { margin:6px 0 16px; color:#95a0a9; font-size:.74rem; font-style:italic; font-weight:400; }
+.imperial-affairs-error { padding:8px; color:#9f3e4b; font-size:.75rem; }
+.imperial-affairs-inbox .imperial-briefing-rows { gap:8px; }
+.imperial-affairs-inbox .imperial-affair-card { position:relative; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 13px; border:1px solid rgba(163,173,182,.26); border-radius:9px; background:rgba(255,254,252,.83); box-shadow:0 1px 3px rgba(39,57,68,.025); transform-origin:top center; transition:opacity .32s ease, transform .32s ease, background-color .25s ease; }
+.imperial-affairs-inbox .imperial-affair-card.affair-urgent { background:linear-gradient(110deg,rgba(255,242,211,.86),rgba(255,251,235,.75)); border-color:rgba(201,162,78,.36); }
+.imperial-affairs-inbox .imperial-affair-card.affair-important { background:linear-gradient(110deg,rgba(248,222,225,.86),rgba(255,243,245,.77)); border-color:rgba(182,98,108,.34); }
+.imperial-affairs-inbox .imperial-affair-card.affair-past { background:rgba(250,249,247,.74); border-color:rgba(166,171,174,.2); }
+.imperial-affairs-inbox .imperial-affair-card.affair-folding { transform:scaleY(.12); opacity:.06; pointer-events:none; }
+.imperial-affairs-inbox .imperial-affair-card strong { color:#354d60; font-size:.83rem; overflow-wrap:anywhere; }
+.imperial-affairs-inbox .imperial-affair-card small { font-size:.72rem; line-height:1.5; }
+.imperial-affairs-inbox .imperial-affair-card .imperial-briefing-task-category { width:max-content; max-width:100%; padding:2px 6px; color:#718699; background:rgba(236,242,245,.7); border-radius:6px; font-size:.65rem; }
+.imperial-affairs-inbox .imperial-affair-card.affair-important .imperial-briefing-task-category { color:#a34958; background:rgba(255,250,249,.55); }
+.imperial-affairs-inbox .imperial-affair-card.affair-urgent .imperial-briefing-task-category { color:#97702d; background:rgba(255,255,250,.58); }
+.imperial-affairs-inbox .imperial-briefing-deadline { margin-top:6px; display:flex; flex-wrap:wrap; gap:3px 12px; font-size:.69rem; }
+.imperial-affairs-inbox .imperial-briefing-deadline span { display:inline; margin:0; }
+.imperial-affairs-inbox .imperial-briefing-deadline time { display:inline; font-size:.69rem; font-variant-numeric:tabular-nums; color:#9a773e; }
+.imperial-affairs-inbox .imperial-briefing-deadline time.affair-yellow-countdown { color:#bc8413; font-weight:700; }
+.imperial-affair-actions { flex:0 0 auto; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+.imperial-affairs-inbox .imperial-affair-actions button { border:0; background:transparent; cursor:pointer; color:#47718c; white-space:nowrap; padding:5px 6px; font-size:.72rem; }
+.imperial-affairs-inbox .imperial-affair-actions button.imperial-affair-archive { color:#8b98a2; font-size:.67rem; opacity:.32; transition:opacity .2s; }
+.imperial-affairs-inbox .imperial-affair-card:hover .imperial-affair-archive,
+.imperial-affairs-inbox .imperial-affair-card:focus-within .imperial-affair-archive { opacity:1; }
+.imperial-affairs-inbox .imperial-affair-actions button:disabled { opacity:.35; cursor:default; }
+.imperial-affairs-undo-row { min-height:70px; display:flex; align-items:center; justify-content:space-between; border:1px dashed rgba(135,156,169,.28); border-radius:9px; color:#738a93; padding:8px 13px; font-style:italic; font-size:.74rem; animation:imperial-affairs-enter .25s ease-out; }
+.imperial-affairs-undo-row button { cursor:pointer; color:#507c99; background:transparent; border:0; padding:6px 8px; text-decoration:underline; }
+@keyframes imperial-affairs-enter { from {opacity:0; transform:translateY(-8px) scaleY(.76);} to {opacity:1; transform:none;} }
+@media(max-width:720px) {
+  .imperial-affairs-tabs { gap:3px; }
+  .imperial-affairs-tabs button { padding:7px 6px; font-size:.72rem; }
+  .imperial-affairs-inbox .imperial-affair-card { align-items:flex-start; flex-wrap:wrap; }
+  .imperial-affair-actions { flex-direction:row; justify-content:space-between; align-items:center; width:100%; }
+  .imperial-affairs-inbox .imperial-affair-actions button.imperial-affair-archive { opacity:1; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .imperial-affairs-inbox .imperial-affair-card { transition:none; }
+  .imperial-affairs-undo-row { animation:none; }
+}
+
+/* Login summary: the same three semantic tones, without reworking artwork. */
+.imperial-briefing-overlay .imperial-briefing-tasks .imperial-briefing-rows { gap:6px; }
+.imperial-briefing-overlay .imperial-briefing-tasks .imperial-briefing-task-row {
+  padding:8px 9px; border:1px solid rgba(172,182,190,.15); border-radius:7px;
+  background:rgba(255,254,252,.49);
+}
+.imperial-briefing-overlay .imperial-briefing-tasks .imperial-briefing-task-row.affair-urgent {
+  background:rgba(255,242,211,.68); border-color:rgba(201,162,78,.3);
+}
+.imperial-briefing-overlay .imperial-briefing-tasks .imperial-briefing-task-row.affair-important {
+  background:rgba(248,222,225,.72); border-color:rgba(182,98,108,.3);
+}
