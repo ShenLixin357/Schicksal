@@ -369,14 +369,6 @@ function HomeSection({ go }: { go: (id: Section) => void }) {
   );
 }
 
-function CitizensSection() {
-  return <><PageHead eyebrow="Citizen Registry" title="公民名册" copy="八个彩色棱分别象征八位公民；八棱共同构成帝国的共同主标志。" /><div className="registry">{CITIZENS.map((citizen,index) => <article key={citizen.id} className={citizen.locked ? "sealed" : ""} style={{ "--citizen": citizen.accent } as CSSProperties}><b>0{index + 1}</b><CitizenMark citizen={citizen} /><div><small>{citizen.office}</small><h2>{citizen.name}</h2><p>{citizen.codename}</p></div></article>)}</div><p className="note">八个棱在视觉原型中均有独立颜色；其余身份、年龄顺序及最终代表色仍待八位公民正式确认。</p></>;
-}
-
-function EmblemSection() {
-  return <><PageHead eyebrow="Shared Imperial Emblem" title="帝国八棱主标志" copy="标志由八个具有独立颜色的棱组成，每一棱象征一位公民；正式专名与是否归类为国徽仍待确定。" /><div className="emblem-page"><div><CitizenEmblem large /></div><section>{[["01","八棱八人","每一个彩色棱都对应一位天命公民。"],["02","共同构成","任何一棱都不是装饰；八位公民共同组成完整标志。"],["03","名称待定","现阶段仅使用“帝国八棱主标志”这一描述性称呼，不提前确定正式专名。"]].map(([n,title,copy]) => <article key={n}><b>{n}</b><div><h3>{title}</h3><p>{copy}</p></div></article>)}<p className="emblem-note">SHARED EMBLEM · EIGHT COLOURED RAYS</p></section></div></>;
-}
-
 // Kept as an internal visual reference while the persistent chamber replaces the original demo.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ParliamentSection({ citizen }: { citizen: Citizen }) {
