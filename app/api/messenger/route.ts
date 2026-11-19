@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       const rows = await env.DB.prepare(`SELECT id, sender_id AS senderId, recipient_id AS recipientId,
         body, created_at AS createdAt FROM member_direct_messages
         WHERE sender_id = ? OR recipient_id = ?
-        ORDER BY created_at DESC, id DESC LIMIT 500`).bind(selfId, selfId).all<Message>();
+        ORDER BY seq DESC LIMIT 500`).bind(selfId, selfId).all<Message>();
       const lastByPeer: Record<string, Message> = {};
       for (const message of rows.results) {
         const peer = conversationPartner(selfId, message);
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const rows = await env.DB.prepare(`SELECT id, sender_id AS senderId, recipient_id AS recipientId,
       body, created_at AS createdAt FROM member_direct_messages
       WHERE (sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)
-      ORDER BY created_at DESC, id DESC LIMIT 100`).bind(selfId, peer, peer, selfId).all<Message>();
+      ORDER BY seq DESC LIMIT 100`).bind(selfId, peer, peer, selfId).all<Message>();
     return Response.json({ messages: rows.results.reverse() }, { headers });
   } catch {
     return Response.json({ error: "通讯记录暂时无法读取。" }, { status: 503, headers });
