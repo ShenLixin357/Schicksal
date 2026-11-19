@@ -128,3 +128,11 @@ Verified the actual isolated Cloudflare D1 schema and a signed-in HTTP request: 
 - Only the Amberina Simple derived web PNG and `CITIZENS.amberina.markColor` change; the other member colours, Procreate masters and shared eight-blade emblem remain intact.
 - Synchronize already-existing CitizenMark inner/outer circles and President office halo/dots via `--mark`, removing fixed orange from leader halo and blue from Amberina's archive book/reader outer circular badges. Do not add any circles/dots where previously absent.
 - Deploy exclusively existing isolated preview Worker `schicksal-briefing-preview` + distinct test D1 `schicksal-briefing-preview-db`. Do not touch production Worker/D1 or merge main. Confirm CI, logged-in `/api/briefing` and `/api/presence` smoke checks.
+
+### 2026-11-19 · Login/identity 75.3% update and honors/meeting Speaker contrast
+
+- User replaces 35.7% web glyph tint with 75.3%: `#F1E17E` between official `#F3ED87` and suggested `#F0DD7B`.
+- Official citizen representative colour remains `#F3ED87` for non-glyph UI including Honors & Scoreboard member row and other representative accents, not uniformly darkened across all backgrounds.
+- Rename personal glyph URL to `/amberina-personal-simple-web753.png` to prevent reuse of browser-cached login artwork. Maintain Procreate original as `/amberina-personal-simple-official.png` and render meeting elected Speaker's badge in the *official* colour, including matching existing rings/President halo.
+- Keep the shared eight-colour empire emblem, all other citizen colours, Procreate masters, and personal Profile layout unchanged. No invented new circles or status dots.
+- Deploy **only** the existing isolated Worker `schicksal-briefing-preview` / preview-only D1 with existing dedicated credentials. No production Worker, production D1, or main merge. Check 75.3% artwork, authenticated briefing/presence and preview screenshot manually.

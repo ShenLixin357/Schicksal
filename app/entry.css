@@ -116,13 +116,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 
 .welcome { overflow: hidden; display: grid; place-items: center; text-align: center; background: radial-gradient(circle at 50% 47%,color-mix(in srgb,var(--citizen) 16%,white),#eef5f7 40%,#f4efe4 78%); }
 .welcome::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg,transparent 49.95%,rgba(49,88,116,.08) 50%,transparent 50.05%),linear-gradient(transparent 49.95%,rgba(49,88,116,.065) 50%,transparent 50.05%); }
-.welcome-rings { position: absolute; width: min(76vw,720px); aspect-ratio: 1; border: 1px solid color-mix(in srgb,var(--citizen) 15%,transparent); border-radius: 50%; animation: welcomeRing 1.6s ease-out both; }
-.welcome-rings i { position: absolute; inset: 14%; border: 1px solid color-mix(in srgb,var(--citizen) 10%,transparent); border-radius: 50%; }
+.welcome-rings { position: absolute; width: min(76vw,720px); aspect-ratio: 1; border: 1px solid color-mix(in srgb,var(--identity-mark,var(--citizen)) 15%,transparent); border-radius: 50%; animation: welcomeRing 1.6s ease-out both; }
+.welcome-rings i { position: absolute; inset: 14%; border: 1px solid color-mix(in srgb,var(--identity-mark,var(--citizen)) 10%,transparent); border-radius: 50%; }
 .welcome-rings i:nth-child(2) { inset: 29%; }.welcome-rings i:nth-child(3) { inset: 44%; }
 .welcome > section { position: relative; z-index: 2; padding: 65px 22px; animation: fadeUp 1s .15s both; }
-.welcome-mark { position: relative; width: 82px; height: 82px; margin: 32px auto 23px; border: 1px solid color-mix(in srgb,var(--citizen) 30%,transparent); display: grid; place-items: center; transform: rotate(45deg); }
+.welcome-mark { position: relative; width: 82px; height: 82px; margin: 32px auto 23px; border: 1px solid color-mix(in srgb,var(--identity-mark,var(--citizen)) 30%,transparent); display: grid; place-items: center; transform: rotate(45deg); }
 .welcome-mark .citizen-mark { width: 52px; height: 52px; border: 0; transform: rotate(-45deg); }
-.welcome-mark > i { position: absolute; inset: -1px; border-top: 1px solid var(--citizen); animation: scan 2.4s ease-in-out infinite; }
+.welcome-mark > i { position: absolute; inset: -1px; border-top: 1px solid var(--identity-mark,var(--citizen)); animation: scan 2.4s ease-in-out infinite; }
 .welcome section > small { color: #778397; font-size: 7px; letter-spacing: .38em; }
 .welcome h1 { margin: 12px 0 17px; font: 400 clamp(2.8rem,6vw,5.7rem) var(--serif); letter-spacing: -.045em; }
 .welcome-meta { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 14px; color: var(--citizen); font-size: 7px; letter-spacing: .18em; text-transform: uppercase; }

@@ -25,3 +25,16 @@ The existing outer points/ray halo on a citizen icon mark the **President of the
 - Every existing `CitizenMark` circular border/inner ring reads its own `--mark` colour. The existing `.citizen-mark.leader` halo/dots use the same `--mark` base instead of hard-coded amber/orange rgba. Alpha differences for subtle lines are allowed; no independent hue.
 - Existing circular book-cover and reader-author marks are also bound to the same member `markColor`. This corrects formerly blue rings around the Amberina mark while retaining their original circle shapes.
 - Do not recolour the shared eight-colour imperial emblem (`Citizen.accent`), other members' identity colours, or unrelated decorative UI.
+
+## Current decision: 75.3% for the *glyph only*, official identity colour elsewhere (2026-11-19)
+
+This supersedes the 35.7% temporary web display documented above.
+
+- Official representative colour: `#F3ED87` — all personal representative UI accents, including Amberina's Honors & Scoreboard row, selection/highlight tint, and other member-representative decoration. The main shared eight-colour emblem retains the existing `Citizen.accent` entry: do **not** alter the shared design.
+- New website Simple glyph colour: `#F1E17E` (75.3% RGB interpolation from `#F3ED87` toward `#F0DD7B`). This tint is **only** applied to the personal mark graphic, its pre-existing circular border/ring, and the President office halo/dots shown with that mark. Other UI colours are not darkened just because they relate to Amberina.
+- Derived web asset: `public/amberina-personal-simple-web753.png` (800 × 800 transparent); SHA-256 `6f2b94be6c80df63fe0a97fd216b68aa6099d975a5ea7798cbb3841ebb7ef3e4`. From the official Procreate QuickLook crop, non-transparent RGB channels get offset (-2,-12,-9) with original alpha intact. Two-tone relationships and shape preserved.
+- Original-colour asset for explicitly suitable dark scenes: `public/amberina-personal-simple-official.png` (800 × 800, SHA-256 `55b230019268fce29feb9011ba2d220f3576ec3d8c4d7659049548228b1e4823`) copied unchanged from the extracted Procreate QuickLook crop.
+- `CitizenMark` is the only central renderer. Default `display="web"` uses the web asset and web `--mark` for its surrounding rings and President halo; `display="official"` (used at the elected meeting Speaker's dark parliament stage) switches **both** artwork and ring/halo to `#F3ED87`.
+- Login selector and post-login Welcome both use the shared CitizenMark, now with a **new asset URL** so the browser does not reuse a cached old PNG. The empire's eight-blade symbol in the login header and opening remains unchanged.
+- `citizenRepresentativeColor` selects official colour for Amberina's non-glyph UI accents and preserves every other member's existing accent. The personal Profile layout and style are expressly deferred.
+- The earlier `public/amberina-personal-simple.png` 35.7% asset is retired to prevent accidental fallback.
