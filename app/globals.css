@@ -1251,10 +1251,10 @@
 }
 
 /* Committee Restroom v17 — transformed sigils and reciprocal room magic. */
-/* Restore Amberina's original circular halo/ray dots; only the central glyph changed.
-   Existing CitizenMark wrappers retain these, while unrelated raw artwork stays bare. */
-.citizen-mark.snow { color: var(--mark); background: radial-gradient(circle,rgba(255,224,126,.2),transparent 67%); box-shadow: inset 0 0 17px rgba(255,215,105,.11),0 0 18px rgba(242,193,74,.18); }
-.citizen-mark.snow::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; background: repeating-conic-gradient(from 0deg,rgba(243,201,105,.72) 0 2deg,transparent 2deg 30deg); -webkit-mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); opacity: .62; }
+/* The existing outer halo/dots indicate the President office, not Amberina or login state.
+   Existing CitizenMark circles remain in place; unrelated art gains no new adornment. */
+.citizen-mark.leader { color: var(--mark); background: radial-gradient(circle,rgba(255,224,126,.2),transparent 67%); box-shadow: inset 0 0 17px rgba(255,215,105,.11),0 0 18px rgba(242,193,74,.18); }
+.citizen-mark.leader::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; background: repeating-conic-gradient(from 0deg,rgba(243,201,105,.72) 0 2deg,transparent 2deg 30deg); -webkit-mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); opacity: .62; }
 
 .club-mystic-mark { position: relative; flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; display: inline-grid; place-items: center; isolation: isolate; }
 .club-mystic-mark::before { content: ""; position: absolute; inset: 4px; border: 1px solid currentColor; border-radius: 50%; opacity: .34; }

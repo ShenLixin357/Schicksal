@@ -1,5 +1,13 @@
 export type Citizen = { id: string; username: string; name: string; codename: string; office: string; accent: string; markColor: string; motif: string; locked?: boolean };
 
+/** Leadership halo belongs to the President office, not member identity or login.
+ * At present office is static registry data; a future dynamic office service
+ * must supply authoritative current office assignments to CITIZENS.
+ */
+export function hasLeaderInsignia(citizen: Pick<Citizen, "office">): boolean {
+  return citizen.office === "President of the First Empire";
+}
+
 export const CITIZENS: Citizen[] = [
   { id: "amberina", username: "宇宙霸主", name: "Amberina von Schicksal", codename: "宇宙霸主", office: "President of the First Empire", accent: "#f3c969", markColor: "#F3ED87", motif: "snow" },
   { id: "zxy", username: "No.2", name: "zxy", codename: "No.2", office: "Citizen of the First Empire", accent: "#d95d52", markColor: "#f05f55", motif: "flame" },

@@ -6,7 +6,7 @@ import { markBriefingViewed, type BriefingTarget } from "./briefing/briefing-dat
 import { useBriefingFeed } from "./briefing/use-briefing-feed";
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { SidebarPresence } from "./briefing/sidebar-presence";
-import { CITIZENS, type Citizen } from "./citizens";
+import { CITIZENS, hasLeaderInsignia, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
 import { SpeakerManagement } from "./speaker-management";
 import { startTransition, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
@@ -218,10 +218,11 @@ function Wordmark() {
 }
 
 function CitizenMark({ citizen }: { citizen: Citizen }) {
+  const leaderClass = hasLeaderInsignia(citizen) ? " leader" : "";
   // Amberina's official Simple mark is derived from the actual Procreate master preview.
   // Keep the original citizen-mark circle/halo; never use Parhelia by default.
   if (citizen.id === "amberina") {
-    return <span className="citizen-mark snow personal-simple" style={{ "--mark": citizen.markColor } as CSSProperties} aria-hidden="true">
+    return <span className={`citizen-mark personal-simple${leaderClass}`} style={{ "--mark": citizen.markColor } as CSSProperties} aria-hidden="true">
       <Image src="/amberina-personal-simple.png" alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
     </span>;
   }
@@ -242,7 +243,7 @@ function CitizenMark({ citizen }: { citizen: Citizen }) {
     default:
       sigil = <><path d="M18 18h28v28H18z" /><path d="m18 18 28 28m0-28L18 46" /></>;
   }
-  return <span className={`citizen-mark ${citizen.motif}`} style={{ "--mark": citizen.markColor } as CSSProperties} aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{sigil}</svg></span>;
+  return <span className={`citizen-mark ${citizen.motif}${leaderClass}`} style={{ "--mark": citizen.markColor } as CSSProperties} aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{sigil}</svg></span>;
 }
 
 function Opening({ done }: { done: () => void }) {

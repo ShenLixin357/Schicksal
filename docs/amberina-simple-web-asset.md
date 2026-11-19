@@ -11,3 +11,7 @@ Source of truth: user-uploaded `AvS_Final_Procreate_Only(1).zip` (2026-11-19).
 - The original `CitizenMark` circular outer border, inner ring, and gold peripheral halo/ray dots are *site UI decoration*, **not** part of the image master. Preserve them wherever `CitizenMark` already rendered. Do not add rings/dots to unrelated illustrations, the empire's shared eight-color emblem, or other placements that previously lacked them.
 - The sidebar's real online-member display continues to use the same `CitizenMark` component: maintain existing locations, click-to-public-profile behavior, and no additional status dots, names, counts, or topbar duplicates.
 - Official personal representative color: `#F3ED87`. Do not mutate the original Procreate artwork to change contrast on a light background.
+
+## Leadership halo semantics
+
+The existing outer points/ray halo on a citizen icon mark the **President of the First Empire** office, not Amberina, not the current login, and not an online-presence indicator. The shared inner circular CitizenMark frame stays where it already existed. `hasLeaderInsignia(citizen)` derives the halo from `citizen.office`; a new officeholder inherits the halo, while the previous one loses it. At present `CITIZENS` stores the office statically. Future dynamic office elections must update from authoritative server records before this marker can change live. Do not introduce a new dot badge anywhere else.
