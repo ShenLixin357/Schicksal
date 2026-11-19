@@ -4,6 +4,7 @@ import Image from "next/image";
 import { BriefingDesk, BriefingOverlay } from "./briefing/briefing";
 import { markBriefingViewed, type BriefingTarget } from "./briefing/briefing-data";
 import { useBriefingFeed } from "./briefing/use-briefing-feed";
+import { fetchBriefingFeed, type BriefingFeed } from "./briefing/briefing-loader";
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { SidebarPresence } from "./briefing/sidebar-presence";
 import { CITIZENS, AMBERINA_OFFICIAL_COLOR, citizenRepresentativeColor, hasLeaderInsignia, type Citizen } from "./citizens";
@@ -12,7 +13,7 @@ import { SchicksalAtlas } from "./atlas/schicksal-atlas";
 import { AtlasGovernmentHandbook } from "./atlas/government-handbook";
 import { atlasOfficesForCitizen, atlasName, atlasCodename } from "./atlas/atlas-data";
 import { SpeakerManagement } from "./speaker-management";
-import { startTransition, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
 import { ArticulatedFan, LaceFanDrawing } from "./club/articulated-fan";
 import { FAN_CYCLE_MS } from "./club/fan-motion";
 import { MysticSigil } from "./club/mystic-marks";
@@ -327,13 +328,27 @@ function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: (
   );
 }
 
-function Welcome({ citizen, enter }: { citizen: Citizen; enter: () => void }) {
+type PreloadStatus = "loading" | "ready" | "error";
+function Welcome({ citizen, enter, preloadStatus, retry, enterWithoutBriefing }: {
+  citizen: Citizen;
+  enter: () => void;
+  preloadStatus: PreloadStatus;
+  retry: () => void;
+  enterWithoutBriefing: () => void;
+}) {
   const [leaving, setLeaving] = useState(false);
+  const [introFinished, setIntroFinished] = useState(false);
   useEffect(() => {
-    const fadeTimer = window.setTimeout(() => setLeaving(true), 3900);
-    const enterTimer = window.setTimeout(enter, 4700);
+    const timer = window.setTimeout(() => setIntroFinished(true), 3900);
+    return () => window.clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    if (!introFinished || preloadStatus !== "ready") return;
+    // Do not fade the welcome screen until the latest briefing is ready.
+    const fadeTimer = window.setTimeout(() => setLeaving(true), 0);
+    const enterTimer = window.setTimeout(enter, 800);
     return () => { window.clearTimeout(fadeTimer); window.clearTimeout(enterTimer); };
-  }, [enter]);
+  }, [introFinished, preloadStatus, enter]);
   return (
     <main className={`welcome ${leaving ? "leaving" : ""}`} style={{ "--citizen": citizenRepresentativeColor(citizen), "--identity-mark": citizen.markColor } as CSSProperties}>
       <div className="welcome-rings" aria-hidden="true"><i /><i /><i /></div>
@@ -343,7 +358,12 @@ function Welcome({ citizen, enter }: { citizen: Citizen; enter: () => void }) {
         <small>WELCOME TO SCHICKSAL</small><h1>{citizen.name}</h1>
         <div className="welcome-meta"><span>{citizen.office}</span><i /><span>CODE NAME · {citizen.codename}</span></div>
         <p>Your citizen identity has been recognised by the Imperial System.<br />帝国系统已识别你的公民身份。</p>
-        <button type="button" onClick={enter}>ENTER NOW <span>→</span></button>
+        <button type="button" onClick={enter} disabled={preloadStatus !== "ready"}>{preloadStatus === "ready" ? "ENTER NOW" : "PREPARING BRIEFING…"} <span>→</span></button>
+        {preloadStatus === "loading" && <div className="welcome-preload-status" role="status">正在准备最新政务与简报…</div>}
+        {preloadStatus === "error" && <div className="welcome-preload-status" role="alert">
+          简报同步暂时失败。可重试，或选择先进入主页。
+          <div className="welcome-preload-actions"><button type="button" onClick={retry}>RETRY SYNC</button><button type="button" onClick={enterWithoutBriefing}>ENTER WITHOUT BRIEFING</button></div>
+        </div>}
       </section>
       <footer>CURRENT OFFICE <strong>{citizen.office.toUpperCase()}</strong></footer>
       <div className="welcome-progress" aria-hidden="true"><i /></div>
@@ -1917,11 +1937,13 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom = "commi
   );
 }
 
-function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
+function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
+  citizen: Citizen; logout: () => void; initialBriefing: BriefingFeed | null; initialBriefingOpen: boolean;
+}) {
   const [section,setSection] = useState<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [briefingOpen, setBriefingOpen] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(initialBriefingOpen);
   const [focusedCitizenId, setFocusedCitizenId] = useState<string | null>(null);
   const [viewedCitizenId,setViewedCitizenId] = useState(citizen.id);
   const [atlasHandbookOpen,setAtlasHandbookOpen] = useState(false);
@@ -1929,29 +1951,8 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   const [parliamentDeepLinkFocus, setParliamentDeepLinkFocus] = useState<"proposal" | "speaker" | "debate" | "vote">("vote");
   const [parliamentFocus, setParliamentFocus] = useState<"all" | "referendum">("all");
   const [loungeLanding, setLoungeLanding] = useState<"committee" | "game-room">("committee");
-  const briefingFeed = useBriefingFeed(citizen.id, section);
+  const briefingFeed = useBriefingFeed(citizen.id, section, initialBriefing);
   const presence = useMemberPresence(citizen.id);
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetch("/api/briefing-session", { cache: "no-store", signal: controller.signal })
-      .then(async (response) => response.ok ? await response.json() as { citizenId?: string; briefingSessionKey?: string | null } : null)
-      .then((session) => {
-        if (controller.signal.aborted || session?.citizenId !== citizen.id || !session.briefingSessionKey) return;
-        // The display marker (not the authentication token) is shared between tabs.
-        // It changes on each new login and survives refresh in that login session.
-        try {
-          // A returning mini-game should not be interrupted by a full-screen overlay.
-          // Do not mark the briefing as viewed until it actually appears.
-          if (new URLSearchParams(window.location.search).get("lounge") === "game-room") return;
-          if (markBriefingViewed(window.localStorage, session.briefingSessionKey)) setBriefingOpen(true);
-        } catch {
-          try {
-            if (markBriefingViewed(window.sessionStorage, session.briefingSessionKey)) setBriefingOpen(true);
-          } catch { setBriefingOpen(true); }
-        }
-      }).catch(() => undefined);
-    return () => controller.abort();
-  }, [citizen.id]);
   useEffect(() => {
     try { setSidebarCollapsed(window.localStorage.getItem("schicksal:sidebar-collapsed") === "true"); } catch { /* Keep the navigation expanded when storage is unavailable. */ }
   }, []);
@@ -2054,9 +2055,15 @@ function System({ citizen, logout }: { citizen: Citizen; logout: () => void }) {
   );
 }
 
+type PreparedBriefing = { status: PreloadStatus; citizenId?: string; feed?: BriefingFeed; sessionKey?: string };
+type SystemBriefing = { feed: BriefingFeed | null; show: boolean };
+
 export default function Home() {
-  const [phase,setPhase] = useState<Phase>("opening");
-  const [citizen,setCitizen] = useState(CITIZENS[0]);
+  const [phase, setPhase] = useState<Phase>("opening");
+  const [citizen, setCitizen] = useState(CITIZENS[0]);
+  const [preload, setPreload] = useState<PreparedBriefing>({ status: "loading" });
+  const [preloadAttempt, setPreloadAttempt] = useState(0);
+  const [systemBriefing, setSystemBriefing] = useState<SystemBriefing>({ feed: null, show: false });
   const logoutPending = useRef(false);
   const restoredCitizen = useRef<Citizen | null>(null);
   const restoreController = useRef<AbortController | null>(null);
@@ -2096,10 +2103,55 @@ export default function Home() {
       }).catch(() => undefined);
     return () => controller.abort();
   }, []);
+  useEffect(() => {
+    if (phase !== "welcome") return;
+    let active = true;
+    const controller = new AbortController();
+    // A failed or hung request must not trap a citizen in a never-ending transition.
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    void Promise.all([
+      fetchBriefingFeed(controller.signal),
+      fetch("/api/briefing-session", { cache: "no-store", credentials: "same-origin", signal: controller.signal })
+        .then(async response => {
+          if (!response.ok) throw new Error("Could not validate briefing session");
+          const result = await response.json() as { citizenId?: string; briefingSessionKey?: string | null };
+          if (result.citizenId !== citizen.id || !result.briefingSessionKey) throw new Error("Briefing identity mismatch");
+          return result.briefingSessionKey;
+        }),
+    ]).then(([feed, sessionKey]) => {
+      if (active && !controller.signal.aborted) setPreload({ status: "ready", citizenId: citizen.id, feed, sessionKey });
+    }).catch(() => { if (active) setPreload({ status: "error", citizenId: citizen.id }); })
+      .finally(() => window.clearTimeout(timeout));
+    return () => { active = false; controller.abort(); window.clearTimeout(timeout); };
+  }, [phase, citizen.id, preloadAttempt]);
+  const retryPreload = useCallback(() => {
+    setPreload({ status: "loading" });
+    setPreloadAttempt(value => value + 1);
+  }, []);
+  const enterSystem = useCallback(() => {
+    if (preload.status !== "ready" || preload.citizenId !== citizen.id || !preload.feed || !preload.sessionKey) return;
+    // Preserve the existing once-per-login, across-tabs marker without
+    // claiming the briefing has appeared before fresh data is available.
+    let show = false;
+    try { show = markBriefingViewed(window.localStorage, preload.sessionKey); }
+    catch {
+      try { show = markBriefingViewed(window.sessionStorage, preload.sessionKey); }
+      catch { show = true; }
+    }
+    setSystemBriefing({ feed: preload.feed, show });
+    setPhase("system");
+  }, [citizen.id, preload]);
+  const enterWithoutBriefing = useCallback(() => {
+    // Explicit fallback only: the system loads its own feed later but never
+    // flashes an empty or stale automatic overlay.
+    setSystemBriefing({ feed: null, show: false });
+    setPhase("system");
+  }, []);
   if (phase === "opening") return <Opening done={() => setPhase(restoredCitizen.current ? "welcome" : "login")} />;
-  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next) => { restoreController.current?.abort(); setCitizen(next); setPhase("welcome"); }} />;
-  if (phase === "welcome") return <Welcome citizen={citizen} enter={() => setPhase("system")} />;
-  return <System citizen={citizen} logout={() => { void logoutMember(); }} />;
+  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next) => { restoreController.current?.abort(); setCitizen(next); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
+  if (phase === "welcome") return <Welcome citizen={citizen} enter={enterSystem}
+    preloadStatus={preload.citizenId && preload.citizenId !== citizen.id ? "loading" : preload.status}
+    retry={retryPreload} enterWithoutBriefing={enterWithoutBriefing} />;
+  return <System citizen={citizen} initialBriefing={systemBriefing.feed} initialBriefingOpen={systemBriefing.show}
+    logout={() => { void logoutMember(); }} />;
 }
-
-
