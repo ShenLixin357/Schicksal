@@ -50,6 +50,24 @@ jobs:
             if(!readFileSync(file).length) throw Error("Missing visual asset: "+file);
           }
           NODE
+      - name: Validate independent Atlas interactions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import {readFileSync,writeFileSync,statSync} from "node:fs";
+          const html=readFileSync("preview/atlas-design-lab/index.html","utf8");
+          const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)];
+          if(scripts.length!==1) throw Error("Expected exactly one inline Atlas script");
+          writeFileSync("/tmp/atlas-preview-script.js",scripts[0][1]);
+          for(const required of ["aurora-wheel","auroraNodes","auroraOverlay","openCitizen","closeCitizen","ASSETS","memberEmblems","sharedEmblem"]) {
+            if(!html.includes(required)) throw Error("Missing interactive Atlas element: "+required);
+          }
+          const bg=statSync("preview/atlas-design-lab/assets/iris-lily-background.webp");
+          if(bg.size<1000) throw Error("Selected stained-glass background missing");
+          console.log("Atlas markup and separate approved-art layout verified");
+          NODE
+          node --check /tmp/atlas-preview-script.js
       - name: Install Wrangler
         run: npm ci
       - name: Deploy isolated STATIC assets Worker
@@ -62,6 +80,7 @@ jobs:
           curl --retry 6 --retry-delay 4 --retry-all-errors --fail --location --silent --show-error "$ROOT/" -o /tmp/atlas-live.html
           grep -q "Schicksal Atlas" /tmp/atlas-live.html
           curl --retry 4 --retry-delay 2 --retry-all-errors --fail --location --silent --show-error "$ROOT/assets/shared-emblem.webp" -o /tmp/atlas-main-emblem.webp
+          curl --retry 4 --retry-delay 2 --retry-all-errors --fail --location --silent --show-error "$ROOT/assets/iris-lily-background.webp" -o /tmp/atlas-glass.webp
           test "$(wc -c </tmp/atlas-main-emblem.webp)" -gt 1000
           echo "### Atlas visual preview" >> "$GITHUB_STEP_SUMMARY"
           echo "$ROOT/" >> "$GITHUB_STEP_SUMMARY"
