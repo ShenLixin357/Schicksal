@@ -139,3 +139,13 @@
 @media (max-width:370px) {
   .imperial-sidebar .imperial-nav-copy > strong { font-size:.6rem; }
 }
+
+/* A transient, design-neutral wait state for deferred module chunks. */
+.feature-loading {
+  min-height: min(50svh,420px);
+  display: grid;
+  place-items: center;
+  color: #738095;
+  font: 400 .74rem/1.6 var(--sans);
+  letter-spacing: .08em;
+}
