@@ -1,6 +1,6 @@
-import { PUBLIC_MEMBER_VISUALS, getPublicMemberVisual, AMBERINA_OFFICIAL_COLOR, AMBERINA_WEB_MARK_COLOR } from "./identity/visual-registry";
+import { PUBLIC_MEMBER_VISUALS, getPublicMemberVisual, AMBERINA_OFFICIAL_COLOR, AMBERINA_WEB_MARK_COLOR } from "./identity/visual-registry.ts";
 
-export { AMBERINA_OFFICIAL_COLOR, AMBERINA_WEB_MARK_COLOR } from "./identity/visual-registry";
+export { AMBERINA_OFFICIAL_COLOR, AMBERINA_WEB_MARK_COLOR } from "./identity/visual-registry.ts";
 
 export type Citizen = { id: string; username: string; name: string; codename: string; office: string; accent: string; markColor: string; motif: string; locked?: boolean };
 
