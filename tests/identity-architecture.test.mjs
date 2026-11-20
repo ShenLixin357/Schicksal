@@ -80,3 +80,20 @@ test("new modules can import registries without bringing in private scene or dat
   assert.match(page, /const AtlasGovernmentHandbook = lazy\(\(\) => import\("\.\/atlas\/government-handbook"\)/);
   assert.match(page, /mandatory-briefing-gate/);
 });
+
+test("public mark/compact emblem renderers are reusable without copying Lounge marks", () => {
+  const page = source("app/page.tsx");
+  const mark = source("app/identity/public-mark.tsx");
+  const compact = source("app/emblem/compact-emblem.tsx");
+  assert.match(page, /import \{ PublicCitizenMark as CitizenMark \}/);
+  assert.match(page, /import \{ CompactEmpireEmblem as Emblem \}/);
+  assert.doesNotMatch(page, /function CitizenMark\(/);
+  assert.match(mark, /export function PublicCitizenMark/);
+  assert.match(mark, /getPublicMemberVisual\(citizen\.id\)/);
+  assert.match(mark, /isCurrentPresident\(citizen\.id\)/);
+  assert.match(mark, /<Image src=\{markAsset\}/);
+  assert.match(compact, /export function CompactEmpireEmblem/);
+  assert.match(compact, /EMBLEM_BLADES\.map/);
+  assert.match(compact, /className=\{`emblem /);
+  assert.doesNotMatch(compact, /mafraer|LOUNGE_IDENTITIES|MysticSigil/);
+});
