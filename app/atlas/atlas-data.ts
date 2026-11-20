@@ -6,17 +6,17 @@ export type { Office } from "../identity/office-registry";
 
 /** Replace art paths independently; the UI never redraws a member's approved sigil or flower. */
 export type AtlasAppearance = { emblemSrc?: string; ornamentSrc?: string; accent?: string };
-export const ATLAS_APPEARANCE: Record<string, AtlasAppearance> =
-  Object.fromEntries(Object.keys(PUBLIC_MEMBER_VISUALS).flatMap(id => {
-    const member = getPublicMemberVisual(id);
-    if (!member || (!member.officialMarkAsset && !member.atlasOrnamentAsset && !member.atlasPersonalColor))
-      return [];
-    return [[id, {
-      emblemSrc: member.officialMarkAsset,
-      ornamentSrc: member.atlasOrnamentAsset,
-      accent: member.atlasPersonalColor,
-    }]];
-  }));
+const atlasAppearances: Record<string, AtlasAppearance> = {};
+for (const id of Object.keys(PUBLIC_MEMBER_VISUALS)) {
+  const visual = getPublicMemberVisual(id);
+  if (!visual || (!visual.officialMarkAsset && !visual.atlasOrnamentAsset && !visual.atlasPersonalColor)) continue;
+  atlasAppearances[id] = {
+    emblemSrc: visual.officialMarkAsset,
+    ornamentSrc: visual.atlasOrnamentAsset,
+    accent: visual.atlasPersonalColor,
+  };
+}
+export const ATLAS_APPEARANCE: Record<string, AtlasAppearance> = atlasAppearances;
 /** The approved Atlas image remains separate from the procedural home sculpture. */
 export const ATLAS_SHARED_EMBLEM_SRC: string | null = PUBLIC_EMPIRE_ASSETS.atlasEmblem;
 
