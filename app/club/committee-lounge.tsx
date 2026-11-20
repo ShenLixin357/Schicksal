@@ -7,6 +7,7 @@ import { CLUB_MEMBER_IDS, LOUNGE_IDENTITIES } from "./lounge-access";
 import type { ClubProfile, ClubMessage, ClubData } from "./lounge-contract";
 import { ArticulatedFan, LaceFanDrawing } from "./articulated-fan";
 import { FAN_CYCLE_MS } from "./fan-motion";
+import { wantsGameRoomReturn, consumeGameRoomReturn } from "./game-room-return";
 import { MysticSigil } from "./mystic-marks";
 import { LoungeTable, LoungeTeaRitual } from "./tea-ritual";
 
@@ -138,14 +139,9 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   const amberinaProfile = clubData.profiles?.find((profile) => profile.citizenId === "amberina");
 
   useEffect(() => {
-    let remembered = false;
-    try { remembered = window.sessionStorage.getItem(GAME_ROOM_RETURN_KEY) === "game-room"; } catch { /* URL still provides an explicit return. */ }
-    if (remembered || new URLSearchParams(window.location.search).get("lounge") === "game-room") {
+    if (wantsGameRoomReturn(window)) {
       setRoomView("game-room");
-      try { window.sessionStorage.removeItem(GAME_ROOM_RETURN_KEY); } catch { /* No stored return to clear. */ }
-      const url = new URL(window.location.href);
-      url.searchParams.delete("lounge");
-      window.history.replaceState(window.history.state, "", url);
+      consumeGameRoomReturn(window);
     }
   }, []);
 
