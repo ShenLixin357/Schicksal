@@ -616,6 +616,7 @@ function drawShatter(t){
  }
  if(q<.34)drawCrackPropagation(ctx,q);
 }
+function bezierP(ax,ay,bx,by,cx,cy,t){const u=1-t;return [u*u*ax+2*u*t*bx+t*t*cx,u*u*ay+2*u*t*by+t*t*cy];}
 function drawMagic(t,type){
  sx.clearRect(0,0,sw,sh);
  const cr=card.getBoundingClientRect(),sr=stage.getBoundingClientRect();
