@@ -90,7 +90,12 @@ test("all private data routes and D1 table ownership remain untouched by this fe
   const room = read("app/club/committee-lounge.tsx");
   const panel = read("app/parliament/parliament-section.tsx");
   assert.match(panel, /method: "POST"/);
-  assert.match(room, /method: "POST"/);
+  // Phase D moves transport into a typed client adapter. The presentation
+  // no longer constructs POST requests or claims an authenticated member ID.
+  const loungeTransport = read("app/club/lounge-api.ts");
+  assert.match(loungeTransport, /method: "POST"/);
+  assert.match(room, /postCommitteeAction/);
+  assert.doesNotMatch(room, /fetch\(/);
   assert.doesNotMatch(read("app/page.tsx"), /"\/api\/parliament"|"\/api\/committee-club"/);
 });
 
