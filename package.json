@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && node scripts/insaniquarium/check-resources.mjs && vinext build",
     "start": "vinext start",
-    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase && npm run test:messenger && npm run test:shell && npm run test:architecture && npm run test:identity && npm run test:backup-restore && npm run test:migration-authority && npm run db:check && npm run test:isolation && npm run test:game-room-return && npm run test:lounge-api && npm run test:identity-architecture",
+    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase && npm run test:messenger && npm run test:shell && npm run test:architecture && npm run test:identity && npm run test:backup-restore && npm run test:migration-authority && npm run db:check && npm run test:isolation && npm run test:game-room-return && npm run test:lounge-api && npm run test:identity-architecture && npm run test:asset-audit",
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
     "test:minigames": "node --experimental-transform-types --test tests/potion-sort-engine.test.ts tests/merge-game-engine.test.ts tests/chryser-games.test.ts",
     "test:mafraer": "node --experimental-transform-types --test tests/mafraer-magic.test.ts tests/mafraer-observatory.test.ts",
@@ -51,7 +51,8 @@
     "test:isolation": "node --test tests/architecture-phase-d.test.mjs",
     "test:game-room-return": "node --experimental-transform-types --test tests/game-room-return.test.mjs",
     "test:lounge-api": "node --experimental-transform-types --test tests/lounge-api.test.mjs",
-    "test:identity-architecture": "node --experimental-transform-types --test tests/identity-architecture.test.mjs"
+    "test:identity-architecture": "node --experimental-transform-types --test tests/identity-architecture.test.mjs",
+    "test:asset-audit": "node --test tests/public-assets-budget.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
