@@ -8,8 +8,8 @@ const endpoint = "/api/committee-club";
  * UI/transport boundary only. The server owns all member identity and
  * privileges; no query string or submitted action may impersonate a member.
  */
-async function readRoomResponse(response: Response, failure: string): Promise<ClubData> {
-  const payload = await response.json() as ClubData;
+async function readRoomResponse<T extends ClubData>(response: Response, failure: string): Promise<T> {
+  const payload = await response.json() as T;
   if (!response.ok) throw new Error(payload.error || failure);
   return payload;
 }
@@ -42,5 +42,5 @@ export async function postCommitteeAction(body: Record<string, string | number>)
     headers: { "content-type": "application/json" },
     body: JSON.stringify(action),
   });
-  return readRoomResponse(response, "房间没能保存这次魔法。");
+  return readRoomResponse<ClubMutationResult>(response, "房间没能保存这次魔法。");
 }
