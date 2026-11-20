@@ -36,7 +36,8 @@ export async function fetchCommitteeHistory(
 
 export async function postCommitteeAction(body: Record<string, string | number>): Promise<ClubMutationResult> {
   // Compatibility input may carry a legacy claimed identity; never send it.
-  const { citizenId: _untrustedCitizenId, ...action } = body;
+  const action = { ...body };
+  delete action.citizenId;
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
