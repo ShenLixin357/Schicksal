@@ -51,13 +51,29 @@ function setup() {
     try { const result = statements.map(statement => statement.execute()); db.exec("COMMIT"); return result; }
     catch (error) { db.exec("ROLLBACK"); throw error; }
   } };
+  // Real signed-in sessions: a spoofed Worker header alone must never authorize
+  // direct API calls. Stable synthetic cookies are never production credentials.
+  for (const [index, id] of ["amberina", "zxy", "truth", "kaito", "harry"].entries()) {
+    const token = String(index + 1).repeat(64);
+    db.prepare("INSERT INTO member_sessions(token_hash,citizen_id,expires_at) VALUES(?,?,?)")
+      .run(createHash("sha256").update(token).digest("hex"), id, Date.now() + 3600000);
+  }
   return db;
 }
+const cookie = member => {
+  const index = ["amberina", "zxy", "truth", "kaito", "harry"].indexOf(member);
+  return index < 0 ? "" : `schicksal_member=${String(index + 1).repeat(64)}`;
+};
 const request = (payload, member = "truth") => new Request("https://test.schicksal.invalid/api/committee-club", {
-  method: "POST", headers: { "content-type": "application/json", "x-schicksal-server-member": member }, body: JSON.stringify(payload),
+  method: "POST",
+  headers: { "content-type": "application/json", origin: "https://test.schicksal.invalid",
+    "x-schicksal-server-member": "amberina", ...(cookie(member) ? { cookie: cookie(member) } : {}) },
+  body: JSON.stringify(payload),
 });
 const change = async (payload, member) => { const response = await route.POST(request(payload, member)); return { response, body: await response.json() }; };
-const history = (params = {}, member = "truth") => historyRoute.GET(new Request(`https://test.schicksal.invalid/api/committee-club/vase-history?${new URLSearchParams(params)}`, { headers: { "x-schicksal-server-member": member } }));
+const history = (params = {}, member = "truth") => historyRoute.GET(new Request(`https://test.schicksal.invalid/api/committee-club/vase-history?${new URLSearchParams(params)}`, {
+  headers: { "x-schicksal-server-member": "amberina", ...(cookie(member) ? { cookie: cookie(member) } : {}) },
+}));
 
 test("catalogue preserves all original IDs and adds the complete 30-option contract", () => {
   assert.equal(VASE_OPTIONS.length, 30);
@@ -158,7 +174,7 @@ test("history paginates equal-time events without gaps and rejects unauthorized 
     assert.equal(ids.length, 75); assert.equal(new Set(ids).size, 75); assert.deepEqual(ids, [...ids].sort((a,b) => b-a));
     for (const value of ["0", "-1", "abc", "1 OR 1=1", "1.5", "9007199254740993"]) assert.equal((await history({ before: value })).status, 400);
     assert.equal((await history({ citizenId: "truth" }, "kaito")).status, 403);
-    assert.equal((await history({ citizenId: "truth" }, "")).status, 403);
+    assert.equal((await history({ citizenId: "truth" }, "")).status, 401);
     assert.equal((await change({ action: "vase", vaseSelection: "bananas", citizenId: "truth" }, "kaito")).response.status, 403);
   } finally { db.close(); }
 });
