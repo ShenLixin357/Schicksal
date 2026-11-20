@@ -39,7 +39,8 @@ test("Lounge authorization survives code splitting and unauthorized logo remains
   assert.match(access, /CLUB_MEMBER_IDS = new Set\(\["amberina", "zxy", "truth"\]\)/);
   assert.match(access, /export function announceCommitteeLounge/);
   assert.match(room, /export function CommitteeLounge/);
-  assert.match(room, /fetch\("\/api\/committee-club"/);
+  assert.match(room, /from "\.\/lounge-api"/);
+  assert.match(read("app/club/lounge-api.ts"), /const endpoint = "\/api\/committee-club"/);
   assert.match(room, /MafraerLounge/);
   assert.match(page, /if \(!CLUB_MEMBER_IDS\.has\(citizen\.id\) \|\| portal\) return/);
   assert.match(page, /else if \(CLUB_MEMBER_IDS\.has\(citizen\.id\)\) enterLounge\(\)/);
