@@ -60,7 +60,7 @@ test("game selector is lightweight and private scenes/engines load on demand", (
   assert.match(lounge,/import \{ useMiniGameSystem \} from "\.\/minigames\/use-mini-game-system";/);
 });
 
-test("preserved Lounge styles now live outside globals and remain ordered after it", () => {
+test("preserved Lounge scene CSS loads with its lazy route instead of global entry", () => {
   const globals = read("app/globals.css");
   const lounge = read("app/club/lounge-scenes.css");
   const layout = read("app/layout.tsx");
@@ -73,10 +73,11 @@ test("preserved Lounge styles now live outside globals and remain ordered after 
     "./globals.css", "./club/lounge-core.css",
     "./parliament/parliament-workspace.css", "./archives/archive-reader.css",
     "./parliament/parliament-scenes.css", "./club/lounge-v15.css",
-    "./club/lounge-scenes.css",
   ];
   const indices = ordered.map(path => layout.indexOf('import "'+path+'";'));
-  assert.ok(indices.every((value,index) => value >= 0 && (index === 0 || value > indices[index-1])), "the original CSS cascade order must remain unchanged");
+  assert.ok(indices.every((value,index) => value >= 0 && (index === 0 || value > indices[index-1])), "existing global CSS import order must remain stable");
+  assert.doesNotMatch(layout, /import "\\.\\/club\\/lounge-scenes\\.css";/);
+  assert.match(read("app/club/committee-lounge.tsx"), /import "\\.\\/lounge-scenes\\.css";/);
   assert.match(read("app/club/lounge-core.css"), /Committee Restroom — member-only Halloween club/);
   assert.match(read("app/parliament/parliament-workspace.css"), /Persistent parliament workspace/);
   assert.match(read("app/archives/archive-reader.css"), /National Archives: the authored record/);
