@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { BriefingDesk, BriefingOverlay } from "./briefing/briefing";
-import { markBriefingViewed, type BriefingTarget } from "./briefing/briefing-data";
+import type { BriefingTarget } from "./briefing/briefing-data";
 import { useBriefingFeed } from "./briefing/use-briefing-feed";
 import { fetchBriefingFeed, type BriefingFeed } from "./briefing/briefing-loader";
 import { useMemberPresence } from "./briefing/use-member-presence";
@@ -321,12 +321,11 @@ function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: (
 }
 
 type PreloadStatus = "loading" | "ready" | "error";
-function Welcome({ citizen, enter, preloadStatus, retry, enterWithoutBriefing }: {
+function Welcome({ citizen, enter, preloadStatus, retry }: {
   citizen: Citizen;
   enter: () => void;
   preloadStatus: PreloadStatus;
   retry: () => void;
-  enterWithoutBriefing: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
   const [introFinished, setIntroFinished] = useState(false);
@@ -353,8 +352,8 @@ function Welcome({ citizen, enter, preloadStatus, retry, enterWithoutBriefing }:
         <button type="button" onClick={enter} disabled={preloadStatus !== "ready"}>{preloadStatus === "ready" ? "ENTER NOW" : "PREPARING BRIEFING…"} <span>→</span></button>
         {preloadStatus === "loading" && <div className="welcome-preload-status" role="status">正在准备最新政务与简报…</div>}
         {preloadStatus === "error" && <div className="welcome-preload-status" role="alert">
-          简报同步暂时失败。可重试，或选择先进入主页。
-          <div className="welcome-preload-actions"><button type="button" onClick={retry}>RETRY SYNC</button><button type="button" onClick={enterWithoutBriefing}>ENTER WITHOUT BRIEFING</button></div>
+          简报尚未准备好。同步成功并查看简报后，才能进入帝国。
+          <div className="welcome-preload-actions"><button type="button" onClick={retry}>重新同步简报</button></div>
         </div>}
       </section>
       <footer>CURRENT OFFICE <strong>{citizen.office.toUpperCase()}</strong></footer>
@@ -1867,15 +1866,18 @@ function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom = "commi
   );
 }
 
-function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
-  citizen: Citizen; logout: () => void; initialBriefing: BriefingFeed | null; initialBriefingOpen: boolean;
+function System({ citizen, logout, initialBriefing }: {
+  citizen: Citizen; logout: () => void; initialBriefing: BriefingFeed;
 }) {
   const [section,setSection] = useState<Section>("home");
   const [portal, setPortal] = useState<LoungePassageDirection | null>(null);
   const portalReturnSection = useRef<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [briefingOpen, setBriefingOpen] = useState(initialBriefingOpen);
+  // Mandatory post-login gate: the application shell is never rendered until
+  // a validated live briefing has actually been displayed and acknowledged.
+  const [entryBriefingPending, setEntryBriefingPending] = useState(true);
+  const [briefingOpen, setBriefingOpen] = useState(true);
   const [focusedCitizenId, setFocusedCitizenId] = useState<string | null>(null);
   const [viewedCitizenId,setViewedCitizenId] = useState(citizen.id);
   const [atlasHandbookOpen,setAtlasHandbookOpen] = useState(false);
@@ -1937,9 +1939,20 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
       setSection(portalReturnSection.current === "club" ? "home" : portalReturnSection.current);
     }
   };
-  const openBriefingDesk = () => { setBriefingOpen(false); setSection("briefing"); };
+  const dismissBriefing = () => {
+    setBriefingOpen(false);
+    setEntryBriefingPending(false);
+    // External mini-game returns are restored only AFTER the briefing gate.
+    setSection((current) => current === "club" ? current : "home");
+  };
+  const openBriefingDesk = () => {
+    setBriefingOpen(false);
+    setEntryBriefingPending(false);
+    setSection("briefing");
+  };
   const navigateFromBriefing = (target: BriefingTarget, targetId?: string, focus: "proposal" | "speaker" | "debate" | "vote" = "vote") => {
     setBriefingOpen(false);
+    setEntryBriefingPending(false);
     setParliamentDeepLink(target === "parliament" ? targetId || "" : "");
     setParliamentDeepLinkFocus(focus);
     setParliamentFocus(target === "referendum" ? "referendum" : "all");
@@ -1988,10 +2001,11 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
   }
-  return (
-    <main className={`system ${clubOpen ? "club-system" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
-      {briefingOpen && <BriefingOverlay
-        onClose={() => { setBriefingOpen(false); setSection("home"); }}
+  // Do not mount the sidebar, homepage, parliament or Lounge behind the
+  // mandatory briefing: an overlay layered over the site is bypassable.
+  const briefingDialog = (
+    <BriefingOverlay
+        onClose={dismissBriefing}
         onOpenDesk={openBriefingDesk}
         onNavigate={navigateFromBriefing}
         tasks={briefingFeed.tasks}
@@ -2001,7 +2015,13 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
         canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)}
         sharedMark={<Emblem compact />}
         heroMark={<Emblem compact />}
-      />}
+      />
+  );
+  if (entryBriefingPending) return <main className="mandatory-briefing-gate">{briefingDialog}</main>;
+
+  return (
+    <main className={`system ${clubOpen ? "club-system" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      {briefingOpen && briefingDialog}
       <ImperialSidebar
         activeSection={section}
         collapsed={sidebarCollapsed}
@@ -2041,14 +2061,14 @@ function System({ citizen, logout, initialBriefing, initialBriefingOpen }: {
 }
 
 type PreparedBriefing = { status: PreloadStatus; citizenId?: string; feed?: BriefingFeed; sessionKey?: string };
-type SystemBriefing = { feed: BriefingFeed | null; show: boolean };
+type SystemBriefing = { feed: BriefingFeed };
 
 export default function Home() {
   const [phase, setPhase] = useState<Phase>("opening");
   const [citizen, setCitizen] = useState(CITIZENS[0]);
   const [preload, setPreload] = useState<PreparedBriefing>({ status: "loading" });
   const [preloadAttempt, setPreloadAttempt] = useState(0);
-  const [systemBriefing, setSystemBriefing] = useState<SystemBriefing>({ feed: null, show: false });
+  const [systemBriefing, setSystemBriefing] = useState<SystemBriefing | null>(null);
   const logoutPending = useRef(false);
   const restoredCitizen = useRef<Citizen | null>(null);
   const restoreController = useRef<AbortController | null>(null);
@@ -2062,15 +2082,8 @@ export default function Home() {
     finally { logoutPending.current = false; window.location.replace("/"); }
   };
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (window.location.hostname === "terminal.local" && ["parliament", "archives", "club"].includes(params.get("preview") ?? "")) {
-      const previewCitizen = CITIZENS.find((item) => item.id === params.get("citizen") && !item.locked);
-      // Agent-only preview identity; never enabled on the production hostname.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (previewCitizen) setCitizen(previewCitizen);
-      setPhase("system");
-      return;
-    }
+    // Even diagnostic or preview routes must pass member authentication and
+    // the briefing gate; query strings cannot bypass onboarding.
     const controller = new AbortController();
     restoreController.current = controller;
     void fetch("/api/member-session", { cache: "no-store", signal: controller.signal })
@@ -2081,7 +2094,6 @@ export default function Home() {
         if (!member) return;
         restoredCitizen.current = member;
         setCitizen(member);
-        if (new URLSearchParams(window.location.search).get("lounge") === "game-room" && CLUB_MEMBER_IDS.has(member.id)) { setPhase("system"); return; }
         let entryCompleted = false;
         try { entryCompleted = window.sessionStorage.getItem("schicksal:entry-complete") === "1"; window.sessionStorage.removeItem("schicksal:entry-complete"); } catch { /* Retain the normal opening when storage is unavailable. */ }
         setPhase((current) => entryCompleted || current === "login" ? "welcome" : current);
@@ -2114,39 +2126,19 @@ export default function Home() {
     setPreloadAttempt(value => value + 1);
   }, []);
   const enterSystem = useCallback(() => {
+    // Fail closed: only a live, schema-validated, current-member feed and a
+    // server-verified session can unlock the post-login briefing itself.
     if (preload.status !== "ready" || preload.citizenId !== citizen.id || !preload.feed || !preload.sessionKey) return;
-    // Never interrupt a mini-game return. A remembered game-room destination
-    // is just as important as the explicit ?lounge=game-room URL.
-    let returningToGame = new URLSearchParams(window.location.search).get("lounge") === "game-room";
-    try { returningToGame ||= window.sessionStorage.getItem(GAME_ROOM_RETURN_KEY) === "game-room"; }
-    catch { /* Explicit route remains authoritative when storage is unavailable. */ }
-    if (returningToGame) {
-      setSystemBriefing({ feed: preload.feed, show: false });
-      setPhase("system");
-      return;
-    }
-    // Preserve the existing once-per-login, across-tabs marker without
-    // claiming the briefing has appeared before fresh data is available.
-    let show = false;
-    try { show = markBriefingViewed(window.localStorage, preload.sessionKey); }
-    catch {
-      try { show = markBriefingViewed(window.sessionStorage, preload.sessionKey); }
-      catch { show = true; }
-    }
-    setSystemBriefing({ feed: preload.feed, show });
+    setSystemBriefing({ feed: preload.feed });
     setPhase("system");
   }, [citizen.id, preload]);
-  const enterWithoutBriefing = useCallback(() => {
-    // Explicit fallback only: the system loads its own feed later but never
-    // flashes an empty or stale automatic overlay.
-    setSystemBriefing({ feed: null, show: false });
-    setPhase("system");
-  }, []);
   if (phase === "opening") return <Opening done={() => setPhase(restoredCitizen.current ? "welcome" : "login")} />;
   if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next) => { restoreController.current?.abort(); setCitizen(next); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
-  if (phase === "welcome") return <Welcome citizen={citizen} enter={enterSystem}
+  // A phase transition alone never grants site access. If its live feed
+  // is missing, keep the authenticated member on the Welcome gate.
+  if (phase === "welcome" || !systemBriefing) return <Welcome citizen={citizen} enter={enterSystem}
     preloadStatus={preload.citizenId && preload.citizenId !== citizen.id ? "loading" : preload.status}
-    retry={retryPreload} enterWithoutBriefing={enterWithoutBriefing} />;
-  return <System citizen={citizen} initialBriefing={systemBriefing.feed} initialBriefingOpen={systemBriefing.show}
+    retry={retryPreload} />;
+  return <System citizen={citizen} initialBriefing={systemBriefing.feed}
     logout={() => { void logoutMember(); }} />;
 }
