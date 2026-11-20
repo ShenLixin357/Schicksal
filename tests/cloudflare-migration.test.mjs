@@ -54,6 +54,8 @@ test("snapshot restore preserves multilingual text, quotes, newlines and null by
   snapshot.tables.find((table) => table.table_name === "committee_club_messages").rows.push({ id: "test-id", citizen_id: "amberina", body: "女巫's line\nsecond\0end 🪄", sticker: "", created_at: "2026-11-04" });
   snapshot.tables.find((table) => table.table_name === "member_sessions").rows.push({ token_hash: "test-only", citizen_id: "amberina", expires_at: 99999 });
   const output = await validateSnapshot(snapshot, root);
+  assert.doesNotMatch(output.schema, /INSERT\s+OR\s+IGNORE\s+INTO\s+parliament_items/i, "A snapshot schema must never reinsert historical bootstrap records");
+  assert.match(output.schema, /CREATE TABLE parliament_items/i);
   assert.equal(output.counts.committee_club_messages, 1); assert.equal(output.counts.member_sessions, 0);
   assert.equal(output.dataSql.includes("test-only"), false); assert.match(sqlValue("'quoted'"), /^CAST\(X'/);
   assert.throws(() => sqlValue(Infinity)); assert.throws(() => sqlValue({}));
