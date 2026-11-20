@@ -187,44 +187,61 @@ void main(){
  float shape=1.0-smoothstep(-2.2,2.4,radius-edge);
  if(uProgress>=.999)shape=1.;
  if(shape<.002){frag=vec4(0);return;}
- float coarse=fbm(uv*vec2(8.4,11.7));
- float medium=fbm(uv*vec2(35.1,27.9));
- float small=fbm(uv*vec2(122.0,159.0));
- vec2 turn=vec2(px.x*.73+px.y*.36,px.y*.65-px.x*.48);
- float crystalFold=abs(sin(turn.x*.055+coarse*8.2)+.20*sin(turn.y*.084+medium*5.1));
- float ridge=pow(1.0-clamp(crystalFold,0.,1.),18.);
- float streak=pow(1.0-abs(sin(turn.y*.041+coarse*13.3)),19.);
- float veins=pow(1.0-abs(sin((turn.x-turn.y*.47)*.085+medium*9.)),30.);
- float facets=.4*ridge+.29*streak+.31*veins;
- vec2 normal=vec2(noise(uv*47.+vec2(.021,0.)),noise(uv*47.+vec2(0.,.021)))-.5;
- vec2 offset=normal*.023+vec2(sin(coarse*15.+turn.x*.03),cos(coarse*13.+turn.y*.03))*.003;
- vec3 back=uHasBack>.5?texture(uBack,clamp(uv+offset,vec2(0),vec2(1))).rgb:vec3(.25,.19,.36);
- float attenuation=.24+.46*coarse+.16*medium;
- float materialMix=clamp(.26+.70*uRoughness+.11*attenuation,.0,1.);
- vec3 iceDeep=vec3(.65,.71,.83);
- vec3 icePearl=vec3(.92,.94,.985);
- vec3 icePale=vec3(.80,.84,.935);
- vec3 ice=mix(iceDeep,icePearl,clamp(.24+.78*coarse+.26*medium,.0,1.));
- ice=mix(ice,icePale,clamp(.24+.31*small,.0,1.)*.38);
- ice+=vec3(.19,.14,.19)*facets*.32*uGlint;
- // The final opaque crystal surface replaces the card back entirely.
- // Earlier growth displays displaced glimpses of the original back.
- float frozen=smoothstep(.30,.94,uProgress);
- float opacity=mix(materialMix*.36,1.,frozen);
+
+ // Unequal crystalline layers: blue translucent planes, micro-snow and
+ // elongated frost striae. No perfectly repetitive glass tile.
+ float coarse=fbm(uv*vec2(8.5,12.1)+vec2(.17,-.09));
+ float medium=fbm(uv*vec2(29.3,41.6)+coarse*1.2);
+ float granular=fbm(uv*vec2(123.0,163.0)+medium*.80);
+ vec2 q=vec2(px.x*.75+px.y*.37,px.y*.72-px.x*.43);
+ float wavy=fbm(q*.016+vec2(8.,-3.));
+ float thickFold=abs(sin(q.x*.053+7.3*wavy+medium*3.2));
+ float thinFold=abs(sin(q.y*.106+13.5*coarse+granular*.90));
+ float diagonal=abs(sin((q.x-.53*q.y)*.076+6.4*medium));
+ float mainVein=pow(1.-clamp(thickFold,0.,1.),14.);
+ float subVein=pow(1.-clamp(thinFold,0.,1.),28.);
+ float slantVein=pow(1.-clamp(diagonal,0.,1.),31.);
+ float iceEtching=.49*mainVein+.27*subVein+.24*slantVein;
+ float cloudy=clamp(.54*coarse+.38*medium+.16*granular,0.,1.);
+ // The apparent surface normal shifts original back pixels in the growing stage.
+ vec2 grad=vec2(fbm(uv*vec2(35.,38.)+vec2(.07,0.))-fbm(uv*vec2(35.,38.)-vec2(.07,0.)),
+                fbm(uv*vec2(35.,38.)+vec2(0.,.07))-fbm(uv*vec2(35.,38.)-vec2(0.,.07)));
+ vec2 normal=grad+vec2(mainVein-slantVein,subVein-mainVein)*.18;
+ float growthShade=smoothstep(.22,.96,uProgress);
+ float offsetStrength=(.010+.012*uRoughness)*(1.-growthShade*.87);
+ vec2 refracted=uv+normal*offsetStrength+vec2(sin(wavy*13.+q.y*.04),cos(wavy*14.+q.x*.05))*.0035;
+ vec3 back=uHasBack>.5?texture(uBack,clamp(refracted,vec2(0.),vec2(1.))).rgb:vec3(.275,.21,.375);
+ // Frost scattering changes locally, so icy smooth facets and rough patches coexist.
+ float microFrost=smoothstep(.36,.83,granular+.21*medium);
+ float scattering=clamp((.26+.61*cloudy+.12*microFrost)*(.60+.55*uRoughness),0.,1.);
+ vec3 deepIce=vec3(.56,.64,.79);
+ vec3 shellIce=vec3(.78,.82,.91);
+ vec3 pearlIce=vec3(.96,.96,.99);
+ vec3 ice=mix(deepIce,shellIce,clamp(.35+.37*coarse+.23*medium,0.,1.));
+ ice=mix(ice,pearlIce,scattering*.54);
+ // The violet undertone belongs to Mafraer's moonlit palace, not neon lighting.
+ ice+=vec3(.046,.019,.075)*(.45+.55*medium);
+ ice=mix(ice,vec3(.79,.87,.96),iceEtching*.28);
+ // Resolve to a fully opaque ice layer at completion; do not show the back.
+ float opacity=mix(.17+.28*scattering,1.,growthShade);
  vec3 color=mix(back,ice,opacity);
- float foldGlow=facets*uGlint*(.23+.18*(1.-uRoughness));
- color+=vec3(.85,.92,1.0)*foldGlow;
- float frontEdge=exp(-abs(radius-edge)*.14)*uGlint*(1.0-frozen*.8);
- color+=vec3(.61,.77,.98)*frontEdge*.29;
- float pearly=(sin(coarse*18.+uTime*.17+medium*9.)*.5+.5)*.017*uGlint;
- color+=vec3(1.0,.91,.99)*pearly;
- // Fresnel-inspired rim reflection: strongest at grazing card edges and
- // along steep microscopic facet normals, never an artificial glowing center.
+ // Fresnel-like rim and anisotropic facet flashes — small bright inclines,
+ // not a uniform white halo or diffuse plastic shine.
  float borderDist=min(min(uv.x,1.-uv.x),min(uv.y,1.-uv.y));
- float rim=1.-smoothstep(.006,.057,borderDist);
- float microSlope=pow(clamp(length(normal)*1.7,0.,1.),3.);
- float grazing=.67*rim+.33*microSlope;
- color+=mix(vec3(.085,.12,.18),vec3(.12,.10,.16),coarse)*grazing*.48*uGlint;
+ float rim=1.-smoothstep(.003,.045,borderDist);
+ float facetSlope=pow(clamp(length(normal)*3.7,0.,1.),2.);
+ float grazing=.67*rim+.33*facetSlope;
+ color+=vec3(.10,.14,.20)*grazing*uGlint*(.30+.23*cloudy);
+ float directional=iceEtching*uGlint*(.13+.16*(1.-uRoughness));
+ color+=vec3(.75,.85,.98)*directional;
+ // Thin warm-prismatic glint confined to a handful of inclined crystal surfaces.
+ float prismatic=pow(1.-abs(sin(q.y*.032+medium*9.)),28.);
+ color+=vec3(.095,.055,.083)*prismatic*.22*uGlint;
+ // Refraction line running along the actively freezing front.
+ float leading=exp(-abs(radius-edge)*.18)*(1.-growthShade);
+ color+=vec3(.27,.37,.51)*leading*.36*uGlint;
+ // Whisper-soft motion through the ice surface; avoid cheap flashing particles.
+ color+=vec3(.015,.010,.023)*(.5+.5*sin(uTime*.32+coarse*15.))*uGlint;
  frag=vec4(clamp(color,0.,1.),shape);
 }
 </script>
