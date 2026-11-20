@@ -13,7 +13,7 @@ import { SchicksalAtlas } from "./atlas/schicksal-atlas";
 import { AtlasGovernmentHandbook } from "./atlas/government-handbook";
 import { atlasOfficesForCitizen, atlasName, atlasCodename } from "./atlas/atlas-data";
 import { SpeakerManagement } from "./speaker-management";
-import { startTransition, useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
+import { startTransition, lazy, useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
 import { ArticulatedFan, LaceFanDrawing } from "./club/articulated-fan";
 import { FAN_CYCLE_MS } from "./club/fan-motion";
 import { MysticSigil } from "./club/mystic-marks";
@@ -29,35 +29,25 @@ import { MiniGameSystem, useMiniGameSystem } from "./club/minigames/mini-game-sy
 import { LoungeLeaderboard } from "./club/minigames/lounge-leaderboard";
 import { VaseExperience } from "./club/vase/vase-experience";
 import { getVase } from "./club/vase/vase-catalogue";
-import { HeroEmblemSculpture, type EmblemBladeSpec } from "./emblem/hero-emblem-sculpture";
+import { EMBLEM_BLADES } from "./emblem/blade-spec";
+import { HomeSection } from "./home/home-section";
+import { FeatureSuspense } from "./shell/feature-suspense";
 import { ImperialSidebar } from "./shell/imperial-sidebar";
 import { ShellPlaceholder } from "./shell/placeholder";
 import { PageHead } from "./shell/page-head";
 import { HonorsPage, MarketPage } from "./points/points-pages";
 import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
-import { archiveMarkdownToHtml } from "./archives/archive-markdown";
+
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
-import type { SidebarDestination } from "./shell/navigation";
+import type { SidebarDestination, SiteSection } from "./shell/navigation";
+
+// Only import these data-heavy sections when the user navigates to them.
+const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(module => ({ default: module.PhotoArchiveSection })));
+const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
 
 type Phase = "opening" | "login" | "welcome" | "system";
-type Section = "home" | "briefing" | "atlas" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "messenger" | "library" | "club";
-
-type ArchivePhoto = {
-  id: string;
-  title: string;
-  description: string;
-  era: string;
-  capturedAt: string;
-  subjects: string[];
-  subjectKey: string;
-  uploaderCitizenId: string;
-  originalName: string;
-  mimeType: string;
-  sizeBytes: number;
-  createdAt: string;
-  imageUrl: string;
-};
+type Section = SiteSection;
 
 type ParliamentStage = "proposal" | "debate" | "amendment" | "voting" | "resolved" | "deferred";
 type ParliamentClassification = "ordinary" | "constitutional" | "administrative_review" | "external_agreement" | "youth_autonomy" | "pending_review" | "foundational";
@@ -106,15 +96,6 @@ type LoungeSeat = { seatIndex: number; citizenId: string; seatedAt: string };
 type ClubData = { profiles?: ClubProfile[]; messages?: ClubMessage[]; nextCursor?: ChatCursor | null; room?: ClubRoom; seats?: LoungeSeat[]; error?: string };
 
 
-
-// The current homepage emblem is the canonical source for color order and adjacency.
-// Every 2D and 3D rendering reads this same clockwise blade specification.
-const EMBLEM_BLADES: readonly EmblemBladeSpec[] = CITIZENS.map((citizen, index) => ({
-  index,
-  citizenId: citizen.id,
-  color: citizen.accent,
-  angle: index * 45,
-}));
 
 const CLUB_MEMBER_IDS = new Set(["amberina", "zxy", "truth"]);
 const CLUB_MEMBERS = CITIZENS.filter((citizen) => CLUB_MEMBER_IDS.has(citizen.id));
@@ -374,23 +355,6 @@ function CitizenEmblem({ large = false }: { large?: boolean }) {
 }
 
 
-
-function HomeSection({ go }: { go: (id: Section) => void }) {
-  return (
-    <div className="home-section">
-      <section className="hero">
-        <div><p className="eyebrow">Imperial Core · 帝国中枢</p><h1>The Empire<br /><em>Returns.</em></h1><p>2/3 选票过半。第一帝国已经正式复辟，并继续运作。</p><button className="line-button" type="button" onClick={() => go("archives")}>READ THE RESTORATION RECORD <span>→</span></button></div>
-        <div className="hero-emblem"><HeroEmblemSculpture blades={EMBLEM_BLADES} /><p>EIGHT CITIZENS · ONE SHARED EMBLEM</p><strong>帝国八棱主标志</strong><small>正式名称与类别待定</small></div>
-      </section>
-      <section className="status-grid">
-        <article className="notice"><header><span>RESTORATION DECREE · RATIFIED</span><i>2 / 3</i></header><h2>第一帝国正式复辟</h2><p>2026 年 8 月 15 日 13:43，立法委员会就第一帝国复辟举行公投。宇宙霸主与 No.2 投下支持票，2/3 过半通过；主席随即宣布帝国正式复辟。</p><footer><span>15 AUG 2026 · 13:43</span><span>REFERENDUM PASSED</span></footer></article>
-        <article className="festival"><header><span>NEXT OBSERVANCE</span><i>04·19</i></header><b>19</b><h2>National Day</h2><p>国庆日 · 竞赛、Blue Ribbon 与跳蚤市场</p></article>
-        <article className="pulse"><header><span>SYSTEM PULSE</span><i>LIVE</i></header>{[["8","Citizens · 公民"],["1","Active Office · 主席"],["4","State Traditions · 传统"]].map(([n,label]) => <div key={label}><b>{n}</b><span>{label}</span></div>)}</article>
-      </section>
-
-    </div>
-  );
-}
 
 function CitizensSection({ focusedId, onClearFocus }: { focusedId?: string | null; onClearFocus?: () => void }) {
   const focused = focusedId ? CITIZENS.find(member => member.id === focusedId && !member.locked) : undefined;
@@ -1094,254 +1058,6 @@ function CalendarSection() { return <CalendarPage/>; }
 
 function MarketSection() { return <MarketPage/>; }
 
-const PHOTO_SUBJECTS = [{ id: "empire", username: "天命全体照", name: "Schicksal Group", accent: "#d6ad56", markColor: "#d6ad56", motif: "empire", office: "Group Archive", codename: "天命" }, ...CITIZENS] as Citizen[];
-
-function PhotoSubjectMark({ subject }: { subject: Citizen }) {
-  if (subject.id === "empire") return <span className="archive-emblem" aria-hidden="true"><Emblem compact /></span>;
-  return <CitizenMark citizen={subject} />;
-}
-
-function PhotoArchiveSection({ citizen }: { citizen: Citizen }) {
-  const [photos, setPhotos] = useState<ArchivePhoto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterSubjects, setFilterSubjects] = useState<string[]>([]);
-  const [uploadSubjects, setUploadSubjects] = useState<string[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [title, setTitle] = useState("");
-  const [era, setEra] = useState("");
-  const [capturedAt, setCapturedAt] = useState("");
-  const [description, setDescription] = useState("");
-  const [dragging, setDragging] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [status, setStatus] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/photos")
-      .then(async (response) => {
-        const body = await response.json() as { photos?: ArchivePhoto[]; error?: string };
-        if (!response.ok) throw new Error(body.error || "影像馆暂时无法读取。");
-        if (active) setPhotos(body.photos ?? []);
-      })
-      .catch((error: unknown) => { if (active) setStatus(error instanceof Error ? error.message : "影像馆暂时无法读取。"); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
-
-  const normalisedKey = (ids: string[]) => ids.includes("empire") ? "empire" : [...ids].sort().join("+");
-  const activeFilterKey = normalisedKey(filterSubjects);
-  const visiblePhotos = activeFilterKey ? photos.filter((photo) => photo.subjectKey === activeFilterKey) : photos;
-
-  const toggleChoice = (id: string, update: Dispatch<SetStateAction<string[]>>) => {
-    update((current) => {
-      if (id === "empire") return current.includes("empire") ? [] : ["empire"];
-      const withoutEmpire = current.filter((item) => item !== "empire");
-      return withoutEmpire.includes(id) ? withoutEmpire.filter((item) => item !== id) : [...withoutEmpire, id];
-    });
-  };
-
-  const chooseFile = (next: File | null) => {
-    setStatus("");
-    if (!next) return;
-    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(next.type)) {
-      setStatus("请选择 JPG、PNG、WEBP 或 GIF 照片。");
-      return;
-    }
-    if (next.size > 12 * 1024 * 1024) {
-      setStatus("单张照片不能超过 12 MB。");
-      return;
-    }
-    setFile(next);
-    setPreviewUrl(URL.createObjectURL(next));
-    if (!title) setTitle(next.name.replace(/\.[^.]+$/, ""));
-  };
-
-  const dropFile = (event: DragEvent<HTMLLabelElement>) => {
-    event.preventDefault();
-    setDragging(false);
-    chooseFile(event.dataTransfer.files?.[0] ?? null);
-  };
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!file || !title.trim() || !uploadSubjects.length) {
-      setStatus("请完成照片、标题和人物标志三项必填内容。");
-      return;
-    }
-    setUploading(true);
-    setStatus("正在将照片收入影像馆…");
-    try {
-      const fileBytes = new Uint8Array(await file.arrayBuffer());
-      let binary = "";
-      for (let offset = 0; offset < fileBytes.length; offset += 32_768) {
-        binary += String.fromCharCode(...fileBytes.subarray(offset, offset + 32_768));
-      }
-      const dataBase64 = btoa(binary);
-      const response = await fetch("/api/photos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dataBase64,
-          originalName: file.name,
-          mimeType: file.type,
-          sizeBytes: file.size,
-          title,
-          era,
-          capturedAt,
-          description,
-          subjects: uploadSubjects,
-          uploaderCitizenId: citizen.id,
-        }),
-      });
-      const body = await response.json() as { photo?: ArchivePhoto; error?: string };
-      if (!response.ok || !body.photo) throw new Error(body.error || "照片上传失败。");
-      setPhotos((current) => [body.photo!, ...current]);
-      setFilterSubjects([...uploadSubjects]);
-      setFile(null);
-      setPreviewUrl("");
-      setTitle("");
-      setEra("");
-      setCapturedAt("");
-      setDescription("");
-      setUploadSubjects([]);
-      setStatus("照片已安全收入影像馆，并按所选标志完成分类。");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "照片上传失败，请稍后重试。");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const subjectFor = (id: string) => PHOTO_SUBJECTS.find((item) => item.id === id);
-  const filterLabel = filterSubjects.length
-    ? filterSubjects.map((id) => subjectFor(id)?.username ?? id).join(" + ")
-    : "全部照片";
-
-  return <>
-    <PageHead eyebrow="Family Photo Archive" title="家庭影像馆" copy="上传共同记忆，并用个人标志标注照片中恰好出现的人；筛选采用精确人物组合，而不是模糊包含。" />
-    <section className="photo-filters" aria-labelledby="photo-filter-title">
-      <header><div><p className="eyebrow">Exact Combination</p><h2 id="photo-filter-title">标志筛选</h2></div><button type="button" onClick={() => setFilterSubjects([])} disabled={!filterSubjects.length}>查看全部 · CLEAR</button></header>
-      <div className="mark-filter-row" role="group" aria-label="按人物标志筛选照片">
-        {PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={filterSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={filterSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setFilterSubjects)} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}><PhotoSubjectMark subject={subject} /><span><strong>{subject.username}</strong><small>{subject.id === "empire" ? "全体合照" : subject.locked ? "身份待补" : "精确人物标签"}</small></span></button>)}
-      </div>
-      <p>当前分类：<strong>{filterLabel}</strong><span>{filterSubjects.length ? "只显示人物组合完全一致的照片" : "显示影像馆中的全部照片"}</span></p>
-    </section>
-    <div className="photo-workbench">
-      <aside className="photo-uploader">
-        <header><span>NEW ARCHIVE ENTRY</span><b>UPLOAD</b></header>
-        <h2>上传一张照片</h2>
-        <p>原图会被保存，人物标志用于之后的精确筛选。</p>
-        <form onSubmit={submit}>
-          <label className={`photo-dropzone ${dragging ? "dragging" : ""} ${previewUrl ? "has-photo" : ""}`} onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setDragging(false)} onDrop={dropFile}>
-            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
-            {previewUrl ? <><Image src={previewUrl} alt="待上传照片预览" fill unoptimized /><span className="replace-photo">点击更换照片</span></> : <><span className="upload-glyph">＋</span><strong>选择或拖放照片</strong><small>JPG · PNG · WEBP · GIF / MAX 12 MB</small></>}
-          </label>
-          <label className="archive-field"><span>照片标题 *</span><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="例如：第一次国庆合照" required /></label>
-          <div className="archive-field-pair">
-            <label className="archive-field"><span>拍摄日期</span><input type="date" value={capturedAt} onChange={(event) => setCapturedAt(event.target.value)} /></label>
-            <label className="archive-field"><span>年份 / 时期</span><input value={era} onChange={(event) => setEra(event.target.value)} maxLength={80} placeholder="例如：六人时期" /></label>
-          </div>
-          <label className="archive-field"><span>照片说明</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={800} rows={3} placeholder="这张照片发生了什么？由谁提供？" /></label>
-          <fieldset className="upload-subjects"><legend>照片中恰好有哪些人 *</legend><p>若是当时全体成员的合照，请只选“天命全体照”。</p><div>{PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={uploadSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={uploadSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setUploadSubjects)} title={subject.username} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}><PhotoSubjectMark subject={subject} /><span>{subject.id === "empire" ? "天命" : subject.username}</span></button>)}</div></fieldset>
-          <button className="primary archive-submit" type="submit" disabled={uploading}>{uploading ? "ARCHIVING…" : "收入影像馆"}<span>→</span></button>
-          <p className="upload-status" role="status">{status || "上传后会自动切换到对应的标志分类。"}</p>
-        </form>
-      </aside>
-      <section className="photo-gallery" aria-live="polite">
-        <header><div><p className="eyebrow">Selected Collection</p><h2>{filterLabel}</h2></div><span>{visiblePhotos.length} / {photos.length} PHOTOS</span></header>
-        {loading ? <div className="gallery-empty loading"><i /><h3>正在打开影像馆</h3><p>读取已保存的照片与分类信息…</p></div> : visiblePhotos.length === 0 ? <div className="gallery-empty"><span>S</span><h3>{photos.length ? "这个精确组合还没有照片" : "影像馆正在等待第一张照片"}</h3><p>{photos.length ? "可以更换上方标志组合，或上传一张属于这个组合的照片。" : "从左侧上传一张共同记忆，并为它选择人物标志。"}</p></div> : <div className="photo-grid">{visiblePhotos.map((photo) => <article className="photo-card" key={photo.id}>
-          <figure><Image src={photo.imageUrl} alt={photo.title} fill sizes="(max-width: 760px) 100vw, (max-width: 1100px) 50vw, 32vw" /><figcaption>{photo.capturedAt || photo.era || "日期待补"}</figcaption></figure>
-          <div className="photo-card-copy"><div className="photo-card-marks">{photo.subjects.map((id) => { const subject = subjectFor(id); return subject ? <span key={id} title={subject.username}><PhotoSubjectMark subject={subject} /></span> : null; })}</div><h3>{photo.title}</h3>{photo.description ? <p>{photo.description}</p> : <p className="muted">尚未填写照片说明。</p>}<footer><span>{photo.era || "时期待补"}</span><span>UPLOADED BY {subjectFor(photo.uploaderCitizenId)?.username ?? "CITIZEN"}</span></footer></div>
-        </article>)}</div>}
-      </section>
-    </div>
-    <p className="photo-privacy-note"><strong>PRIVACY NOTE</strong> 当前影像馆继承网站现有访问范围；正式开放给全部成员或长辈前，应继续确认照片当事人同意、查看范围与撤回机制。</p>
-  </>;
-}
-
-type ArchiveChapter = { id: string; lesson: string; title: string; source: string; version: string; note: string };
-
-const ARCHIVE_BOOK_CHAPTERS: ArchiveChapter[] = [
-  { id: "lesson-1", lesson: "LESSON 1 · 第一课", title: "我们究竟在建立什么？", source: "/archives/how-to-build-a-state-lesson-1.md", version: "v1.1", note: "国家、领土、政府、行政权、宪法与主权" },
-  { id: "lesson-2-a", lesson: "LESSON 2 · 第二课上", title: "谁是“我们的人”，谁又有权决定什么？", source: "/archives/how-to-build-a-state-lesson-2-a.md", version: "v1.1", note: "公民身份、年龄政治权利与低龄自治" },
-  { id: "lesson-2-b", lesson: "LESSON 2 · 第二课下", title: "如果家人犯了错，国家应该怎样让他回来？", source: "/archives/how-to-build-a-state-lesson-2-b.md", version: "v1.0", note: "政治权利暂停、恢复与共同体身份" },
-];
-
-function ArchivesSection() {
-  const [bookOpen, setBookOpen] = useState(false);
-  const [chapterIndex, setChapterIndex] = useState(0);
-  const [chapterText, setChapterText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [archiveStatus, setArchiveStatus] = useState("");
-  const chapter = ARCHIVE_BOOK_CHAPTERS[chapterIndex];
-  const records = [["R–001","第一帝国复辟公投记录","RATIFIED · 15 AUG 2026"],["A–001","宪法草案 1.0","FOUNDING DOCUMENT"],["A–002","代号与职务原始记录","CITIZEN RECORD"]];
-
-  useEffect(() => {
-    if (!bookOpen) return;
-    let active = true;
-    fetch(chapter.source)
-      .then(async (response) => {
-        if (!response.ok) throw new Error("这一章暂时无法打开。");
-        const text = await response.text();
-        if (active) setChapterText(text);
-      })
-      .catch((error: unknown) => { if (active) setArchiveStatus(error instanceof Error ? error.message : "这一章暂时无法打开。"); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [bookOpen, chapter.source]);
-
-  const selectChapter = (index: number) => { setLoading(true); setArchiveStatus(""); setChapterIndex(index); };
-  const openChapter = (index: number) => { selectChapter(index); setBookOpen(true); };
-  const chapterHtml = archiveMarkdownToHtml(chapterText);
-
-  return <>
-    <PageHead eyebrow="National Archives" title="国家档案馆" copy="这里保存的不只是结论，而是我们怎样一步步把一个童年共同体写成国家。" />
-    <section className="archive-book-gallery">
-      <div className="archive-book-stage">
-        <button type="button" className={`archive-book ${bookOpen ? "opened" : ""}`} onClick={() => openChapter(chapterIndex)} aria-label="打开《如何从零建立一个国家》">
-          <span className="book-page-edges" aria-hidden="true" />
-          <span className="book-cover-art"><Image src="/archive-queen-cover.png" alt="童话式女王立于月光花园中的剪影书封" fill sizes="(max-width: 760px) 82vw, 430px" priority={false} unoptimized /></span>
-          <span className="book-cover-wash" aria-hidden="true" />
-          <span className="book-cover-mark" style={{ "--mark": CITIZENS[0].markColor } as CSSProperties}><CitizenMark citizen={CITIZENS[0]} /></span>
-          <span className="book-cover-copy"><small>SCHICKSAL NATIONAL ARCHIVES</small><strong>如何从零<br />建立一个国家</strong><i>AvS 著</i></span>
-          <span className="book-spine"><b>SCHICKSAL</b><i>国家档案馆</i></span>
-        </button>
-        <p>点击封面打开 · OPEN THE ARCHIVE BOOK</p>
-      </div>
-      <aside className="archive-chapter-index">
-        <header><p className="eyebrow">The Living Book · 建国实录</p><h2>不是法条的附录，<br />而是国家怎样长出来。</h2><p>书中保留争论、例子、小故事、后来发现的漏洞，以及“为什么最后会这样决定”。</p></header>
-        <nav aria-label="《如何从零建立一个国家》章节">
-          {ARCHIVE_BOOK_CHAPTERS.map((item, index) => <button type="button" key={item.id} className={chapterIndex === index && bookOpen ? "active" : ""} onClick={() => openChapter(index)}><span>0{index + 1}</span><div><small>{item.lesson}</small><strong>{item.title}</strong><p>{item.note}</p></div><i>→</i></button>)}
-        </nav>
-        <footer><span>AUTHOR / 记录主体</span><strong>AvS · 宇宙霸主</strong><i>2026</i></footer>
-      </aside>
-    </section>
-
-    {bookOpen && <section className="archive-reader" aria-live="polite">
-      <header className="reader-topbar"><div><span>《如何从零建立一个国家》</span><i>{chapter.lesson}</i></div><button type="button" onClick={() => setBookOpen(false)}>合上书 ×</button></header>
-      <div className="archive-book-spread">
-        <aside className="reader-verso">
-          <div className="reader-author-mark" style={{ "--mark": CITIZENS[0].markColor } as CSSProperties}><CitizenMark citizen={CITIZENS[0]} /></div>
-          <small>SCHICKSAL FIRST EMPIRE<br />NATIONAL ARCHIVES</small>
-          <h2>{chapter.title}</h2>
-          <p>{chapter.note}</p>
-          <nav>{ARCHIVE_BOOK_CHAPTERS.map((item, index) => <button type="button" key={item.id} className={index === chapterIndex ? "active" : ""} onClick={() => selectChapter(index)}><span>0{index + 1}</span><strong>{item.lesson}</strong></button>)}</nav>
-          <footer><span>{chapter.version}</span><i>{String(chapterIndex + 1).padStart(2, "0")} / {String(ARCHIVE_BOOK_CHAPTERS.length).padStart(2, "0")}</i></footer>
-        </aside>
-        <article className="reader-recto" key={chapter.id}>
-          {loading ? <div className="reader-loading"><i /><span>正在翻到这一章…</span></div> : archiveStatus ? <div className="reader-loading error">{archiveStatus}</div> : <div className="archive-prose" dangerouslySetInnerHTML={{ __html: chapterHtml }} />}
-        </article>
-      </div>
-      <footer className="reader-controls"><button type="button" disabled={chapterIndex === 0} onClick={() => selectChapter(Math.max(0, chapterIndex - 1))}>← 上一章</button><span>PAGE · {String(chapterIndex + 1).padStart(2, "0")}</span><button type="button" disabled={chapterIndex === ARCHIVE_BOOK_CHAPTERS.length - 1} onClick={() => selectChapter(Math.min(ARCHIVE_BOOK_CHAPTERS.length - 1, chapterIndex + 1))}>下一章 →</button></footer>
-    </section>}
-
-    <section className="archive-cabinet"><header><div><p className="eyebrow">Record Cabinet · 旁卷</p><h2>其他国家档案</h2></div><span>书稿以外的认证记录与原始文书</span></header><div>{records.map(([id,title,type]) => <button type="button" key={id}><span>{id}</span><div><h3>{title}</h3><p>{type}</p></div><i>→</i></button>)}</div></section>
-  </>;
-}
-
 function PublicAtlasCitizenProfile({ citizen, onBack }: { citizen: Citizen; onBack: () => void }) {
   const positions = atlasOfficesForCitizen(citizen.id);
   return <><button className="atlas-profile-back" type="button" onClick={onBack}>← 返回天命图谱</button><PageHead eyebrow="Public Citizen Profile" title="公民公开档案" copy="这里只展示获准公开的身份与公职资料。"/><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen}/><span>{atlasCodename(citizen.id)}</span></div><div className="profile-copy"><small>PUBLIC CITIZEN RECORD</small><h2>{atlasName(citizen)}</h2><dl><div><dt>公民代号</dt><dd>{atlasCodename(citizen.id)}</dd></div><div><dt>现任公职</dt><dd>{positions.length ? positions.map(office => office.title).join(" · ") : "暂无现任公职"}</dd></div><div><dt>身份</dt><dd>第一帝国公民</dd></div></dl><p className="atlas-visitor-disclaimer">访客只能查看公开身份；私人消息、账户设置、个人数据及编辑功能不开放。</p></div></article></>;
@@ -1996,8 +1712,8 @@ function System({ citizen, logout, initialBriefing }: {
     case "honors": content = <HonorsSection/>; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection/>; break;
-    case "photos": content = <PhotoArchiveSection citizen={citizen} />; break;
-    case "archives": content = atlasHandbookOpen ? <AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/> : <ArchivesSection />; break;
+    case "photos": content = <FeatureSuspense label="家庭影像馆"><PhotoArchiveSection citizen={citizen} sharedMark={<Emblem compact />} renderCitizenMark={subject => <CitizenMark citizen={subject} />} /></FeatureSuspense>; break;
+    case "archives": content = atlasHandbookOpen ? <AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/> : <FeatureSuspense label="国家档案馆"><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
     case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;

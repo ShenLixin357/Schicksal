@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && node scripts/insaniquarium/check-resources.mjs && vinext build",
     "start": "vinext start",
-    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase && npm run test:messenger && npm run test:shell",
+    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase && npm run test:messenger && npm run test:shell && npm run test:architecture",
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
     "test:minigames": "node --experimental-transform-types --test tests/potion-sort-engine.test.ts tests/merge-game-engine.test.ts tests/chryser-games.test.ts",
     "test:mafraer": "node --experimental-transform-types --test tests/mafraer-magic.test.ts tests/mafraer-observatory.test.ts",
@@ -35,7 +35,9 @@
     "test:lounge": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/lounge-chat-history.test.mjs",
     "test:cello": "node --experimental-strip-types --test tests/emerald-cello.test.mjs tests/cello-audio.test.mjs",
     "test:messenger": "node --experimental-transform-types --test tests/messenger-api.test.mjs",
-    "test:shell": "node --test tests/shell-preview.test.mjs"
+    "test:shell": "node --test tests/shell-preview.test.mjs",
+    "test:architecture": "node scripts/architecture/check-boundaries.mjs && node --test tests/architecture-phase1.test.mjs && npm run audit:assets",
+    "audit:assets": "node scripts/architecture/audit-assets.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
