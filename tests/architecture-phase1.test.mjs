@@ -70,7 +70,8 @@ test("feature styles now have their own source files without touching approved p
 test("the approved UI remains protected by mandatory briefing and Lodge identity checks", () => {
   const page = read("app/page.tsx");
   const shell = read("app/shell/imperial-sidebar.tsx");
-  assert.match(page, /CLUB_MEMBER_IDS = new Set\(\["amberina", "zxy", "truth"\]\)/);
+  assert.match(read("app/club/lounge-access.ts"), /CLUB_MEMBER_IDS = new Set\(\["amberina", "zxy", "truth"\]\)/);
+  assert.match(page, /import \{ CLUB_MEMBER_IDS, announceCommitteeLounge \} from "\.\/club\/lounge-access";/);
   assert.match(page, /mandatory-briefing-gate/);
   assert.match(page, /readyForMandatoryBriefing\(preload, citizen\.id\)/);
   assert.match(shell, /disabled=\{!canEnterLounge && !loungeOpen\}/);
