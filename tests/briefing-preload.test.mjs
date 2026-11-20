@@ -62,9 +62,9 @@ test("briefing renders as the ONLY post-welcome UI until explicitly acknowledged
   assert.ok(gatedReturn >= 0 && siteReturn > gatedReturn, "mandatory gate returns before the main site shell can render");
   // The private game-return hint moved to its own adapter. It must not
   // bypass the mandatory post-login briefing gate.
-  assert.match(page, /if \\(wantsGameRoomReturn\\(window\\)\\)/);
+  assert.match(page, /if \(wantsGameRoomReturn\(window\)\)/);
   const returnHint = source("../app/club/game-room-return.ts");
-  assert.match(returnHint, /get\\("lounge"\\) === "game-room"/);
+  assert.match(returnHint, /get\("lounge"\) === "game-room"/);
   assert.ok(page.indexOf("if (wantsGameRoomReturn(window))") < gatedReturn,
     "game-room restoration can set a target, but cannot render it before the briefing gate");
   assert.doesNotMatch(page, /setSystemBriefing\(\{ feed: preload\.feed, show: false \}\)/);
