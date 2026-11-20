@@ -8,6 +8,7 @@ import {
 import "./briefing.css";
 import "./briefing-palette.css";
 import { BriefingBackdrop } from "./briefing-backdrop";
+import { BRIEFING_WAVE_COLORS } from "../identity/visual-registry";
 import { AffairsInbox } from "./affairs-inbox";
 import type { InboxViews } from "./affairs-history";
 
@@ -58,14 +59,14 @@ export type BriefingProps = {
  */
 function BriefingWaveEmbroidery() {
   const paths = [
-    { color: "#e3bf61", d: "M-30 190 C160 152 224 255 390 198 S680 82 910 164 S1060 219 1190 142" },
-    { color: "#679ad3", d: "M-30 200 C152 157 235 268 397 205 S690 98 910 171 S1062 232 1190 150" },
-    { color: "#d98486", d: "M-30 210 C152 167 240 275 407 214 S702 107 924 180 S1062 244 1190 160" },
-    { color: "#76ae94", d: "M-30 220 C152 177 246 285 419 223 S712 116 940 190 S1070 253 1190 169" },
-    { color: "#b3d6e3", d: "M-30 230 C152 187 250 294 431 232 S720 128 948 200 S1070 261 1190 181" },
-    { color: "#dba4bf", d: "M-30 240 C152 197 260 304 440 242 S732 141 960 210 S1070 268 1190 189" },
-    { color: "#dea46c", d: "M-30 250 C152 207 270 314 454 252 S742 148 974 220 S1085 273 1190 199" },
-    { color: "#9987ba", d: "M-30 260 C152 217 280 324 463 261 S752 159 987 229 S1090 280 1190 208" },
+    { color: BRIEFING_WAVE_COLORS[0], d: "M-30 190 C160 152 224 255 390 198 S680 82 910 164 S1060 219 1190 142" },
+    { color: BRIEFING_WAVE_COLORS[1], d: "M-30 200 C152 157 235 268 397 205 S690 98 910 171 S1062 232 1190 150" },
+    { color: BRIEFING_WAVE_COLORS[2], d: "M-30 210 C152 167 240 275 407 214 S702 107 924 180 S1062 244 1190 160" },
+    { color: BRIEFING_WAVE_COLORS[3], d: "M-30 220 C152 177 246 285 419 223 S712 116 940 190 S1070 253 1190 169" },
+    { color: BRIEFING_WAVE_COLORS[4], d: "M-30 230 C152 187 250 294 431 232 S720 128 948 200 S1070 261 1190 181" },
+    { color: BRIEFING_WAVE_COLORS[5], d: "M-30 240 C152 197 260 304 440 242 S732 141 960 210 S1070 268 1190 189" },
+    { color: BRIEFING_WAVE_COLORS[6], d: "M-30 250 C152 207 270 314 454 252 S742 148 974 220 S1085 273 1190 199" },
+    { color: BRIEFING_WAVE_COLORS[7], d: "M-30 260 C152 217 280 324 463 261 S752 159 987 229 S1090 280 1190 208" },
   ];
   return <svg className="imperial-briefing-wave-embroidery" viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
     <g fill="none" strokeLinecap="round">
