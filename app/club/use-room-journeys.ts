@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FAN_CYCLE_MS } from "./fan-motion";
-import { MAFRAER_ROOM_ASSETS } from "./mafraer-lounge";
+import { MAFRAER_ROOM_ASSETS } from "./mafraer-assets";
 import { startMusicBoxTune } from "./lounge-props";
 
 /** Single owner of the private Lounge scene transitions and their resources.
