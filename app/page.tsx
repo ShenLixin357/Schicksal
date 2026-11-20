@@ -5,6 +5,7 @@ import { BriefingDesk, BriefingOverlay } from "./briefing/briefing";
 import type { BriefingTarget } from "./briefing/briefing-data";
 import { useBriefingFeed } from "./briefing/use-briefing-feed";
 import { fetchBriefingFeed, type BriefingFeed } from "./briefing/briefing-loader";
+import { readyForMandatoryBriefing, mayMountSiteAfterBriefing, type MandatoryBriefingPreload } from "./briefing/mandatory-entry";
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { CITIZENS, AMBERINA_OFFICIAL_COLOR, citizenRepresentativeColor, hasLeaderInsignia, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
@@ -2017,7 +2018,7 @@ function System({ citizen, logout, initialBriefing }: {
         heroMark={<Emblem compact />}
       />
   );
-  if (entryBriefingPending) return <main className="mandatory-briefing-gate">{briefingDialog}</main>;
+  if (!mayMountSiteAfterBriefing(entryBriefingPending)) return <main className="mandatory-briefing-gate">{briefingDialog}</main>;
 
   return (
     <main className={`system ${clubOpen ? "club-system" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
@@ -2060,7 +2061,7 @@ function System({ citizen, logout, initialBriefing }: {
   );
 }
 
-type PreparedBriefing = { status: PreloadStatus; citizenId?: string; feed?: BriefingFeed; sessionKey?: string };
+type PreparedBriefing = MandatoryBriefingPreload;
 type SystemBriefing = { feed: BriefingFeed };
 
 export default function Home() {
@@ -2128,7 +2129,7 @@ export default function Home() {
   const enterSystem = useCallback(() => {
     // Fail closed: only a live, schema-validated, current-member feed and a
     // server-verified session can unlock the post-login briefing itself.
-    if (preload.status !== "ready" || preload.citizenId !== citizen.id || !preload.feed || !preload.sessionKey) return;
+    if (!readyForMandatoryBriefing(preload, citizen.id)) return;
     setSystemBriefing({ feed: preload.feed });
     setPhase("system");
   }, [citizen.id, preload]);
