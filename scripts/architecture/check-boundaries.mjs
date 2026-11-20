@@ -67,7 +67,6 @@ const cssLoadOrder = [
   "./archives/archive-reader.css",
   "./parliament/parliament-scenes.css",
   "./club/lounge-v15.css",
-  "./club/lounge-scenes.css",
 ];
 const layout = read("app/layout.tsx");
 let previousCssPosition = -1;
@@ -77,6 +76,13 @@ for (const cssPath of cssLoadOrder) {
   else if (index <= previousCssPosition) fail(`CSS declaration order changed at ${cssPath}`);
   previousCssPosition = index;
 }
+// The heavyweight private-room stylesheet intentionally leaves the global
+// layout. Verify the complete approved source is loaded by the lazy Lounge
+// owner instead of silently dropping its artwork selectors.
+if (layout.includes('import "./club/lounge-scenes.css";'))
+  fail("large private Lounge scene CSS should not load on every route");
+if (!read("app/club/committee-lounge.tsx").includes('import "./lounge-scenes.css";'))
+  fail("lazy Lounge owner must import its original private scene CSS");
 if (css.includes("/* Committee Restroom") || css.includes("/* Persistent parliament workspace"))
   fail("globals.css still contains feature-owned private room/parliament workspace styles");
 for (const legacy of ["function PersistentParliamentSection(", "function CommitteeLounge(", "function ClubMysticMark("])

@@ -5,6 +5,21 @@ import { FAN_CYCLE_MS } from "./fan-motion";
 import { MAFRAER_ROOM_ASSETS } from "./mafraer-assets";
 import { startMusicBoxTune } from "./lounge-props";
 
+/**
+ * Only on a real user-initiated passage: fetch the destination JavaScript
+ * concurrently with the already-approved visual transition and image decode.
+ * Original image bytes, camera, duration, and rendering stay untouched.
+ * Import failures remain recoverable by the existing Suspense boundary.
+ */
+function warmDestination(room: "amberina" | "chryser" | "truth" | "game-room") {
+  const chunk = room === "amberina" ? import("./mafraer-lounge")
+    : room === "chryser" ? import("./chryser-lounge")
+    : room === "truth" ? import("./wordmage-lounge")
+    : import("./game-room");
+  void chunk.catch(() => { /* the normal lazy boundary will handle a later failure */ });
+}
+
+
 /** Single owner of the private Lounge scene transitions and their resources.
  * No chat history, vase state, game save data, network member privileges or
  * CSS/artwork is owned here.
@@ -52,6 +67,7 @@ export function useRoomJourneys({ initialRoom, setChatOpen, setClubStatus, setWh
   const travelWithFan = (nextRoom: "committee" | "amberina") => {
     if (fanTransition || globeOpening || musicBoxOpening || fireplaceOpening) return;
     setChatOpen(false);
+    if (nextRoom === "amberina") warmDestination("amberina");
     setFanTransition(nextRoom === "amberina" ? "enter" : "exit");
     const request = ++fanTravelRef.current;
     const started = performance.now();
@@ -86,6 +102,7 @@ export function useRoomJourneys({ initialRoom, setChatOpen, setClubStatus, setWh
   const openWordmageLounge = () => {
     if (globeOpening || fanTransition || fireplaceOpening || musicBoxOpening) return;
     setChatOpen(false);
+    warmDestination("truth");
     setGlobeOpening(true);
     setWhisper("地球仪上的经纬线缓缓展开，磁场回应了言灵师的暗号。");
     const request = ++globeTravelRef.current;
@@ -117,6 +134,7 @@ export function useRoomJourneys({ initialRoom, setChatOpen, setClubStatus, setWh
   const openChryserLounge = () => {
     if (fireplaceOpening || globeOpening || fanTransition || musicBoxOpening) return;
     setChatOpen(false);
+    warmDestination("chryser");
     setFireplaceOpening(true);
     setWhisper("壁炉深处先出现一粒绿色余烬，随后整座炉膛突然燃烧起来。");
     const request = ++fireplaceTravelRef.current;
@@ -150,6 +168,7 @@ export function useRoomJourneys({ initialRoom, setChatOpen, setClubStatus, setWh
 
   const openGameRoom = () => {
     if (musicBoxOpening || globeOpening || fireplaceOpening || fanTransition) return;
+    warmDestination("game-room");
     setChatOpen(false); setMusicBoxOpening(true);
     setWhisper("八音盒打开了。小小的星月随音乐转动，另一间明亮的房间正在醒来。");
     musicBoxSoundRef.current?.();

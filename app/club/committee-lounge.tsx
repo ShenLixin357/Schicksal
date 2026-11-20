@@ -1,5 +1,10 @@
 "use client";
 
+// Private Lounge scenery is 158 KiB of uncompressed authored CSS.
+// Resolve it only when the Lounge route chunk is visited, keeping the
+// original declarations/paint unchanged (no compression or quality loss).
+import "./lounge-scenes.css";
+
 import Image from "next/image";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { CITIZENS, type Citizen } from "../citizens";
