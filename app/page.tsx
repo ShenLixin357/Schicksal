@@ -9,8 +9,9 @@ import { readyForMandatoryBriefing, mayMountSiteAfterBriefing, type MandatoryBri
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { CITIZENS, AMBERINA_OFFICIAL_COLOR, citizenRepresentativeColor, hasLeaderInsignia, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
-import { SchicksalAtlas } from "./atlas/schicksal-atlas";
-import { AtlasGovernmentHandbook } from "./atlas/government-handbook";
+import { isCurrentPresident, currentOfficeLabel } from "./identity/office-registry";
+import { PUBLIC_MEMBER_VISUALS } from "./identity/visual-registry";
+
 import { atlasOfficesForCitizen, atlasName, atlasCodename } from "./atlas/atlas-data";
 
 import { lazy, useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
@@ -46,6 +47,8 @@ import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge
 import type { SidebarDestination, SiteSection } from "./shell/navigation";
 
 // Only import these data-heavy sections when the user navigates to them.
+const SchicksalAtlas = lazy(() => import("./atlas/schicksal-atlas").then(module => ({ default: module.SchicksalAtlas })));
+const AtlasGovernmentHandbook = lazy(() => import("./atlas/government-handbook").then(module => ({ default: module.AtlasGovernmentHandbook })));
 const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(module => ({ default: module.PhotoArchiveSection })));
 const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
 const CommitteeLounge = lazy(() => import("./club/committee-lounge").then(module => ({ default: module.CommitteeLounge })));
@@ -68,14 +71,14 @@ function Emblem({ compact = false, highlight, revealed = 8, ceremonial = false }
 }
 
 function CitizenMark({ citizen, display = "web" }: { citizen: Citizen; display?: "web" | "official" }) {
-  const leaderClass = hasLeaderInsignia(citizen) ? " leader" : "";
+  const leaderClass = hasLeaderInsignia({ office: currentOfficeLabel(citizen) }) ? " leader" : "";
   // Beige-page Simple uses the approved emphasized gold; official in parliament
   // and on other non-ivory surfaces. This colour NEVER flows into score/other UI.
   // Original circles and President-only points inherit the exact same --mark hue.
   const markColor = display === "official" && citizen.id === "amberina" ? AMBERINA_OFFICIAL_COLOR : citizen.markColor;
   if (citizen.id === "amberina") {
     return <span className={`citizen-mark personal-simple${leaderClass}`} style={{ "--mark": markColor } as CSSProperties} aria-hidden="true">
-      <Image src={display === "official" ? "/amberina-personal-simple-official.png" : "/amberina-personal-simple-gold-eecf58.png"} alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
+      <Image src={display === "official" ? PUBLIC_MEMBER_VISUALS.amberina.officialMarkAsset : PUBLIC_MEMBER_VISUALS.amberina.webMarkAsset} alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
     </span>;
   }
   let sigil: ReactNode;
@@ -202,7 +205,7 @@ function Welcome({ citizen, enter, preloadStatus, retry }: {
         <p className="eyebrow">Identity Confirmed · 身份已确认</p>
         <div className="welcome-mark"><CitizenMark citizen={citizen} /><i /></div>
         <small>WELCOME TO SCHICKSAL</small><h1>{citizen.name}</h1>
-        <div className="welcome-meta"><span>{citizen.office}</span><i /><span>CODE NAME · {citizen.codename}</span></div>
+        <div className="welcome-meta"><span>{currentOfficeLabel(citizen)}</span><i /><span>CODE NAME · {citizen.codename}</span></div>
         <p>Your citizen identity has been recognised by the Imperial System.<br />帝国系统已识别你的公民身份。</p>
         <button type="button" onClick={enter} disabled={preloadStatus !== "ready"}>{preloadStatus === "ready" ? "ENTER NOW" : "PREPARING BRIEFING…"} <span>→</span></button>
         {preloadStatus === "loading" && <div className="welcome-preload-status" role="status">正在准备最新政务与简报…</div>}
@@ -211,7 +214,7 @@ function Welcome({ citizen, enter, preloadStatus, retry }: {
           <div className="welcome-preload-actions"><button type="button" onClick={retry}>重新同步简报</button></div>
         </div>}
       </section>
-      <footer>CURRENT OFFICE <strong>{citizen.office.toUpperCase()}</strong></footer>
+      <footer>CURRENT OFFICE <strong>{currentOfficeLabel(citizen).toUpperCase()}</strong></footer>
       <div className="welcome-progress" aria-hidden="true"><i /></div>
     </main>
   );
@@ -221,7 +224,7 @@ function CitizenEmblem({ large = false }: { large?: boolean }) {
   return (
     <div className={`radial-emblem ${large ? "large" : ""}`} role="img" aria-label="八个彩色棱分别象征八位公民">
       <span className="emblem-ring outer" /><span className="emblem-ring inner" />
-      {EMBLEM_BLADES.map((blade) => <span className={`emblem-slot ${blade.index === 0 ? "leader" : ""}`} key={blade.citizenId} style={{ "--slot": blade.index, "--citizen": blade.color } as CSSProperties}><i /><b>{blade.index + 1}</b></span>)}
+      {EMBLEM_BLADES.map((blade) => <span className={`emblem-slot ${isCurrentPresident(blade.citizenId) ? "leader" : ""}`} key={blade.citizenId} style={{ "--slot": blade.index, "--citizen": blade.color } as CSSProperties}><i /><b>{blade.index + 1}</b></span>)}
       <span className="emblem-center">S</span>
     </div>
   );
@@ -380,13 +383,13 @@ function System({ citizen, logout, initialBriefing }: {
     case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "atlas":
     case "citizens":
-    case "emblem": content = <SchicksalAtlas key={focusedCitizenId ?? "atlas-default"} initialCitizenId={focusedCitizenId ?? undefined} onVisitCitizen={openAtlasProfile} onOpenHandbook={openAtlasHandbook}/>; break;
+    case "emblem": content = <FeatureSuspense label="天命图谱"><SchicksalAtlas key={focusedCitizenId ?? "atlas-default"} initialCitizenId={focusedCitizenId ?? undefined} onVisitCitizen={openAtlasProfile} onOpenHandbook={openAtlasHandbook}/></FeatureSuspense>; break;
     case "parliament": content = <><div className="atlas-parliament-help"><button type="button" title="查阅图书馆政务手册" onClick={openAtlasHandbook}>▤ 政务手册 ↗</button></div><FeatureSuspense label="帝国政务"><PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} requestedFocus={parliamentDeepLinkFocus} focusReferendums={parliamentFocus === "referendum"} renderOfficialMark={member => <CitizenMark citizen={member} display="official" />} /></FeatureSuspense></>; break;
     case "honors": content = <HonorsSection/>; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection/>; break;
     case "photos": content = <FeatureSuspense label="家庭影像馆"><PhotoArchiveSection citizen={citizen} sharedMark={<Emblem compact />} renderCitizenMark={subject => <CitizenMark citizen={subject} />} /></FeatureSuspense>; break;
-    case "archives": content = atlasHandbookOpen ? <AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/> : <FeatureSuspense label="国家档案馆"><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
+    case "archives": content = atlasHandbookOpen ? <FeatureSuspense label="政务手册"><AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/></FeatureSuspense> : <FeatureSuspense label="国家档案馆"><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
     case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <FeatureSuspense label="委员会 Lounge"><CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /></FeatureSuspense> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
