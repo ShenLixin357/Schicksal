@@ -68,6 +68,14 @@ button:focus-visible,input:focus-visible{outline:2px solid #f2d6ff;outline-offse
 button[aria-pressed="true"]{border-color:#f8e7ffb0;color:#fffafc;background:#d6bbf039}
 button.primary{background:linear-gradient(120deg,#e9d7ef,#b5a6d0);color:#251c32;font-weight:650;border-color:#ebdef0}
 .indicator{text-align:center;color:#b4acc7;font-size:11px;margin:8px 0;min-height:18px}
+.timeline-wrap{max-width:790px;margin:13px auto;display:flex;align-items:center;gap:12px}
+.timeline-wrap input{flex:1;min-width:0}
+.timeline-wrap time{width:133px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;color:#e5d5f5}
+.timing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:13px}
+.timing-grid label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#d5c9e4}
+.timing-grid output{font-variant-numeric:tabular-nums;color:#f3e1fa}
+@media(max-width:600px){.timing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 .panel{padding:13px 18px;margin-top:12px;border:1px solid #cbbad747;border-radius:12px;background:#131224b9}
 .panel summary{cursor:pointer;font-weight:600;color:#e4d7ef}
 .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-top:13px}
@@ -103,13 +111,23 @@ input[type=file]{max-width:100%;font-size:11px}
 <div id="live" role="status" aria-live="polite"></div>
 </section>
 <div class="controls" role="group" aria-label="动画调试">
- <button id="full" aria-pressed="true">完整流程</button>
- <button id="freeze" aria-pressed="false">单独看冰晶生长</button>
+ <button id="full" aria-pressed="true">完整流程</button><button id="summon" aria-pressed="false">魔法显现</button>
+ <button id="freeze" aria-pressed="false">冰晶生长</button><button id="material" aria-pressed="false">冰层材质</button>
  <button id="fracture" aria-pressed="false">单独看碎裂</button>
  <button id="play" class="primary">✦ 重新播放</button>
- <button id="pause">暂停</button>
+ <button id="pause">暂停</button><button id="step">单帧 +1/60s</button>
 </div>
+<div class="timeline-wrap"><input type="range" id="timeline" min="0" max="1000" step="1" value="0" aria-label="动画时间轴：可拖动到任意阶段"><time id="timelineLabel">0.00 / 0.00s</time></div>
 <div id="indicator" class="indicator">背面从一点魔法光核中显现；冰晶向外生长并彻底遮盖牌背；点击才碎裂揭晓</div>
+<details class="panel" open><summary>动画调速 · 各阶段可独立调整</summary>
+<div class="timing-grid">
+<label>全局播放速度 <output id="speedValue">1.00×</output><input id="speed" type="range" min="0.5" max="2" step=".05" value="1"></label>
+<label>魔法显现时长 <output id="summonDurationValue">1.35s</output><input id="summonDuration" type="range" min=".6" max="3.5" step=".05" value="1.35"></label>
+<label>冰晶生长时长 <output id="growthDurationValue">3.60s</output><input id="growthDuration" type="range" min="1.5" max="7.5" step=".10" value="3.6"></label>
+<label>冰晶碎裂时长 <output id="breakDurationValue">1.15s</output><input id="breakDuration" type="range" min=".45" max="3" step=".05" value="1.15"></label>
+</div>
+<p class="small">冻结阶段永远等待点击，不会自动碎裂；拖动时间轴或逐帧前进可以为调试手动跨越等待。</p>
+</details>
 <details class="panel" open><summary>冰材质调试 · 所有设置立即生效</summary>
  <div class="grid">
   <label>冰棱生长密度 <output id="densityValue">90%</output><input id="density" type="range" min="35" max="150" value="90" step="5"></label>
@@ -221,7 +239,7 @@ const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 let w=260,h=390,sw=700,sh=600,scale=1,mode='full',phase='idle',clock=0,last=0,paused=false,raf=0;
 let filmCanvas=document.createElement('canvas'),filmCtx=filmCanvas.getContext('2d'),pieces=[],glassGenerated=false,assetUrls=[],iceGL=null,iceShader=null,iceTexture=null,iceLoc=null,iceFallback=null;
-let hasIce=false,hasFlake=false,objectBack=false,objectFront=false;const SUMMON=.93,GROW=2.85,BREAK=1.28;
+let hasIce=false,hasFlake=false,objectBack=false,objectFront=false;let SUMMON=1.35,GROW=3.6,BREAK=1.15,globalSpeed=1,scrubbing=false;
 function seeded(n){return (Math.sin(n*12.9898+78.233)*43758.5453)%1;}
 function rand(n){let x=seeded(n);return x-Math.floor(x);}
 function val(key){return Number(controls[key].value)/100;}
@@ -549,95 +567,143 @@ function drawMagic(t,type){
   }
  }
 }
-function updateStatus(msg){$('indicator').textContent=msg;$('live').textContent=msg;}
 
-function setFront(visible){
- frontView.hidden=!visible;backView.hidden=visible;
+function setFront(visible){frontView.hidden=!visible;backView.hidden=visible;}
+function hideClip(){card.style.clipPath='inset(0 round 9px)';}
+function revealCircle(p){
+ const r=Math.hypot(w*.5,h*.61)+18;
+ card.style.clipPath='circle('+(r*smooth(p)).toFixed(2)+'px at 50% 39%)';
 }
-function hideClip(){
- card.style.clipPath='inset(0 round 9px)';
+function currentTime(){
+ if(phase==='summon'||phase==='summon-hold')return phase==='summon-hold'?SUMMON:clock;
+ if(phase==='growth')return SUMMON+clock;
+ if(phase==='frozen')return SUMMON+GROW;
+ if(phase==='breaking')return SUMMON+GROW+clock;
+ if(phase==='revealed')return SUMMON+GROW+BREAK;
+ return 0;
+}
+function updateStatus(msg){$('indicator').textContent=msg;$('live').textContent=msg;}
+function syncTimeline(){
+ if(scrubbing)return;
+ const total=SUMMON+GROW+BREAK;
+ $('timeline').value=String(Math.round(clamp(currentTime()/total)*1000));
+ $('timelineLabel').textContent=currentTime().toFixed(2)+' / '+total.toFixed(2)+'s';
+}
+function setFrozen(){
+ hideClip();phase='frozen';clock=0;setFront(false);
+ card.classList.add('frozen');iceGPU.style.opacity='1';iceFallbackCanvas.style.opacity='1';
+ drawFreeze(ctx,1);sx.clearRect(0,0,sw,sh);
+ updateStatus('完全冰封：整张背面不可见 · 点击才碎裂');
+}
+function startFracture(seconds=0){
+ hideClip();
+ if(!glassGenerated)cacheFull();
+ setFront(true);phase='breaking';clock=seconds;
+ drawShatter(clamp(clock/BREAK));drawMagic(clamp(clock/BREAK),'break');
+ updateStatus('裂纹蔓延，随后尖锐冰片飞散 · 正面从冰片之间显现');
+}
+function seekAbsolute(t){
+ const x=clamp(t,0,SUMMON+GROW+BREAK);
+ if(x<SUMMON){
+  phase='summon';clock=x;setFront(false);card.classList.remove('frozen');
+  iceGPU.style.opacity='1';iceFallbackCanvas.style.opacity='1';
+  ctx.clearRect(0,0,w,h);renderIce(0);revealCircle(clock/SUMMON);
+  drawMagic(clock/SUMMON,'summon');
+ }else if(x<SUMMON+GROW){
+  phase='growth';clock=x-SUMMON;setFront(false);hideClip();
+  iceGPU.style.opacity='1';iceFallbackCanvas.style.opacity='1';sx.clearRect(0,0,sw,sh);
+  drawFreeze(ctx,smooth(clock/GROW));
+ }else if(x<=SUMMON+GROW){
+  setFrozen();
+ }else if(x<SUMMON+GROW+BREAK){
+  startFracture(x-SUMMON-GROW);
+ }else{
+  phase='revealed';clock=0;setFront(true);hideClip();
+  ctx.clearRect(0,0,w,h);sx.clearRect(0,0,sw,sh);
+  iceGPU.style.opacity='0';iceFallbackCanvas.style.opacity='0';
+ }
+ syncTimeline();
 }
 function begin(){
- clock=0;last=0;paused=false;$('pause').textContent='暂停';glassGenerated=false;
- iceGPU.style.opacity='1';iceFallbackCanvas.style.opacity='1';card.classList.remove('frozen');
- card.style.filter='none';
- sx.clearRect(0,0,sw,sh);
- if(mode==='fracture'){
-  hideClip();phase='breaking';setFront(false);
-  renderIce(1);drawFreeze(ctx,1);cacheFull();setFront(true);drawShatter(0);
-  updateStatus('冰壳完整覆盖卡牌 → 裂纹蔓延 → 不规则碎裂，直接露出牌面');
- }else if(mode==='freeze'){
-  hideClip();phase='growth';setFront(false);
-  renderIce(0);drawFreeze(ctx,0);
-  updateStatus('六条纤长主棱从中心生长，冰晶完全封住牌背');
- }else{
-  phase='summon';setFront(false);
-  card.style.clipPath='circle(0px at 50% 39%)';
-  renderIce(0);drawFreeze(ctx,0);
-  updateStatus('一点魔法光核绽开，牌背从中心逐渐显现');
- }
+ paused=false;last=0;glassGenerated=false;$('pause').textContent='暂停';
+ card.classList.remove('frozen');
+ iceGPU.style.opacity='1';iceFallbackCanvas.style.opacity='1';card.style.filter='none';
+ if(mode==='material'){setFrozen();}
+ else if(mode==='fracture'){drawFreeze(ctx,1);startFracture(0);}
+ else if(mode==='freeze'){seekAbsolute(SUMMON);updateStatus('六条主棱从中心生长，副棱逐层显现');}
+ else{seekAbsolute(0);updateStatus('中心魔法光核开始召唤卡背');}
+ syncTimeline();
 }
 function advance(){
- if(phase==='summon'||phase==='growth'){
-  hideClip();phase='frozen';clock=0;
-  card.classList.add('frozen');
-  renderIce(1);drawFreeze(ctx,1);
-  sx.clearRect(0,0,sw,sh);
-  updateStatus('完整冰封：牌背不可见 · 点击碎裂揭晓');
- }else if(phase==='frozen'){
-  cacheFull();setFront(true);phase='breaking';clock=0;
-  drawShatter(0);drawMagic(0,'break');
-  updateStatus('先开裂，再向外不规则崩解；冰壳消失后直接露出牌面');
- }else begin();
+ if(phase==='summon'||phase==='growth'){setFrozen();}
+ else if(phase==='frozen'||phase==='summon-hold'){startFracture(0);}
+ else begin();
+ syncTimeline();
 }
 function frame(now){
  if(!last)last=now;
- const dt=Math.min(.045,Math.max(0,(now-last)/1000));last=now;
- if(!paused)clock+=dt;
- if(phase==='summon'){
-  const p=smooth(clock/SUMMON);
-  const r=Math.hypot(w*.5,h*.61)+15;
-  card.style.clipPath='circle('+(r*p).toFixed(2)+'px at 50% 39%)';
-  drawMagic(p,'summon');
-  if(clock>=SUMMON){
-   hideClip();sx.clearRect(0,0,sw,sh);
-   phase='growth';clock=0;
-   updateStatus('六棱雪花从中心生长；冰面逐渐折射并霜化');
-  }
- }else if(phase==='growth'){
-  const p=smooth(clock/GROW);
-  drawFreeze(ctx,p);
-  if(clock>=GROW){
-   phase='frozen';clock=0;
-   card.classList.add('frozen');
-   drawFreeze(ctx,1);
-   updateStatus('完全冰封 · 牌背被不透明冰晶覆盖 · 点击碎裂');
-  }
- }else if(phase==='frozen'){
-  // Deliberate hold: do not auto-reveal.
- }else if(phase==='breaking'){
-  const p=clamp(clock/BREAK);
-  drawShatter(p);drawMagic(p,'break');
-  if(clock>=BREAK){
-   phase='revealed';clock=0;
-   ctx.clearRect(0,0,w,h);sx.clearRect(0,0,sw,sh);
-   iceGPU.style.opacity='0';iceFallbackCanvas.style.opacity='0';
-   updateStatus('冰壳已碎裂 · 正面完全显现 · 点击重播');
-  }
+ const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
+ if(!paused){
+  clock+=dt*globalSpeed;
+  if(phase==='summon'){
+   let p=clamp(clock/SUMMON);revealCircle(p);drawMagic(p,'summon');
+   if(clock>=SUMMON){
+    hideClip();sx.clearRect(0,0,sw,sh);
+    if(mode==='summon'){phase='summon-hold';clock=SUMMON;updateStatus('魔法绽放完毕 · 可拖动时间轴或切换阶段');}
+    else{phase='growth';clock=0;updateStatus('六棱雪花从中心向外生长，冰霜沿晶枝蔓延');}
+   }
+  }else if(phase==='growth'){
+   drawFreeze(ctx,smooth(clock/GROW));
+   if(clock>=GROW)setFrozen();
+  }else if(phase==='frozen'){clock=0;}
+  else if(phase==='breaking'){
+   const p=clamp(clock/BREAK);drawShatter(p);drawMagic(p,'break');
+   if(clock>=BREAK){
+    phase='revealed';clock=0;ctx.clearRect(0,0,w,h);sx.clearRect(0,0,sw,sh);
+    iceGPU.style.opacity='0';iceFallbackCanvas.style.opacity='0';
+    updateStatus('碎裂结束 · 女巫牌面完整出现 · 点击重播');
+   }
+  }else if(phase==='summon-hold'){clock=SUMMON;}
+  syncTimeline();
  }
  raf=requestAnimationFrame(frame);
 }
 function chooseMode(next){
- mode=next;for(const k of ['full','freeze','fracture'])$(k).setAttribute('aria-pressed',String(k===next));begin();
+ mode=next;for(const k of ['full','summon','freeze','material','fracture'])$(k).setAttribute('aria-pressed',String(k===next));begin();
 }
-$('full').onclick=()=>chooseMode('full');$('freeze').onclick=()=>chooseMode('freeze');$('fracture').onclick=()=>chooseMode('fracture');
-$('play').onclick=()=>begin();$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'继续':'暂停';last=0;};
+for(const k of ['full','summon','freeze','material','fracture'])$(k).onclick=()=>chooseMode(k);
+$('play').onclick=()=>begin();
+$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'继续':'暂停';last=0;};
 stage.onclick=()=>advance();
 stage.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();advance();}};
+$('timeline').oninput=e=>{
+ scrubbing=true;paused=true;$('pause').textContent='继续';
+ seekAbsolute(Number(e.target.value)/1000*(SUMMON+GROW+BREAK));
+ $('timelineLabel').textContent=currentTime().toFixed(2)+' / '+(SUMMON+GROW+BREAK).toFixed(2)+'s';
+};
+$('timeline').onchange=()=>{scrubbing=false;syncTimeline();last=0;};
+$('step').onclick=()=>{
+ paused=true;$('pause').textContent='继续';scrubbing=false;
+ seekAbsolute(currentTime()+1/60);last=0;
+};
+for(const id of ['speed','summonDuration','growthDuration','breakDuration']){
+ $(id).oninput=()=>{
+  const n=Number($(id).value);
+  if(id==='speed')globalSpeed=n;
+  else if(id==='summonDuration')SUMMON=n;
+  else if(id==='growthDuration')GROW=n;
+  else BREAK=n;
+  $(id+'Value').textContent=n.toFixed(2)+(id==='speed'?'×':'s');
+  syncTimeline();
+ };
+}
 for(const [key,input]of Object.entries(controls)){
- input.oninput=()=>{$(key+'Value').textContent=input.value+'%';glassGenerated=false;
-  if(phase==='frozen')drawFreeze(ctx,1);
-  if(phase==='growth')drawFreeze(ctx,smooth(clock/2.55));};
+ input.oninput=()=>{
+  $(key+'Value').textContent=input.value+'%';glassGenerated=false;
+  if(phase==='frozen'||mode==='material')drawFreeze(ctx,1);
+  else if(phase==='growth')drawFreeze(ctx,smooth(clock/GROW));
+  else if(phase==='breaking'){cacheFull();drawShatter(clamp(clock/BREAK));}
+ };
 }
 function setAsset(name,blob){
  const mapping={back:'backImg',front:'frontImg',ice:'iceArt',flake:'flakeArt'};
