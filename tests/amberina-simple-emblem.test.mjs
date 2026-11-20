@@ -47,7 +47,9 @@ test("existing beige website mark and circles/leader dots use the enhanced gold;
   assert.match(archive,/className="reader-author-mark" style=\{\{ "--mark": authorMarkColor/);
   assert.match(page,/authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} \/>\}/);
   assert.match(entry,/\.citizen-mark::before \{[^\n]*var\(--mark\)/);
-  assert.match(globals,/\.citizen-mark\.leader::after \{[^\n]*var\(--mark\)/);
+  // This office-only outline was migrated with the original scene CSS.
+  const loungeStyles=source("../app/club/lounge-scenes.css");
+  assert.match(loungeStyles,/\.citizen-mark\.leader::after \{[^\n]*var\(--mark\)/);
   assert.match(entry,/\.citizen-mark\.personal-simple\.leader \{\s*background: transparent;\s*box-shadow: none;/);
   assert.doesNotMatch(page,/citizen-mark-mist/);
   assert.doesNotMatch(layout,/amberina-personal-fog|oat-sage-theme/);
