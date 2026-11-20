@@ -13,7 +13,7 @@ import { SchicksalAtlas } from "./atlas/schicksal-atlas";
 import { AtlasGovernmentHandbook } from "./atlas/government-handbook";
 import { atlasOfficesForCitizen, atlasName, atlasCodename } from "./atlas/atlas-data";
 import { SpeakerManagement } from "./speaker-management";
-import { startTransition, useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
+import { startTransition, lazy, useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
 import { ArticulatedFan, LaceFanDrawing } from "./club/articulated-fan";
 import { FAN_CYCLE_MS } from "./club/fan-motion";
 import { MysticSigil } from "./club/mystic-marks";
@@ -31,16 +31,20 @@ import { VaseExperience } from "./club/vase/vase-experience";
 import { getVase } from "./club/vase/vase-catalogue";
 import { EMBLEM_BLADES } from "./emblem/blade-spec";
 import { HomeSection } from "./home/home-section";
-import { PhotoArchiveSection } from "./photos/photo-archive";
+import { FeatureSuspense } from "./shell/feature-suspense";
 import { ImperialSidebar } from "./shell/imperial-sidebar";
 import { ShellPlaceholder } from "./shell/placeholder";
 import { PageHead } from "./shell/page-head";
 import { HonorsPage, MarketPage } from "./points/points-pages";
 import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
-import { ArchivesSection } from "./archives/archive-section";
+
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import type { SidebarDestination } from "./shell/navigation";
+
+// Only import these data-heavy sections when the user navigates to them.
+const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(module => ({ default: module.PhotoArchiveSection })));
+const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
 
 type Phase = "opening" | "login" | "welcome" | "system";
 type Section = "home" | "briefing" | "atlas" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "messenger" | "library" | "club";
@@ -1708,8 +1712,8 @@ function System({ citizen, logout, initialBriefing }: {
     case "honors": content = <HonorsSection/>; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection/>; break;
-    case "photos": content = <PhotoArchiveSection citizen={citizen} sharedMark={<Emblem compact />} renderCitizenMark={subject => <CitizenMark citizen={subject} />} />; break;
-    case "archives": content = atlasHandbookOpen ? <AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/> : <ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} />} authorMarkColor={CITIZENS[0].markColor} />; break;
+    case "photos": content = <FeatureSuspense label="家庭影像馆"><PhotoArchiveSection citizen={citizen} sharedMark={<Emblem compact />} renderCitizenMark={subject => <CitizenMark citizen={subject} />} /></FeatureSuspense>; break;
+    case "archives": content = atlasHandbookOpen ? <AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/> : <FeatureSuspense label="国家档案馆"><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
     case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
