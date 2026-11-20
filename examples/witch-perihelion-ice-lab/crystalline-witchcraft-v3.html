@@ -781,7 +781,8 @@ function begin(){
 }
 function advance(){
  if(phase==='summon'||phase==='growth'){setFrozen();}
- else if(phase==='frozen'||phase==='summon-hold'){startFracture(0);}
+ else if(phase==='frozen'){startFracture(0);}
+ else if(phase==='summon-hold'){begin();}
  else begin();
  syncTimeline();
 }
