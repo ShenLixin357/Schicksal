@@ -3,7 +3,8 @@ import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { ensurePhotoSchema } from "../../../db/photo-schema";
 import { archivePhotos } from "../../../db/schema";
-import { standaloneMember } from "../../standalone-access";
+import { requireMember } from "../../../server/auth/member.ts";
+import { readJson, apiFailure, ApiError } from "../../../server/http.ts";
 import { getPhotoStorage, PhotoStorageError, type PhotoStorage } from "../../photo-storage";
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
@@ -61,8 +62,9 @@ function publicPhoto(row: typeof archivePhotos.$inferSelect) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    await requireMember(request);
     await ensurePhotoSchema();
     const rows = await getDb()
       .select()
@@ -71,10 +73,7 @@ export async function GET() {
       .limit(250);
     return Response.json({ photos: rows.map(publicPhoto) });
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "影像馆暂时无法读取。" },
-      { status: 500 },
-    );
+    return apiFailure(error, "影像馆暂时无法读取。");
   }
 }
 
@@ -82,8 +81,9 @@ export async function POST(request: Request) {
   let objectKey = "";
   let storage: PhotoStorage | null = null;
   try {
+    const uploaderCitizenId = await requireMember(request);
     storage = getPhotoStorage(env);
-    const payload = await request.json() as {
+    const payload = await readJson<{
       dataBase64?: unknown;
       originalName?: unknown;
       mimeType?: unknown;
@@ -94,12 +94,11 @@ export async function POST(request: Request) {
       capturedAt?: unknown;
       uploaderCitizenId?: unknown;
       subjects?: unknown;
-    };
+    }>(request, 17_000_000);
     const title = cleanText(payload.title, 120);
     const description = cleanText(payload.description, 800);
     const era = cleanText(payload.era, 80);
     const capturedAt = cleanText(payload.capturedAt, 24);
-    const uploaderCitizenId = standaloneMember(request, env) || cleanText(payload.uploaderCitizenId, 40);
     const originalName = cleanText(payload.originalName, 180);
     const mimeType = cleanText(payload.mimeType, 80);
     const subjects = normaliseSubjects(payload.subjects);
@@ -159,15 +158,13 @@ export async function POST(request: Request) {
     return Response.json({ photo: publicPhoto(row) }, { status: 201 });
   } catch (error) {
     if (objectKey) await storage?.delete(objectKey).catch(() => undefined);
-    return Response.json(
-      { error: error instanceof Error ? error.message : "照片上传失败，请稍后重试。" },
-      { status: error instanceof PhotoStorageError ? error.status : 500 },
-    );
+    return apiFailure(error instanceof PhotoStorageError ? new ApiError(error.message, error.status) : error, "照片上传失败，请稍后重试。");
   }
 }
 
 export async function DELETE(request: Request) {
   try {
+    await requireMember(request); // Preserve existing all-authenticated-members deletion policy.
     const storage = getPhotoStorage(env);
     await ensurePhotoSchema();
     const id = new URL(request.url).searchParams.get("id")?.trim();
@@ -178,9 +175,6 @@ export async function DELETE(request: Request) {
     await getDb().delete(archivePhotos).where(eq(archivePhotos.id, id));
     return Response.json({ deleted: true });
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "无法删除照片。" },
-      { status: error instanceof PhotoStorageError ? error.status : 500 },
-    );
+    return apiFailure(error instanceof PhotoStorageError ? new ApiError(error.message, error.status) : error, "无法删除照片。");
   }
 }
