@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { CelloCorner } from "./cello/cello-corner";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { MiniGameSystem, useMiniGameSystem } from "./minigames/mini-game-system";
+import { MiniGameSystem } from "./minigames/mini-game-system";
+import { useMiniGameSystem } from "./minigames/use-mini-game-system";
 import type { EmblemBlade, MiniGameId } from "./minigames/mini-game-types";
 
 const ROOM_STORAGE_KEY = "committee:chryser:study:v1";
