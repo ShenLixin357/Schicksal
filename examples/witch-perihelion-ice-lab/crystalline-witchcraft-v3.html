@@ -524,50 +524,107 @@ function drawShatter(t){
  // Before the sheet breaks apart, light travels through the fracture network.
  if(q<.29)outlineFracture(ctx,(1-smooth((q-.18)/.11))*.9,crack);
 }
+
+function bezierP(ax,ay,bx,by,cx,cy,t){
+ const v=1-t;
+ return [v*v*ax+2*v*t*bx+t*t*cx,v*v*ay+2*v*t*by+t*t*cy];
+}
 function drawMagic(t,type){
  sx.clearRect(0,0,sw,sh);
- const rect=card.getBoundingClientRect(),sr=stage.getBoundingClientRect();
- const cx=rect.left-sr.left+rect.width*.5,cy=rect.top-sr.top+rect.height*.39;
- const p=clamp(t),light=val('light');
+ const cr=card.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+ const ox=cr.left-sr.left+cr.width*.5,oy=cr.top-sr.top+cr.height*.39;
+ const p=clamp(t),L=val('light');
  if(type==='summon'){
-  // Source is a point, then layered curved refractive rays blossom out.
-  const bloom=smooth(p/.72),fade=1-smooth((p-.52)/.46);
-  const span=Math.max(w,h)*(.12+1.28*bloom);
-  const grad=sx.createRadialGradient(cx,cy,0,cx,cy,span);
-  grad.addColorStop(0,'rgba(255,251,255,'+(clamp(.63*fade+.20)*light).toFixed(3)+')');
-  grad.addColorStop(.11,'rgba(235,215,255,'+(.41*fade*light).toFixed(3)+')');
-  grad.addColorStop(.44,'rgba(169,174,245,'+(.15*fade).toFixed(3)+')');
-  grad.addColorStop(1,'rgba(112,133,240,0)');
-  sx.fillStyle=grad;sx.beginPath();sx.arc(cx,cy,span,0,Math.PI*2);sx.fill();
+  // The Mafraer room's arcing light pathways and the fan's independently
+  // articulated petals are an inspiration, not copied pixels.
+  const wake=smooth(p/.19),bloom=smooth(p/.81);
+  const fade=1-smooth((p-.65)/.34),alpha=wake*fade;
+  const R=(Math.max(w,h)*(.10+1.15*bloom));
   sx.save();sx.globalCompositeOperation='screen';
-  for(let i=0;i<12;i++){
-   const a=i*Math.PI/6+.14*Math.sin(i*3.9),length=span*(.57+.30*rand(i*11));
-   const qx=cx+Math.cos(a)*length,qy=cy+Math.sin(a)*length;
-   const x2=cx+Math.cos(a+.035)*length*.53,y2=cy+Math.sin(a+.035)*length*.53;
-   sx.beginPath();sx.moveTo(cx,cy);sx.quadraticCurveTo(x2,y2,qx,qy);
-   sx.strokeStyle='rgba('+(i%3===0?'255,235,199':'213,220,255')+','+(.10+.19*fade).toFixed(3)+')';
-   sx.lineWidth=.35+(1.6*fade)*rand(i*19);sx.stroke();
+  const g=sx.createRadialGradient(ox,oy,.5,ox,oy,R*.85);
+  g.addColorStop(0,'rgba(255,246,250,'+(clamp(.66*alpha*L)).toFixed(3)+')');
+  g.addColorStop(.11,'rgba(245,225,254,'+(clamp(.32*alpha*L)).toFixed(3)+')');
+  g.addColorStop(.31,'rgba(189,176,245,'+(.13*alpha).toFixed(3)+')');
+  g.addColorStop(1,'rgba(135,157,230,0)');
+  sx.fillStyle=g;sx.beginPath();sx.arc(ox,oy,R*.85,0,Math.PI*2);sx.fill();
+  // Precision-matched illuminated armillary rings, oriented at distinct tilts.
+  for(let ring=0;ring<3;ring++){
+   const delay=.08+ring*.065,progress=smooth((p-delay)/(.61+ring*.09));
+   if(progress<=0)continue;
+   const angle=[-.19,.43,-.5][ring]+(.20*p*(ring%2?1:-1));
+   const rad=R*[.37,.55,.73][ring];
+   sx.save();sx.translate(ox,oy);sx.rotate(angle);
+   sx.strokeStyle='rgba('+(ring===1?'255,224,211':'211,225,255')+','+
+      ([.36,.22,.16][ring]*fade*L).toFixed(3)+')';
+   sx.lineWidth=ring===0?.85:.52;
+   sx.beginPath();sx.ellipse(0,0,rad,rad*[.92,.56,.79][ring],0,
+      -2.2,-2.2+Math.PI*2*progress);sx.stroke();sx.restore();
+  }
+  // Twenty-four slender filaments sprout from the same occult nucleus.
+  // Different arc lengths, delays, curvature and shimmer avoid a radial star icon.
+  for(let i=0;i<24;i++){
+   const main=i%4===0,delay=.03+(i%8)*.018;
+   const progress=smooth((p-delay)/(.48+.16*rand(i+77)));
+   if(progress<=0)continue;
+   const a=i*2.39996323+.12*Math.sin(i*4.1);
+   const length=R*(main?.87:.48+.38*rand(i*13+7));
+   const x2=ox+Math.cos(a)*length,y2=oy+Math.sin(a)*length;
+   const arc=a+(i%2?1:-1)*(.30+.45*rand(i*9+3));
+   const mx=ox+Math.cos(arc)*length*.54,my=oy+Math.sin(arc)*length*.54;
+   sx.beginPath();
+   for(let j=0;j<=15;j++){
+    const [x,y]=bezierP(ox,oy,mx,my,x2,y2,j/15*progress);
+    if(j===0)sx.moveTo(x,y);else sx.lineTo(x,y);
+   }
+   const shine=(main?.37:.13)*fade*L;
+   sx.strokeStyle=i%7===0?'rgba(255,231,204,'+shine.toFixed(3)+')':
+      'rgba(227,227,255,'+shine.toFixed(3)+')';
+   sx.lineWidth=main?1.12:.43;sx.stroke();
+   const [tx,ty]=bezierP(ox,oy,mx,my,x2,y2,progress);
+   sx.fillStyle='rgba(255,248,250,'+(fade*(main?.69:.43)).toFixed(3)+')';
+   sx.beginPath();sx.arc(tx,ty,main?1.35:.70,0,Math.PI*2);sx.fill();
+  }
+  // Discreet star-chart ticks are fixed to the growing circular instrument.
+  if(p>.15){
+   for(let i=0;i<60;i++){
+    const a=i*Math.PI/30+p*.14,rad=R*.37;
+    const length=(i%5===0?4.2:1.9)*fade;
+    const x=ox+Math.cos(a)*rad,y=oy+Math.sin(a)*rad;
+    sx.beginPath();sx.moveTo(x,y);
+    sx.lineTo(x+Math.cos(a)*length,y+Math.sin(a)*length);
+    sx.strokeStyle='rgba(221,225,254,'+(.29*fade*L).toFixed(3)+')';
+    sx.lineWidth=.49;sx.stroke();
+   }
+  }
+  // Eight miniature stellar crossings, far fewer than typical cheap "sparkles".
+  for(let i=0;i<8;i++){
+   const a=i*Math.PI/4+.21+p*.24,r=R*(.45+.11*rand(i+4));
+   const x=ox+Math.cos(a)*r,y=oy+Math.sin(a)*r;
+   const size=(i%3===0?3.8:2.0)*alpha;
+   sx.strokeStyle='rgba(254,237,234,'+(.39*alpha*L).toFixed(3)+')';
+   sx.lineWidth=.55;sx.beginPath();sx.moveTo(x-size,y);sx.lineTo(x+size,y);
+   sx.moveTo(x,y-size);sx.lineTo(x,y+size);sx.stroke();
   }
   sx.restore();
-  sx.beginPath();sx.arc(cx,cy,Math.max(2,span*.67),-.3*Math.PI,.5*Math.PI);
-  sx.strokeStyle='rgba(228,212,255,'+(.2*fade).toFixed(3)+')';
-  sx.lineWidth=1.1;sx.stroke();
  }else if(type==='break'){
-  const burst=1-smooth(p/.57);
-  const gr=sx.createRadialGradient(cx,cy,0,cx,cy,Math.max(165,w*.75));
-  gr.addColorStop(0,'rgba(251,252,255,'+(.52*burst*light).toFixed(3)+')');
-  gr.addColorStop(.25,'rgba(202,227,255,'+(.24*burst*light).toFixed(3)+')');
-  gr.addColorStop(1,'rgba(189,206,255,0)');
-  sx.fillStyle=gr;sx.beginPath();sx.arc(cx,cy,190,0,Math.PI*2);sx.fill();
-  for(let i=0;i<40;i++){
-   const a=i*2.399963,offset=Math.pow(smooth(p),.72);
-   const r=(7+rand(i*5)*142)*offset;
-   sx.fillStyle='rgba(245,251,255,'+(.45*burst*rand(i*8)*light).toFixed(3)+')';
-   sx.beginPath();sx.arc(cx+Math.cos(a)*r,cy+Math.sin(a)*r,.45+rand(i*17)*1.1,0,Math.PI*2);sx.fill();
+  // Small pearl burst with directional crystal-edge refractions, no whiteout.
+  const burst=smooth(p/.045)*(1-smooth((p-.07)/.30));
+  const max=Math.max(w*.72,125);
+  const g=sx.createRadialGradient(ox,oy,.5,ox,oy,max);
+  g.addColorStop(0,'rgba(252,248,255,'+(.45*burst*L).toFixed(3)+')');
+  g.addColorStop(.14,'rgba(215,233,255,'+(.23*burst*L).toFixed(3)+')');
+  g.addColorStop(1,'rgba(180,205,241,0)');
+  sx.fillStyle=g;sx.beginPath();sx.arc(ox,oy,max,0,Math.PI*2);sx.fill();
+  for(let i=0;i<18;i++){
+   const a=i*Math.PI/9+.05*rand(i*8),reach=(30+140*rand(i+15))*smooth((p-.025)/.48);
+   const x=ox+Math.cos(a)*reach,y=oy+Math.sin(a)*reach;
+   sx.beginPath();sx.moveTo(x,y);
+   sx.lineTo(x+Math.cos(a)*reach*.15,y+Math.sin(a)*reach*.15);
+   sx.strokeStyle='rgba(226,244,255,'+(.40*burst*L).toFixed(3)+')';
+   sx.lineWidth=i%3===0?1.05:.45;sx.stroke();
   }
  }
 }
-
 function setFront(visible){frontView.hidden=!visible;backView.hidden=visible;}
 function hideClip(){card.style.clipPath='inset(0 round 9px)';}
 function revealCircle(p){
