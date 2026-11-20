@@ -41,8 +41,11 @@ test("existing beige website mark and circles/leader dots use the enhanced gold;
   assert.match(page,/src=\{display === "official" \? "\/amberina-personal-simple-official\.png" : "\/amberina-personal-simple-gold-eecf58\.png"\}/);
   assert.match(page,/<CitizenMark citizen=\{item\}/);
   assert.match(page,/<div className="welcome-mark"><CitizenMark citizen=\{citizen\}/);
-  assert.match(page,/className="book-cover-mark" style=\{\{ "--mark": CITIZENS\[0\]\.markColor/);
-  assert.match(page,/className="reader-author-mark" style=\{\{ "--mark": CITIZENS\[0\]\.markColor/);
+  const archive=source("../app/archives/archive-section.tsx");
+  assert.match(archive,/className="book-cover-mark" style=\{\{ "--mark": authorMarkColor/);
+  assert.match(page,/authorMarkColor=\{CITIZENS\[0\]\.markColor\}/);
+  assert.match(archive,/className="reader-author-mark" style=\{\{ "--mark": authorMarkColor/);
+  assert.match(page,/authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} \/>\}/);
   assert.match(entry,/\.citizen-mark::before \{[^\n]*var\(--mark\)/);
   assert.match(globals,/\.citizen-mark\.leader::after \{[^\n]*var\(--mark\)/);
   assert.match(entry,/\.citizen-mark\.personal-simple\.leader \{\s*background: transparent;\s*box-shadow: none;/);
@@ -77,11 +80,14 @@ test("user's scores and all other representative colours always use #F3ED87",()=
   assert.match(points,/"128",AMBERINA_OFFICIAL_COLOR/);
   assert.match(page,/citizenRepresentativeColor\(item\)/);
   assert.match(page,/citizenRepresentativeColor\(focused\)/);
-  assert.match(page,/citizenRepresentativeColor\(subject\)/);
+  const photos=source("../app/photos/photo-archive.tsx");
+  assert.match(photos,/citizenRepresentativeColor\(subject\)/);
+  assert.match(photos,/renderCitizenMark/);
   assert.match(profile,/style=\{\{ "--citizen": citizenRepresentativeColor\(citizen\) \} as CSSProperties\}><div className="profile-mark"/);
   assert.match(page,/style=\{\{ "--citizen": citizenRepresentativeColor\(member\) \} as CSSProperties\}/);
-  assert.match(page,/const EMBLEM_BLADES:/);
-  assert.match(page,/color: citizen\.accent,/);
+  const blades=source("../app/emblem/blade-spec.ts");
+  assert.match(blades,/const EMBLEM_BLADES:/);
+  assert.match(blades,/color: citizen\.accent,/);
 });
 
 test("president dots follow the office and future agents must ask before adding name/mark colour",()=>{
