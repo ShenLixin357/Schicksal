@@ -75,7 +75,7 @@ test("4s entrance veil swaps scenes in darkness and supports one-click skip", ()
 
 test("archive conversion and placeholder styling live outside the page coordinator", () => {
   const page = read("app/page.tsx");
-  assert.match(page, /import \{ ArchivesSection \} from "\.\/archives\/archive-section";/);
+  assert.match(page, /const ArchivesSection = lazy\(\(\) => import\("\.\/archives\/archive-section"\)/);
   const archiveSection = read("app/archives/archive-section.tsx");
   assert.match(archiveSection, /import \{ archiveMarkdownToHtml \} from "\.\/archive-markdown";/);
   assert.doesNotMatch(page, /function archiveInlineMarkdown/);
