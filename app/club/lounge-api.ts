@@ -14,8 +14,8 @@ async function readRoomResponse<T extends ClubData>(response: Response, failure:
   return payload;
 }
 
-export async function fetchCommitteeRoom(): Promise<ClubData> {
-  return readRoomResponse(await fetch(endpoint, { cache: "no-store" }), "Committee Lounge 暂时没有回应。");
+export async function fetchCommitteeRoom(signal?: AbortSignal): Promise<ClubData> {
+  return readRoomResponse(await fetch(endpoint, { cache: "no-store", signal }), "Committee Lounge 暂时没有回应。");
 }
 
 export async function fetchCommitteeHistory(
