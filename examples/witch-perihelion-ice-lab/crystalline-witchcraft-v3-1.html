@@ -615,46 +615,57 @@ function drawFreeze(c,progress){
  c.fillStyle=center;c.beginPath();c.arc(cx,cy,16,0,Math.PI*2);c.fill();
  c.restore();
 }
+
 function makeSharpFragments(){
- // Shared jittered vertices make a gapless shell before the first fracture.
- // Each cell is triangulated into two long, very sharp ice-blade silhouettes,
- // restoring the early pointed-shard style rather than chunky Voronoi plates.
+ // Large original-style ice-breakup. Exactly 18 contiguous, oversized
+ // triangular / acute wedge plates; NOT V2 Voronoi chunks or V3's 168 chips.
+ // Shared corners form a watertight intact shell, so the card face is not
+ // visible prematurely through a seam.
  pieces=[];
- const cols=14,rows=6;
- const verts=[];
+ const xs=[0,.305,.625,1],ys=[0,.275,.655,1],rows=3,cols=3;
+ const nodes=[];
  for(let row=0;row<=rows;row++){
-  const line=[];
+  const arr=[];
   for(let col=0;col<=cols;col++){
-   const edge=col===0||col===cols||row===0||row===rows;
-   const x=w*col/cols+(edge?0:(rand(row*89+col*7)-.5)*w/cols*.44);
-   const y=h*row/rows+(edge?0:(rand(row*41+col*17)-.5)*h/rows*.26);
-   line.push([x,y]);
+   const edgeX=col===0||col===cols,edgeY=row===0||row===rows;
+   const dx=edgeX?0:(rand(row*31+col*41)-.5)*(edgeY?.047:.087)*w;
+   const dy=edgeY?0:(rand(row*37+col*13+7)-.5)*(edgeX?.044:.092)*h;
+   arr.push([w*xs[col]+dx,h*ys[row]+dy]);
   }
-  verts.push(line);
+  nodes.push(arr);
  }
- const cx=w*.5,cy=h*.39;
- const add=(poly,n)=>{
-  let minx=w,miny=h,maxx=0,maxy=0;
-  for(const [x,y] of poly){minx=Math.min(minx,x);miny=Math.min(miny,y);maxx=Math.max(maxx,x);maxy=Math.max(maxy,y);}
-  const px=poly.reduce((a,p)=>a+p[0],0)/3,py=poly.reduce((a,p)=>a+p[1],0)/3;
-  let maxlen=0,tip=poly[0],base=poly[1];
+ const C=[w*.5,h*.39];
+ function add(poly,id){
+  const centre=poly.reduce((acc,pt)=>[acc[0]+pt[0],acc[1]+pt[1]],[0,0]).map(v=>v/poly.length);
+  let minx=w,miny=h,maxx=0,maxy=0,longest=0,longEdge=null;
   for(let j=0;j<3;j++){
-   const aa=poly[j],bb=poly[(j+1)%3],len=Math.hypot(aa[0]-bb[0],aa[1]-bb[1]);
-   if(len>maxlen){maxlen=len;tip=poly[(j+2)%3];base=[(aa[0]+bb[0])*.5,(aa[1]+bb[1])*.5];}
+   const [px,py]=poly[j],next=poly[(j+1)%3];
+   minx=Math.min(px,minx);miny=Math.min(py,miny);
+   maxx=Math.max(px,maxx);maxy=Math.max(py,maxy);
+   const d=Math.hypot(next[0]-px,next[1]-py);
+   if(d>longest){longest=d;longEdge=[poly[j],next];}
   }
-  const angle=Math.atan2(py-cy,px-cx);
-  const distance=Math.hypot(px-cx,py-cy)/Math.hypot(w,h);
-  pieces.push({poly,box:[minx,miny,maxx,maxy],cx:px,cy:py,
-    tip,base,angle,delay:.13+distance*.22+rand(n*7)*.11,
-    speed:.56+.95*rand(n*23),spin:(rand(n*47)-.5)*1.85,
-    mass:.70+.8*rand(n*19),side:(rand(n*11)>.5?1:-1)});
- };
- let index=0;
+  const angle=Math.atan2(centre[1]-C[1],centre[0]-C[0]);
+  const distance=Math.hypot(centre[0]-C[0],centre[1]-C[1])/Math.hypot(w,h);
+  pieces.push({
+   poly,box:[minx,miny,maxx,maxy],cx:centre[0],cy:centre[1],
+   angle,longEdge,
+   // Breach front reaches each shard at a different time.
+   delay:.23+distance*.20+rand(id*19+17)*.070,
+   speed:.78+.41*rand(id*37+1),
+   spin:(rand(id*47+11)-.5)*1.32,
+   mass:.72+.65*rand(id*13+7),side:rand(id*11+3)>.5?1:-1
+  });
+ }
+ let id=0;
  for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
-  const A=verts[row][col],B=verts[row][col+1],C=verts[row+1][col+1],D=verts[row+1][col];
-  const diagonal=rand(row*17+col*7)>.5;
-  if(diagonal){add([A,B,C],index++);add([A,C,D],index++);}
-  else{add([A,B,D],index++);add([B,C,D],index++);}
+  const a=nodes[row][col],b=nodes[row][col+1],
+        c=nodes[row+1][col+1],d=nodes[row+1][col];
+  if(rand(3+row*7+col*13)>.50){
+   add([a,b,c],id++);add([a,c,d],id++);
+  }else{
+   add([a,b,d],id++);add([b,c,d],id++);
+  }
  }
 }
 function cacheFull(){
@@ -662,26 +673,57 @@ function cacheFull(){
  drawFreeze(filmCtx,1);
  filmCtx.save();filmCtx.globalCompositeOperation='destination-over';
  filmCtx.drawImage(iceGL?iceGPU:iceFallbackCanvas,0,0,w,h);filmCtx.restore();
- // Fully solid, softly varied substrate guarantees hidden card back.
+ // The ice shell fully obscures card-back pixels, including between fragments.
  filmCtx.save();filmCtx.globalCompositeOperation='destination-over';
  filmCtx.fillStyle='#c5d0e5';filmCtx.fillRect(0,0,w,h);filmCtx.restore();
  glassGenerated=true;makeSharpFragments();
 }
-function shardOutline(c,frag){
- c.beginPath();frag.poly.forEach(([x,y],j)=>j?c.lineTo(x,y):c.moveTo(x,y));c.closePath();
+function shardOutline(c,fragment){
+ c.beginPath();
+ fragment.poly.forEach(([x,y],j)=>j?c.lineTo(x,y):c.moveTo(x,y));
+ c.closePath();
 }
 function drawCrackPropagation(c,q){
- const cx=w*.5,cy=h*.39,rad=Math.hypot(w,h)*smooth(q/.20);
- c.save();c.globalCompositeOperation='screen';
- c.lineWidth=.66;
- for(let i=0;i<pieces.length;i++){
-  const p=pieces[i],d=Math.hypot(p.cx-cx,p.cy-cy);
-  if(d>rad)continue;
-  const brightness=(1-smooth((q-.13)/.22))*(.42+.24*rand(i+2))*val('light');
-  if(brightness<.002)continue;
+ const cx=w*.5,cy=h*.39;
+ // A short, concentrated crack network radiates from the six original ice axes.
+ // Secondary fissures follow, so the huge triangular plates only detach *after*
+ // the central fracture has visibly propagated.
+ const main=smooth(q/.23),secondary=smooth((q-.085)/.19);
+ const alpha=smooth(q/.09)*(1-smooth((q-.27)/.12));
+ c.save();c.globalCompositeOperation='screen';c.lineJoin='miter';
+ for(let arm=0;arm<6;arm++){
+  const theta=-Math.PI/2+arm*Math.PI/3+(.085*(rand(arm+3)-.5));
+  const r=Math.hypot(w,h)*(.58+.18*rand(arm*3+7))*main;
+  const u=Math.cos(theta),v=Math.sin(theta);
+  const x=cx+u*r,y=cy+v*r;
+  c.beginPath();c.moveTo(cx,cy);
+  const bend=(rand(arm*9+23)-.5)*18;
+  c.lineTo(cx+u*r*.43-v*bend*.36,cy+v*r*.43+u*bend*.36);
+  c.lineTo(cx+u*r*.77+v*bend*.40,cy+v*r*.77-u*bend*.40);
+  c.lineTo(x,y);
+  c.strokeStyle='rgba(252,249,255,'+clamp(.76*alpha*val('light')).toFixed(3)+')';
+  c.lineWidth=1.00;c.shadowBlur=5;c.shadowColor='rgba(195,226,255,.80)';c.stroke();
+  if(secondary>0){
+   for(let fork=0;fork<2;fork++){
+    const at=.42+fork*.31;
+    const origin=[cx+u*r*at,cy+v*r*at];
+    const direction=theta+(fork%2?-1:1)*(.42+.16*rand(arm*17+fork));
+    const len=(15+26*rand(arm*11+fork))*secondary;
+    c.beginPath();c.moveTo(...origin);
+    c.lineTo(origin[0]+Math.cos(direction)*len,origin[1]+Math.sin(direction)*len);
+    c.strokeStyle='rgba(227,245,255,'+clamp(.46*alpha*val('light')).toFixed(3)+')';
+    c.lineWidth=.62;c.stroke();
+   }
+  }
+ }
+ // Irregular geometry boundary highlights appear only when the main crack
+ // reaches the nearby slab; avoids a neat grid visibly pre-drawn on the shell.
+ const R=Math.hypot(w,h)*secondary;
+ for(const p of pieces){
+  if(Math.hypot(p.cx-cx,p.cy-cy)>R)continue;
   shardOutline(c,p);
-  c.strokeStyle='rgba(249,251,255,'+clamp(brightness).toFixed(3)+')';
-  c.shadowColor='rgba(204,228,255,.70)';c.shadowBlur=4;c.stroke();
+  c.strokeStyle='rgba(238,250,255,'+clamp(.34*alpha*val('light')).toFixed(3)+')';
+  c.lineWidth=.48;c.shadowBlur=2;c.stroke();
  }
  c.restore();
 }
@@ -690,38 +732,41 @@ function drawShatter(t){
  iceGPU.style.opacity='0';iceFallbackCanvas.style.opacity='0';
  ctx.clearRect(0,0,w,h);
  const q=clamp(t),force=val('force');
- // Complete opaque icy skin stays in place while crack veins first propagate.
- // Individual triangular slices begin to move only after their own crack arrival.
+ // The first 0.23 of the sequence is crack-propagation; the ice stays intact.
+ // The 18 wide triangular shards then break free with directionally different
+ // inertia, facets, rotation and delayed gravity, exposing the card face below.
  for(let i=0;i<pieces.length;i++){
   const p=pieces[i],d=clamp((q-p.delay)/(1-p.delay));
-  const t2=Math.pow(d,1.29),vx=Math.cos(p.angle)*force*180*p.speed;
-  const vy=Math.sin(p.angle)*force*124*p.speed;
-  const dx=vx*t2+p.side*force*19*d*d;
-  const dy=vy*t2+force*115*d*d/p.mass;
-  const ang=p.spin*t2;
-  const opacity=1-smooth((d-.59)/.41);
+  const travel=Math.pow(d,1.45);
+  const radial=force*(210+70*rand(i*7+1))*p.speed*travel;
+  const dx=Math.cos(p.angle)*radial+p.side*(rand(i*5+2)-.5)*22*d*d;
+  const dy=Math.sin(p.angle)*radial*.78+force*128*d*d/p.mass;
+  const spin=p.spin*travel;
+  const opacity=1-smooth((d-.88)/.12);
   if(opacity<.002)continue;
-  ctx.save();ctx.translate(p.cx+dx,p.cy+dy);ctx.rotate(ang);ctx.translate(-p.cx,-p.cy);
+  ctx.save();ctx.translate(p.cx+dx,p.cy+dy);ctx.rotate(spin);ctx.translate(-p.cx,-p.cy);
   shardOutline(ctx,p);ctx.clip();ctx.globalAlpha=opacity;
-  const [minx,miny,maxx,maxy]=p.box;
-  const x=Math.max(0,minx-2),y=Math.max(0,miny-2);
-  const xx=Math.min(w,maxx+2),yy=Math.min(h,maxy+2),bw=xx-x,bh=yy-y;
+  const [minx,miny,maxx,maxy]=p.box,pad=2;
+  const x=Math.max(0,minx-pad),y=Math.max(0,miny-pad);
+  const xx=Math.min(w,maxx+pad),yy=Math.min(h,maxy+pad),bw=xx-x,bh=yy-y;
   if(bw>0&&bh>0)ctx.drawImage(filmCanvas,x*scale,y*scale,bw*scale,bh*scale,x,y,bw,bh);
   ctx.restore();
-  if(q>.12&&q<.94){
-   ctx.save();ctx.translate(p.cx+dx,p.cy+dy);ctx.rotate(ang);ctx.translate(-p.cx,-p.cy);
-   ctx.globalAlpha=opacity*(.45+.20*Math.sin(d*Math.PI))*val('light');
-   shardOutline(ctx,p);ctx.strokeStyle='rgba(244,252,255,.68)';
-   ctx.lineWidth=.70;ctx.stroke();
-   // Momentary edge-spark on the long shard's slanted facet.
-   if(i%7===0&&d>.14&&d<.56){
-    ctx.beginPath();ctx.moveTo(p.tip[0],p.tip[1]);ctx.lineTo(p.base[0],p.base[1]);
-    ctx.lineWidth=.56;ctx.strokeStyle='rgba(255,252,255,.78)';ctx.stroke();
+  if(q>.23){
+   ctx.save();ctx.translate(p.cx+dx,p.cy+dy);ctx.rotate(spin);ctx.translate(-p.cx,-p.cy);
+   shardOutline(ctx,p);
+   ctx.globalAlpha=opacity*(1-smooth((d-.72)/.28))*val('light');
+   ctx.lineWidth=.85;ctx.strokeStyle='rgba(239,248,255,.68)';ctx.stroke();
+   // Sharp refractive glimmer running along one long edge as it tilts away.
+   if(d>.08&&d<.59&&i%2===0){
+    const [a,b]=p.longEdge;
+    ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);
+    ctx.lineWidth=.75;ctx.strokeStyle='rgba(255,252,254,.91)';ctx.stroke();
    }
    ctx.restore();
   }
  }
- if(q<.34)drawCrackPropagation(ctx,q);
+ // Draw glint cracks on top of the assembled ice until shards part.
+ if(q<.39)drawCrackPropagation(ctx,q);
 }
 function bezierP(ax,ay,bx,by,cx,cy,t){const u=1-t;return [u*u*ax+2*u*t*bx+t*t*cx,u*u*ay+2*u*t*by+t*t*cy];}
 function drawMagic(t,type){
