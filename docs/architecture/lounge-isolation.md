@@ -8,7 +8,8 @@ Status: **Draft PR #13** stacked on **C / PR #12**. No production deployment or 
 app/page.tsx                      login + mandatory briefing + section selection
   ├── app/club/game-room-return.ts  ephemeral navigation hint only (no save payload)
   └── lazy app/club/committee-lounge.tsx
-        ├── chat, mask, vase, seat, room UI and member-fetched data
+        ├── chat, mask, vase, seat and room UI (rendering only)
+        ├── lounge-api.ts           typed authenticated API transport, no claimed citizen ID
         ├── use-room-journeys.ts     private-room navigation, decoding and timers
         │     └── mafraer-assets.ts small approved image-path manifest
         ├── lazy mafraer-lounge.tsx  private bedroom, own lighting/camera/music
@@ -18,7 +19,7 @@ app/page.tsx                      login + mandatory briefing + section selection
         └── lazy minigames/*        game UI/engines and rankings
 ```
 
-**Rendering vs persistence:** room presentation and loading never decide who may read or write records. Committee chat, vase history, rankings, music and game saves continue to use their authenticated existing API routes, with per-member server-side authorization. No game save migration, reset, or layout/data backfill is included in D.
+**Rendering vs persistence:** `lounge-api.ts` owns Committee chat/room GET, history pagination and action POST. Its requests carry neither a member identifier in URLs nor a user-asserted identity in JSON; the server session remains the source of truth. Tests also verify encoded search and aborted history reads. Room presentation and loading never decide who may read or write records. Committee chat, vase history, rankings, music and game saves continue to use their authenticated existing API routes, with per-member server-side authorization. No game save migration, reset, or layout/data backfill is included in D.
 
 **Return hint:** `game-room-return.ts` owns only `schicksal:lounge-return` in session storage and the `?lounge=game-room` navigation hint. It stores no member ID, session token, game save or file. It can select a room only after login, because `app/page.tsx` still refuses to mount any site feature until the fresh mandatory briefing is acknowledged. Once entered, the room consumes the hint and strips the URL marker without touching unrelated query parameters.
 
@@ -36,6 +37,7 @@ The D regression suite pins exact Git blob hashes of six approved Lounge/Parliam
 
 - `npm run test:isolation`: immutable art style hashes, stable room animation contracts, lazy scene chunks, stale-request cleanup
 - `npm run test:game-room-return`: status on re-entry, blocked storage, URL sanitization and consumption
+- `npm run test:lounge-api`: server-owned member identity, history cursor/AbortSignal, and mutation payload boundaries
 - `npm test` and `npm run build`: existing API, ranking, archive, briefings and application regressions
 - GitHub Actions: test status must be green before considering D review
 - **Manual acceptance still pending:** iOS Safari and desktop entrance/back/skip/reduced-motion scenarios; deliberately stalled image requests; private room photo/lighting and sound, member permissions, game returns and original artwork comparison
