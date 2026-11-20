@@ -149,3 +149,14 @@
   font: 400 .74rem/1.6 var(--sans);
   letter-spacing: .08em;
 }
+
+/* Only appears when an on-demand code chunk cannot load. */
+.feature-load-error {
+  min-height: 260px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+  color: #738095; font: 400 .75rem/1.6 var(--sans);
+}
+.feature-load-error button {
+  padding: 8px 16px; background: transparent;
+  border: 1px solid var(--line); color: var(--paper); cursor: pointer;
+}
