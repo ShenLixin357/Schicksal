@@ -40,14 +40,14 @@ import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
 
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
-import type { SidebarDestination } from "./shell/navigation";
+import type { SidebarDestination, SiteSection } from "./shell/navigation";
 
 // Only import these data-heavy sections when the user navigates to them.
 const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(module => ({ default: module.PhotoArchiveSection })));
 const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
 
 type Phase = "opening" | "login" | "welcome" | "system";
-type Section = "home" | "briefing" | "atlas" | "citizens" | "emblem" | "parliament" | "honors" | "calendar" | "market" | "photos" | "archives" | "profile" | "messenger" | "library" | "club";
+type Section = SiteSection;
 
 type ParliamentStage = "proposal" | "debate" | "amendment" | "voting" | "resolved" | "deferred";
 type ParliamentClassification = "ordinary" | "constitutional" | "administrative_review" | "external_agreement" | "youth_autonomy" | "pending_review" | "foundational";
