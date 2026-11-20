@@ -31,6 +31,7 @@ test("photo archive still accesses the exact authenticated photo API and uses ex
   assert.doesNotMatch(photos, /<Emblem compact/);
   assert.doesNotMatch(photos, /<CitizenMark citizen/);
   assert.match(page, /<PhotoArchiveSection citizen=\{citizen\} sharedMark=\{<Emblem compact \/>\}/);
+  assert.match(page, /const PhotoArchiveSection = lazy\(\(\) => import\("\.\/photos\/photo-archive"\)/);
   assert.doesNotMatch(page, /function PhotoArchiveSection\(/);
 });
 
@@ -45,6 +46,8 @@ test("national archives preserve the original cover, content URLs and author emb
   assert.match(archive, /archiveMarkdownToHtml\(chapterText\)/);
   assert.match(archive, /authorMarkColor/);
   assert.match(page, /authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} \/>\}/);
+  assert.match(page, /const ArchivesSection = lazy\(\(\) => import\("\.\/archives\/archive-section"\)/);
+  assert.match(page, /<FeatureSuspense label="国家档案馆">/);
   assert.doesNotMatch(page, /function ArchivesSection\(/);
 });
 
