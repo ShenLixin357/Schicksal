@@ -125,8 +125,11 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   const musicBoxSoundRef = useRef<(() => void) | null>(null);
   const musicBoxTravelRef = useRef(0);
   const fanTimerRef = useRef<number | null>(null);
+  const fanDeadlineRef = useRef<number | null>(null);
   const fireplaceTimerRef = useRef<number | null>(null);
+  const fireplaceDeadlineRef = useRef<number | null>(null);
   const fanTravelRef = useRef(0);
+  const fireplaceTravelRef = useRef(0);
   const globeTravelRef = useRef(0);
   const globeTimerRef = useRef<number | null>(null);
   const globeDeadlineRef = useRef<number | null>(null);
@@ -192,6 +195,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
 
   useEffect(() => () => {
     fanTravelRef.current += 1;
+    fireplaceTravelRef.current += 1;
     globeTravelRef.current += 1;
     musicBoxTravelRef.current += 1;
     historyRequestRef.current += 1;
@@ -199,7 +203,9 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     musicBoxSoundRef.current?.();
     if (musicBoxTimerRef.current !== null) window.clearTimeout(musicBoxTimerRef.current);
     if (fanTimerRef.current !== null) window.clearTimeout(fanTimerRef.current);
+    if (fanDeadlineRef.current !== null) window.clearTimeout(fanDeadlineRef.current);
     if (fireplaceTimerRef.current !== null) window.clearTimeout(fireplaceTimerRef.current);
+    if (fireplaceDeadlineRef.current !== null) window.clearTimeout(fireplaceDeadlineRef.current);
     if (globeTimerRef.current !== null) window.clearTimeout(globeTimerRef.current);
     if (globeDeadlineRef.current !== null) window.clearTimeout(globeDeadlineRef.current);
   }, []);
@@ -211,9 +217,13 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     const request = ++fanTravelRef.current;
     const started = performance.now();
     const background = new window.Image();
+    let settled = false;
     background.src = nextRoom === "amberina" ? MAFRAER_ROOM_ASSETS.moonlit : "/committee-lounge-word-globe-v1.png";
     const completePassage = (loaded: boolean) => {
-      if (request !== fanTravelRef.current) return;
+      if (settled || request !== fanTravelRef.current) return;
+      settled = true;
+      if (fanDeadlineRef.current !== null) window.clearTimeout(fanDeadlineRef.current);
+      fanDeadlineRef.current = null;
       const elapsed = performance.now() - started;
       const cycle = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 240 : FAN_CYCLE_MS;
       // Keep dancing while the destination loads; leave on a full bloom, not mid-snap.
@@ -229,6 +239,8 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
         fanTimerRef.current = null;
       }, Math.max(0, finishAt - elapsed));
     };
+    // A stalled decode must not leave the passage overlay mounted indefinitely.
+    fanDeadlineRef.current = window.setTimeout(() => completePassage(false), 12000);
     void background.decode().then(() => completePassage(true), () => completePassage(false));
   };
 
@@ -268,13 +280,19 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     setChatOpen(false);
     setFireplaceOpening(true);
     setWhisper("壁炉深处先出现一粒绿色余烬，随后整座炉膛突然燃烧起来。");
+    const request = ++fireplaceTravelRef.current;
     const started = performance.now();
     const background = new window.Image();
-    background.src = "/chryser-private-lounge.png";
+    let settled = false;
     const complete = (loaded: boolean) => {
+      if (settled || request !== fireplaceTravelRef.current) return;
+      settled = true;
+      if (fireplaceDeadlineRef.current !== null) window.clearTimeout(fireplaceDeadlineRef.current);
+      fireplaceDeadlineRef.current = null;
       const elapsed = performance.now() - started;
       const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 280 : 2600;
       fireplaceTimerRef.current = window.setTimeout(() => {
+        if (request !== fireplaceTravelRef.current) return;
         if (loaded) setRoomView("chryser");
         else {
           setClubStatus("翡翠壁炉暂时无法打开，请再试一次。");
@@ -284,6 +302,10 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
         fireplaceTimerRef.current = null;
       }, Math.max(0, minimum - elapsed));
     };
+    // Preserve the existing scene and exact animation timing on success.
+    // Both decoding failure and a hung decode fail safely without stale callbacks.
+    fireplaceDeadlineRef.current = window.setTimeout(() => complete(false), 12000);
+    background.src = "/chryser-private-lounge.png";
     void background.decode().then(() => complete(true), () => complete(false));
   };
 
