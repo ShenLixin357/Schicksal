@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const appRoot = join(root, "app");
 const read = path => readFileSync(join(root, path), "utf8");
-const featureRoots = ["home", "photos", "archives", "shell", "emblem"];
+const featureRoots = ["home", "photos", "archives", "shell", "emblem", "parliament", "club"];
 const violations = [];
 const fail = message => { violations.push(message); };
 
@@ -51,8 +51,8 @@ for (const [source, name] of [
   if (source.includes("SCHICKSAL_MEMBER_PASSWORDS") || source.includes("SCHICKSAL_PREVIEW_PASSWORDS"))
     fail(`${name} must not embed secrets`);
 }
-const mainLineBudget = 1900;
-const globalLineBudget = 2680;
+const mainLineBudget = 650;
+const globalLineBudget = 1200;
 if (page.split("\n").length > mainLineBudget)
   fail(`page.tsx has regrown above ${mainLineBudget} lines; extract a feature instead`);
 if (css.split("\n").length > globalLineBudget)
@@ -60,11 +60,23 @@ if (css.split("\n").length > globalLineBudget)
 
 for (const spec of ['@import "./home/home.css";', '@import "./photos/photo-archive.css";'])
   if (!css.includes(spec)) fail(`globals.css missing module style: ${spec}`);
+if (!read("app/layout.tsx").includes('import "./club/lounge-scenes.css";'))
+  fail("layout.tsx must load migrated private-scene styles after globals.css");
+for (const legacy of ["function PersistentParliamentSection(", "function CommitteeLounge(", "function ClubMysticMark("])
+  if (page.includes(legacy)) fail(`page.tsx still owns a heavy feature: ${legacy}`);
+for (const feature of ["./parliament/parliament-section", "./club/committee-lounge"])
+  if (!page.includes(`lazy(() => import("${feature}")`))
+    fail(`page.tsx missing a lazy-loaded feature: ${feature}`);
+
 for (const [file, expected] of [
   ["app/home/home-section.tsx", "export function HomeSection"],
   ["app/photos/photo-archive.tsx", "export function PhotoArchiveSection"],
   ["app/archives/archive-section.tsx", "export function ArchivesSection"],
   ["app/emblem/blade-spec.ts", "export const EMBLEM_BLADES"],
+  ["app/parliament/parliament-types.ts", "export type ParliamentBoard"],
+  ["app/parliament/parliament-section.tsx", "export function PersistentParliamentSection"],
+  ["app/club/lounge-access.ts", "export const CLUB_MEMBER_IDS"],
+  ["app/club/committee-lounge.tsx", "export function CommitteeLounge"],
 ]) {
   if (!read(file).includes(expected)) fail(`${file} missing owned export`);
 }
