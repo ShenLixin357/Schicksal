@@ -2,7 +2,8 @@ import { asc, desc, eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { ensureParliamentSchema } from "../../../db/parliament-schema";
-import { standaloneMember } from "../../standalone-access";
+import { requireMember } from "../../../server/auth/member.ts";
+import { readJson, apiFailure } from "../../../server/http.ts";
 import {
   parliamentAmendments,
   parliamentAuditEvents,
@@ -42,14 +43,9 @@ function truthy(value: unknown) {
   return value === true || value === 1 || value === "1" || value === "true";
 }
 
-function citizenFromRequest(request: Request, payload?: Record<string, unknown>) {
-  const value = standaloneMember(request, env) || cleanText(request.headers.get("x-schicksal-citizen") || payload?.citizenId, 40);
-  return CITIZEN_IDS.has(value) ? value : "";
-}
-
 function isStageManager(request: Request, citizenId: string) {
   if (citizenId !== "amberina") return false;
-  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return standaloneMember(request, env) === "amberina";
+  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return true;
   const hostname = new URL(request.url).hostname;
   if (hostname === "terminal.local" || hostname === "localhost") return true;
   const authenticatedEmail = request.headers.get("oai-authenticated-user-email")?.trim().toLowerCase();
@@ -59,7 +55,7 @@ function isStageManager(request: Request, citizenId: string) {
 
 function isSpeakerManager(request: Request, citizenId: string) {
   if (!SPEAKER_MANAGERS.has(citizenId)) return false;
-  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return standaloneMember(request, env) === citizenId;
+  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return true;
   const hostname = new URL(request.url).hostname;
   return hostname === "terminal.local" || hostname === "localhost" || Boolean(request.headers.get("oai-authenticated-user-email"));
 }
@@ -169,7 +165,7 @@ async function boardPayload(request: Request, requestedItemId: string, citizenId
       stageManager: isStageManager(request, citizenId),
       speakerManager: isSpeakerManager(request, citizenId),
       meetingSpeaker: Boolean(meeting && meeting.speakerStatus === "elected" && meeting.speakerCitizenId === citizenId),
-      platformAuthenticated: Boolean(standaloneMember(request, env) || request.headers.get("oai-authenticated-user-email")),
+      platformAuthenticated: Boolean(citizenId),
     },
   };
 }
@@ -202,30 +198,30 @@ async function livePayload(request: Request, itemId: string, citizenId: string) 
       stageManager: isStageManager(request, citizenId),
       speakerManager: isSpeakerManager(request, citizenId),
       meetingSpeaker: Boolean(meeting && meeting.speakerStatus === "elected" && meeting.speakerCitizenId === citizenId),
-      platformAuthenticated: Boolean(standaloneMember(request, env) || request.headers.get("oai-authenticated-user-email")),
+      platformAuthenticated: Boolean(citizenId),
     },
   };
 }
 
 export async function GET(request: Request) {
   try {
+    const citizenId = await requireMember(request);
     await ensureParliamentSchema();
     const url = new URL(request.url);
-    const citizenId = standaloneMember(request, env) || (CITIZEN_IDS.has(url.searchParams.get("citizenId") || "") ? url.searchParams.get("citizenId")! : "");
     const itemId = cleanText(url.searchParams.get("itemId"), 80);
     if (url.searchParams.get("scope") === "live") return Response.json(await livePayload(request, itemId, citizenId));
     return Response.json(await boardPayload(request, itemId, citizenId));
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "议会资料暂时无法读取。" }, { status: 500 });
+    return apiFailure(error, "议会资料暂时无法读取。");
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const citizenId = await requireMember(request);
     await ensureParliamentSchema();
-    const payload = await request.json() as Record<string, unknown>;
+    const payload = await readJson(request, 60000);
     const action = cleanText(payload.action, 40);
-    const citizenId = citizenFromRequest(request, payload);
     if (!citizenId) return Response.json({ error: "只有已识别的第一帝国公民可以参与议事。" }, { status: 403 });
 
     const db = getDb();
@@ -530,6 +526,6 @@ export async function POST(request: Request) {
 
     return Response.json(LIVE_RESPONSE_ACTIONS.has(action) ? await livePayload(request, itemId, citizenId) : await boardPayload(request, itemId, citizenId));
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "议会操作失败，请稍后重试。" }, { status: 500 });
+    return apiFailure(error, "议会操作失败，请稍后重试。");
   }
 }
