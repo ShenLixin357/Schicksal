@@ -72,11 +72,13 @@ test("ALL parliamentary insignia show original even for seat members, candidate,
 
 test("user's scores and all other representative colours always use #F3ED87",()=>{
   const page=source("../app/page.tsx");
-  assert.match(page,/"128",AMBERINA_OFFICIAL_COLOR/);
+  const points=source("../app/points/points-pages.tsx");
+  const profile=source("../app/profile/profile-page.tsx");
+  assert.match(points,/"128",AMBERINA_OFFICIAL_COLOR/);
   assert.match(page,/citizenRepresentativeColor\(item\)/);
   assert.match(page,/citizenRepresentativeColor\(focused\)/);
   assert.match(page,/citizenRepresentativeColor\(subject\)/);
-  assert.match(page,/style=\{\{ "--citizen": citizenRepresentativeColor\(citizen\) \} as CSSProperties\}><div className="profile-mark"/);
+  assert.match(profile,/style=\{\{ "--citizen": citizenRepresentativeColor\(citizen\) \} as CSSProperties\}><div className="profile-mark"/);
   assert.match(page,/style=\{\{ "--citizen": citizenRepresentativeColor\(member\) \} as CSSProperties\}/);
   assert.match(page,/const EMBLEM_BLADES:/);
   assert.match(page,/color: citizen\.accent,/);
