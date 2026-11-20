@@ -17,6 +17,7 @@ const hooks = registerHooks({ resolve(specifier, context, nextResolve) {
 } });
 const sessions = await import("../app/api/member-session/route.ts");
 const records = await import("../app/api/lounge-games/route.ts");
+const aquarium = await import("../app/api/aquarium-save/route.ts");
 hooks.deregister();
 after(() => { delete globalThis.__schicksalRecordsTestEnv; });
 
@@ -88,5 +89,20 @@ test("actual login API limits repeated attempts and rejects unknown or locked me
   try {
     for (let attempt = 0; attempt < 20; attempt++) assert.equal((await sessions.POST(request("/api/member-session", { method: "POST", body: { citizenId: attempt % 2 ? "sealed-6" : "unknown", password: testPassword } }))).status, 401);
     assert.equal((await sessions.POST(request("/api/member-session", { method: "POST", body: { citizenId: "amberina", password: testPassword } }))).status, 429);
+  } finally { sqlite.close(); }
+});
+
+test("API request body bounds prevent large login, leaderboard, and aquarium allocations", async () => {
+  const sqlite = setup();
+  try {
+    const cookie = await login();
+    const huge = "x".repeat(100_000);
+    const auth = await sessions.POST(request("/api/member-session", { method: "POST", body: huge }));
+    assert.equal(auth.status, 400, "unauthenticated login input remains size capped");
+    const score = await records.POST(request("/api/lounge-games", { method: "POST", cookie, member: "amberina", body: huge }));
+    assert.equal(score.status, 413, "large scoreboard input is rejected before parsing");
+    const save = await aquarium.PUT(request("/api/aquarium-save", { method: "PUT", cookie, member: "amberina", body: huge }));
+    assert.equal(save.status, 413, "large player save is rejected before parsing");
+    assert.match((await save.json()).error, /存档过大/);
   } finally { sqlite.close(); }
 });
