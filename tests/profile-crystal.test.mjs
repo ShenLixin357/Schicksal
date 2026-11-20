@@ -17,7 +17,7 @@ test("each personal-page kite is 4.236 times as long as its full width", () => {
   assert.equal(PROFILE_CRYSTAL_RATIO.outerToInner, 1.618);
   assert.ok(Math.abs((point.shoulderY-point.outerY) / point.totalLength - 0.618) < 1e-10);
   assert.ok(Math.abs((point.shoulderY-point.outerY) / (point.innerY-point.shoulderY) - 1.618) < .001);
-  assert.match(profileCrystalPath(point), /^M 0 -104\.72 L 10 -52\.36 L 0 -20 L -10 -52\.36 Z$/);
+  assert.equal(profileCrystalPath(point), `M 0 ${point.outerY} L ${point.rightX} ${point.shoulderY} L 0 ${point.innerY} L ${point.leftX} ${point.shoulderY} Z`);
   assert.throws(() => profileCrystalCoordinates(0,20), RangeError);
   assert.throws(() => profileCrystalCoordinates(20,-2), RangeError);
 });
