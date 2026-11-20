@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { registerHooks } from "node:module";
 import { DatabaseSync } from "node:sqlite";
@@ -32,11 +33,15 @@ function setup() {
       async run() { return { meta: { changes: Number(statement.run(...parameters).changes) } }; },
     };
   }, async batch(statements) { return Promise.all(statements.map(statement=>statement.run())); } };
+  for (const [index, id] of ["amberina", "zxy", "truth", "kaito", "harry"].entries()) {
+    const token = String(index + 1).repeat(64);
+    db.prepare("INSERT INTO member_sessions(token_hash,citizen_id,expires_at) VALUES(?,?,?)").run(createHash("sha256").update(token).digest("hex"), id, Date.now() + 3600000);
+  }
   return db;
 }
 function request(params = {}, member = "amberina") {
   return new Request(`https://test.schicksal.invalid/api/committee-club?${new URLSearchParams(params)}`, {
-    headers: { "x-schicksal-server-member": member },
+    headers: { "x-schicksal-server-member": "amberina", cookie: `schicksal_member=${String(["amberina", "zxy", "truth", "kaito", "harry"].indexOf(member) + 1).repeat(64)}` },
   });
 }
 function seed(db, count) {
