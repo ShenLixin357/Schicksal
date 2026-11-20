@@ -1,4 +1,4 @@
-/** Primary navigation is intentionally limited to six destinations. */
+/** Six feature destinations and the independent seventh personal-profile entry. */
 export type PrimaryDestination = "home" | "briefing" | "parliament" | "collection" | "calendar" | "honors" | "profile";
 export type CollectionDestination = "library" | "atlas" | "photos" | "archives";
 export type PointsDestination = "honors" | "market";
