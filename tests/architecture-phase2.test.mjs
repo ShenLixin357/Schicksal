@@ -76,8 +76,8 @@ test("preserved Lounge scene CSS loads with its lazy route instead of global ent
   ];
   const indices = ordered.map(path => layout.indexOf('import "'+path+'";'));
   assert.ok(indices.every((value,index) => value >= 0 && (index === 0 || value > indices[index-1])), "existing global CSS import order must remain stable");
-  assert.doesNotMatch(layout, /import "\\.\\/club\\/lounge-scenes\\.css";/);
-  assert.match(read("app/club/committee-lounge.tsx"), /import "\\.\\/lounge-scenes\\.css";/);
+  assert.ok(!layout.includes('import "./club/lounge-scenes.css";'));
+  assert.ok(read("app/club/committee-lounge.tsx").includes('import "./lounge-scenes.css";'));
   assert.match(read("app/club/lounge-core.css"), /Committee Restroom — member-only Halloween club/);
   assert.match(read("app/parliament/parliament-workspace.css"), /Persistent parliament workspace/);
   assert.match(read("app/archives/archive-reader.css"), /National Archives: the authored record/);
