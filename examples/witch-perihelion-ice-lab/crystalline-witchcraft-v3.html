@@ -333,98 +333,163 @@ function resize(){
  if(phase==='frozen'){renderIce(1);drawFreeze(ctx,1);}
 }
 
-function cutDiamond(c,x,y,r,angle,light){
- c.save();c.translate(x,y);c.rotate(angle);
- c.lineJoin='miter';
- c.beginPath();c.moveTo(0,-r*1.45);c.lineTo(r*.41,0);c.lineTo(0,r*1.45);c.lineTo(-r*.41,0);c.closePath();
- c.strokeStyle='rgba(248,252,255,'+(.59*light).toFixed(3)+')';
+
+function iceStroke(c,path,width,brightness=1,shadow=0){
+ c.save();c.beginPath();path(c);
+ c.strokeStyle='rgba(239,248,255,'+clamp(.62*brightness).toFixed(3)+')';
+ c.lineWidth=width;
+ if(shadow){c.shadowColor='rgba(186,223,255,.65)';c.shadowBlur=shadow;}
+ c.stroke();c.restore();
+}
+function hollowLance(c,x,y,along,len,light){
+ // Crystal negative space: a sharply elongated lozenge, not a filled jewel.
+ if(len<.5)return;
+ const u=Math.cos(along),v=Math.sin(along),nx=-v,ny=u,half=len*.10;
+ c.save();c.lineJoin='miter';
+ c.beginPath();
+ c.moveTo(x-u*len*.47,y-v*len*.47);
+ c.lineTo(x+nx*half,y+ny*half);
+ c.lineTo(x+u*len*.60,y+v*len*.60);
+ c.lineTo(x-nx*half,y-ny*half);
+ c.closePath();
+ c.strokeStyle='rgba(249,251,255,'+clamp(.76*light).toFixed(3)+')';
  c.lineWidth=.67;c.stroke();
- c.beginPath();c.moveTo(0,-r*.89);c.lineTo(r*.18,0);c.lineTo(0,r*.89);c.lineTo(-r*.18,0);c.closePath();
- c.strokeStyle='rgba(206,221,251,'+(.70*light).toFixed(3)+')';c.stroke();
+ c.beginPath();c.moveTo(x-u*len*.19+nx*.1,y-v*len*.19+ny*.1);
+ c.lineTo(x+u*len*.34-nx*.1,y+v*len*.34-ny*.1);
+ c.strokeStyle='rgba(172,203,242,'+clamp(.45*light).toFixed(3)+')';c.lineWidth=.4;c.stroke();
  c.restore();
 }
-function ray(c,x,y,x2,y2,width,light){
- const nx=x2-x,ny=y2-y,sz=Math.max(.001,Math.hypot(nx,ny));
- const lx=-ny/sz,ly=nx/sz;
- c.beginPath();c.moveTo(x-lx*width,y-ly*width);c.lineTo(x2,y2);c.lineTo(x+lx*width,y+ly*width);c.closePath();
- const g=c.createLinearGradient(x-width*lx,y-width*ly,x+width*lx,y+width*ly);
- g.addColorStop(0,'rgba(153,183,236,'+(.29*light).toFixed(3)+')');
- g.addColorStop(.48,'rgba(252,252,255,'+(.65*light).toFixed(3)+')');
- g.addColorStop(1,'rgba(177,195,244,'+(.34*light).toFixed(3)+')');
- c.fillStyle=g;c.fill();
- c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);
- c.strokeStyle='rgba(250,252,255,'+(.45*light).toFixed(3)+')';c.lineWidth=.65;c.stroke();
+function blade(c,x,y,ex,ey,width,light,inner=true){
+ const dx=ex-x,dy=ey-y,dist=Math.hypot(dx,dy)||1;
+ const nx=-dy/dist,ny=dx/dist;
+ c.save();
+ // Two facets with distinct pearl highlights and a cold lower plane.
+ let g=c.createLinearGradient(x-nx*width,y-ny*width,x+nx*width,y+ny*width);
+ g.addColorStop(0,'rgba(119,166,229,'+clamp(.50*light).toFixed(3)+')');
+ g.addColorStop(.47,'rgba(246,253,255,'+clamp(.38*light).toFixed(3)+')');
+ g.addColorStop(1,'rgba(183,199,243,'+clamp(.29*light).toFixed(3)+')');
+ c.fillStyle=g;c.beginPath();c.moveTo(x-nx*width,y-ny*width);
+ c.lineTo(ex,ey);c.lineTo(x+nx*width*.55,y+ny*width*.55);c.closePath();c.fill();
+ c.strokeStyle='rgba(247,250,255,'+clamp(.64*light).toFixed(3)+')';
+ c.lineWidth=.43;c.beginPath();c.moveTo(x,y);c.lineTo(ex,ey);c.stroke();
+ if(inner&&dist>8){
+  const qx=x+dx*.54,qy=y+dy*.54;
+  c.beginPath();c.moveTo(x-nx*width*.5,y-ny*width*.5);c.lineTo(qx,qy);
+  c.lineWidth=.34;c.strokeStyle='rgba(247,248,255,'+clamp(.39*light).toFixed(3)+')';c.stroke();
+ }
+ c.restore();
 }
 function drawArm(c,a,p,i){
- const cx=w*.5,cy=h*.39,density=val('density'),light=val('light');
- const maxLen=Math.hypot(w*.5,h*.61)*(.89+.14*rand(i+1));
- const dir=[Math.cos(a),Math.sin(a)],length=maxLen*clamp(p*(1.30-.16*rand(i+10)));
- if(length<=1)return;
- const endX=cx+dir[0]*length,endY=cy+dir[1]*length;
- // A slender faceted spear grows from the snowflake core, not a thick tube.
- ray(c,cx,cy,endX,endY,1.05+1.30*(1-p),light);
- c.save();
- c.shadowColor='rgba(205,231,255,.52)';c.shadowBlur=3.2*light;
- c.strokeStyle='rgba(246,252,255,'+(.47*light).toFixed(3)+')';
- c.lineWidth=.50;c.beginPath();c.moveTo(cx,cy);c.lineTo(endX,endY);c.stroke();
- c.shadowBlur=0;
+ const cx=w*.5,cy=h*.39,density=val('density'),L=val('light');
+ const R=Math.min(w*.447,h*.295)*(1+.048*(rand(i*17)-.5));
+ const delay=.024*(i%3),local=smooth((p-delay)/(.77+.045*rand(i+30)));
+ if(local<=0)return;
+ const u=Math.cos(a),v=Math.sin(a),dx=u*R*local,dy=v*R*local;
+ const tx=cx+dx,ty=cy+dy;
+ // Main crystal needle grows forward, with twin subtly separated polished facets.
+ blade(c,cx,cy,tx,ty,1.95+1.15*(1-local),L);
+ const layered=.20+.14*rand(i+11);
+ const fx=cx+u*R*local*layered,fy=cy+v*R*local*layered;
+ blade(c,fx,fy,cx+u*R*local*.89,cy+v*R*local*.89,.74,L*.62);
+ // Eight paired secondary branches: delayed by attachment point, two generations deep.
  for(let j=1;j<=8;j++){
-  const at=.14+j*.091,stagger=at-.03+rand(i*18+j*4)*.028;
-  if(p<stagger)continue;
-  const grow=smooth((p-stagger)/(.18+.035*rand(i*13+j*3)));
-  const bx=cx+dir[0]*maxLen*at,by=cy+dir[1]*maxLen*at;
+  const t=.105+j*.098,when=.028+t*.70;
+  if(p<when)continue;
+  const grow=smooth((p-when)/(.20+.06*rand(i*12+j)));
+  const x=cx+u*R*t,y=cy+v*R*t;
   for(const side of [-1,1]){
-   const theta=a+side*(.44+.19*rand(j*9+i*16+side*19));
-   const dist=maxLen*(.10+.13*rand(i*31+j*5+side*4))*(1-.28*at)*grow*density;
-   const ex=bx+Math.cos(theta)*dist,ey=by+Math.sin(theta)*dist;
-   ray(c,bx,by,ex,ey,.24+.32*(1-at),light*.83);
-   if(j===3||j===6){
-    const halfx=bx+(ex-bx)*.74,halfy=by+(ey-by)*.74;
-    ray(c,halfx,halfy,halfx+Math.cos(theta+side*.38)*dist*.20,
-        halfy+Math.sin(theta+side*.38)*dist*.20,.26,light*.8);
+   const az=a+side*(.55+.11*rand(i*31+j*5+side*3));
+   const len=R*(.16+.105*rand(j*9+i*6+side))*(1-.38*t)*density*grow;
+   const bx=x+Math.cos(az)*len,by=y+Math.sin(az)*len;
+   blade(c,x,y,bx,by,.45+.31*(1-t),L*.87,false);
+   // Smaller blade thorns spring from already formed ribs.
+   if(j===3||j===5||j===7){
+    const secondary=smooth((p-when-.10)/.19);
+    if(secondary>0){
+     const ex=x+(bx-x)*.64,ey=y+(by-y)*.64;
+     const tilt=az+side*(.36+.10*rand(j+i));
+     const reach=len*.29*secondary;
+     blade(c,ex,ey,ex+Math.cos(tilt)*reach,ey+Math.sin(tilt)*reach,.27,L*.74,false);
+    }
    }
   }
+  // Fine hollow cutouts appear only at select positions.
+  if(j===3||j===6){
+   const op=smooth((p-when-.09)/.16);
+   hollowLance(c,cx+u*R*(t+.020),cy+v*R*(t+.020),a,5.7+2.4*rand(i*9+j),L*op);
+  }
  }
- // Hollow slender diamond terminals like forged ice needles.
- if(p>.72){
-  const reveal=smooth((p-.72)/.28);
-  cutDiamond(c,endX,endY,2.0+2.1*rand(i+45),a+Math.PI/2,light*reveal);
+ // Pierced slender ice point, hand-cut rather than thick diamond.
+ if(local>.88){
+  const appear=smooth((local-.88)/.12);
+  hollowLance(c,tx,ty,a,8.1,L*appear);
  }
- c.restore();
+ // Directional specular tip flash tracks the growth front.
+ const gleam=Math.pow(Math.sin(Math.PI*local),4)*.70*L;
+ if(gleam>.002){
+  const glow=c.createRadialGradient(tx,ty,0,tx,ty,9);
+  glow.addColorStop(0,'rgba(255,252,255,'+clamp(gleam*.85).toFixed(3)+')');
+  glow.addColorStop(.24,'rgba(213,229,255,'+clamp(gleam*.38).toFixed(3)+')');
+  glow.addColorStop(1,'rgba(172,199,248,0)');
+  c.fillStyle=glow;c.beginPath();c.arc(tx,ty,9,0,Math.PI*2);c.fill();
+ }
 }
 function drawFreeze(c,progress){
  c.clearRect(0,0,w,h);
- const p=clamp(progress),light=val('light');
- if(p<=0)return;
+ const p=clamp(progress),L=val('light');if(p<=0)return;
  if(c===ctx)renderIce(p);
  const cx=w*.5,cy=h*.39;
  c.save();c.globalCompositeOperation='screen';
- // Six main branches, each with thinner secondary crystal spines.
+ // Main crown is concentrated within the card; frost tendrils reach further.
+ for(let i=0;i<6;i++){drawArm(c,-Math.PI/2+i*Math.PI/3,p,i);}
+ // Ice flowers / secondary dendritic aureole: highly fine, irregular, not a tiled snow icon.
+ const bloom=smooth((p-.37)/.60);
+ for(let i=0;i<6;i++){
+  const a=-Math.PI/2+i*Math.PI/3,u=Math.cos(a),v=Math.sin(a);
+  const R=Math.min(w*.44,h*.29),outer=Math.min(w*.64,h*.55);
+  const growth=smooth((p-.38-.022*(i%3))/.57);
+  const start=R*.82,end=R+(outer-R)*growth;
+  if(growth<=0)continue;
+  iceStroke(c,cc=>{
+   cc.moveTo(cx+u*start,cy+v*start);
+   const bend=3.8*Math.sin(5.0*a+i);
+   cc.quadraticCurveTo(cx+u*(start+end)*.5-v*bend,cy+v*(start+end)*.5+u*bend,cx+u*end,cy+v*end);
+  },.48,.35*L);
+  for(let j=0;j<5;j++){
+   const at=(j+.5)/5,tt=start+(end-start)*at;
+   const knot=smooth((growth-at*.45)/.55);if(knot<=0)continue;
+   const x=cx+u*tt,y=cy+v*tt;
+   for(const side of [-1,1]){
+    const aa=a+side*(.41+.10*rand(i*14+j*3));
+    const ll=(3.8+8.9*rand(i*41+j))*knot*val('density');
+    blade(c,x,y,x+Math.cos(aa)*ll,y+Math.sin(aa)*ll,.22,L*.35,false);
+   }
+  }
+ }
+ // Concentric hexagonal central sacred crown, with etched tiny cutouts.
+ const q=smooth(p/.27);
+ for(const radius of [6.8,12.8,20.8]){
+  c.beginPath();
+  for(let i=0;i<6;i++){
+   const a=-Math.PI/2+i*Math.PI/3;
+   const x=cx+Math.cos(a)*radius*q,y=cy+Math.sin(a)*radius*q;
+   i?c.lineTo(x,y):c.moveTo(x,y);
+  }
+  c.closePath();
+  c.strokeStyle='rgba(248,250,255,'+clamp((radius<10?.68:.36)*q*L).toFixed(3)+')';
+  c.lineWidth=radius<10?.78:.45;c.stroke();
+ }
  for(let i=0;i<6;i++){
   const a=-Math.PI/2+i*Math.PI/3;
-  drawArm(c,a,p,i);
+  hollowLance(c,cx+Math.cos(a)*16*q,cy+Math.sin(a)*16*q,a,3.4*q,L*q);
  }
- const centerReveal=smooth(p*3.2);
- c.strokeStyle='rgba(255,251,255,'+(.72*centerReveal*light).toFixed(3)+')';
- c.lineWidth=.85;c.beginPath();
- for(let i=0;i<6;i++){
-  const a=-Math.PI/2+i*Math.PI/3,x=cx+Math.cos(a)*7.2*centerReveal,y=cy+Math.sin(a)*7.2*centerReveal;
-  i?c.lineTo(x,y):c.moveTo(x,y);
- }
- c.closePath();c.stroke();
- for(let i=0;i<6;i++){
-  const a=-Math.PI/2+i*Math.PI/3;
-  const x=cx+Math.cos(a)*16*centerReveal,y=cy+Math.sin(a)*16*centerReveal;
-  cutDiamond(c,x,y,1.7,a,light*centerReveal);
- }
- const core=c.createRadialGradient(cx,cy,0,cx,cy,26);
- core.addColorStop(0,'rgba(255,249,255,'+(.50*centerReveal*light).toFixed(3)+')');
- core.addColorStop(.22,'rgba(212,228,255,'+(.16*centerReveal*light).toFixed(3)+')');
- core.addColorStop(1,'rgba(202,215,254,0)');
- c.fillStyle=core;c.beginPath();c.arc(cx,cy,26,0,Math.PI*2);c.fill();
+ const core=c.createRadialGradient(cx,cy,0,cx,cy,19);
+ core.addColorStop(0,'rgba(255,249,255,'+clamp(.66*L*q).toFixed(3)+')');
+ core.addColorStop(.20,'rgba(223,234,255,'+clamp(.21*L*q).toFixed(3)+')');
+ core.addColorStop(1,'rgba(207,215,255,0)');
+ c.fillStyle=core;c.beginPath();c.arc(cx,cy,19,0,Math.PI*2);c.fill();
  c.restore();
 }
-
 function clipHalfPlane(poly,A,B,C){
  const out=[];if(!poly.length)return out;
  for(let i=0;i<poly.length;i++){
