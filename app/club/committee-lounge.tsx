@@ -5,6 +5,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type F
 import { CITIZENS, type Citizen } from "../citizens";
 import { CLUB_MEMBER_IDS, LOUNGE_IDENTITIES } from "./lounge-access";
 import type { ClubProfile, ClubMessage, ClubData } from "./lounge-contract";
+import { fetchCommitteeRoom, fetchCommitteeHistory, postCommitteeAction } from "./lounge-api";
 import { ArticulatedFan, LaceFanDrawing } from "./articulated-fan";
 import { useRoomJourneys } from "./use-room-journeys";
 import { wantsGameRoomReturn, consumeGameRoomReturn } from "./game-room-return";
@@ -138,9 +139,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     let active = true;
     const loadClub = async () => {
       try {
-        const response = await fetch(`/api/committee-club?citizenId=${encodeURIComponent(citizen.id)}`, { cache: "no-store" });
-        const payload = await response.json() as ClubData;
-        if (!response.ok) throw new Error(payload.error || "Committee Lounge 暂时没有回应。");
+        const payload = await fetchCommitteeRoom();
         if (active) setClubData(payload);
       } catch (error) {
         if (active) setClubStatus(error instanceof Error ? error.message : "Committee Lounge 暂时没有回应。");
@@ -187,16 +186,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     setWhisper(message);
   };
 
-  const postClub = async (body: Record<string, string | number>) => {
-    const response = await fetch("/api/committee-club", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...body, citizenId: citizen.id }),
-    });
-    const payload = await response.json() as ClubData & { message?: ClubMessage; profile?: ClubProfile };
-    if (!response.ok) throw new Error(payload.error || "房间没能保存这次魔法。");
-    return payload;
-  };
+  const postClub = postCommitteeAction;
 
   const touchMoon = () => {
     setMoonlight(true);
@@ -220,12 +210,8 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     const applied = query.trim().slice(0, 120);
     if (!older) { setHistoryQuery(applied); setHistoryMessages([]); setHistoryCursor(null); historyScrollRef.current = null; }
     else if (chatMessagesRef.current) historyScrollRef.current = { height: chatMessagesRef.current.scrollHeight, top: chatMessagesRef.current.scrollTop };
-    const params = new URLSearchParams({ citizenId: citizen.id, q: applied });
-    if (older && historyCursor) { params.set("beforeAt", historyCursor.createdAt); params.set("beforeId", historyCursor.id); }
     try {
-      const response = await fetch(`/api/committee-club?${params}`, { cache: "no-store", signal: controller.signal });
-      const payload = await response.json() as ClubData;
-      if (!response.ok) throw new Error(payload.error || "卷轴暂时无法翻页。");
+      const payload = await fetchCommitteeHistory(applied, older ? historyCursor : null, controller.signal);
       if (request !== historyRequestRef.current) return;
       setHistoryMessages(previous => older ? mergeChatMessages(previous, payload.messages ?? []) : payload.messages ?? []);
       setHistoryCursor(payload.nextCursor ?? null);
