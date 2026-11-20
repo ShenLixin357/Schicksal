@@ -1,6 +1,6 @@
 # Schicksal 2.0 — Modular Monolith Architecture
 
-Status: **phase 1 + phase 2 code validated** (current branch `refactor/schicksal-architecture-phase2-20261120`, draft PR #11). Safari visual parity and any merge remain pending. The approved UI lives on `preview/sidebar-lounge-v4-20261120`; the production `main` branch is a separate, explicitly approval-gated release target.
+Status: **phases 1–2 code validated** (PR #10–11); security integration **C** in Draft PR #12, and scene/runtime isolation **D** in a separate stacked Draft PR. Safari visual parity, live D1 recovery rehearsal and any merge remain pending. The approved UI lives on `preview/sidebar-lounge-v4-20261120`; the production `main` branch is a separate, explicitly approval-gated release target.
 
 ## 1. Why change the structure?
 
@@ -82,11 +82,11 @@ For the future Library Gallery, store master art and derivatives in external obj
 |---|---|---|
 | **1 — foundation (PR #10)** | Home, photo, archive, emblem data extraction; route union; initial dynamic chunks; boundaries and asset audit | **Code/CI passed; visual comparison pending** |
 | **2 — domain extraction (PR #11)** | Parliament view and Lounge scene ownership, source-order-preserving CSS extraction, game/private room lazy chunks, load/retry boundaries | **Code/CI passed; Safari visual, full room interaction, authorization tests pending** |
-| **3 — remaining CSS and Scene Runtime** | Scope legacy global selectors, build reusable scene readiness/cancel/skip/reverse lifecycle, isolate state persistence from visuals | Exact screenshot/interaction parity on phone and desktop, pause/skip/failure tests |
+| **C — server security integration (PR #12)** | Reconcile migrations 0012/0013, real session boundaries, verified backup tool and fail-closed checked deploy | Automated tests/build passed; isolated D1 recovery & release approval pending |
+| **3 / D — remaining CSS and Scene Runtime** | **Started:** stale room callback cancellation, bounded scene image decode, immutable approved art/CSS regression. **Remaining:** selector-level scoping, reusable scene manager, asset loading and complete lifecycle tests | Code/CI and screenshot/interaction parity on phone/desktop; timeout/skip/reverse tests |
 | **4 — parliamentary workflow and data** | Split server `app/api/parliament/route.ts` into typed service/state/transaction layers without altering decision rules | Existing voting/CSRF/idempotency/audit tests, isolated D1 previews, committee roles unchanged |
 | **5 — Lounge data + game asset dedup** | Separate room-specific save/rankings adapters and resource budgets; safely reduce duplicated third-party game assets | Per-member access tests, original interactions, identical resource paths and fidelity |
 | **6 — Library + comms** | Integrate reviewed Work Library Lab adapter, object-storage gallery, and communications after design approval | Independent artwork revisions, access controls, storage quota and backup acceptance |
-| **5 — Library + comms** | Integrate reviewed Work Library Lab through an adapter and object-storage gallery; replace communications placeholder when specified | Independent artwork and content revisions, access controls, storage quota and backup acceptance |
 
 **No stage is represented as complete until its code, automated checks and user-approved visual behaviour all pass.** An approved UI screenshot and an architecture code refactor are separate sign-offs.
 
