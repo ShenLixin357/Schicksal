@@ -33,7 +33,7 @@ test("all room transitions invalidate stale network callbacks on unmount", () =>
   assert.doesNotMatch(journey, /historyRequestRef|historyAbortRef|committee_club_messages|member_direct_messages/);
   for (const name of ["fanTravelRef", "globeTravelRef", "musicBoxTravelRef", "fireplaceTravelRef"]) {
     assert.match(journey, new RegExp(`\\b${name}\\.current \\+= 1`), `unmount must invalidate ${name}`);
-    assert.match(lounge, new RegExp(`request !== ${name}\\.current`), `stale completion must be guarded: ${name}`);
+    assert.match(journey, new RegExp(`request !== ${name}\\.current`), `stale completion must be guarded: ${name}`);
   }
   for (const name of ["fanDeadlineRef", "fireplaceDeadlineRef", "globeDeadlineRef"]) {
     assert.ok(journey.includes(`if (${name}.current !== null) window.clearTimeout(${name}.current)`), `unmount must clear ${name}`);
