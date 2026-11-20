@@ -1,36 +1,35 @@
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { access, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-
-const wrangler = resolve("node_modules/wrangler/bin/wrangler.js");
-const config = resolve("dist/server/wrangler.json");
+import { deploymentBinding } from "./binding.mjs";
+import { checkMigrations } from "../migrations.mjs";
+const wrangler = resolve("node_modules/wrangler/bin/wrangler.js"), config = resolve(process.env.SCHICKSAL_DEPLOY_CONFIG || "dist/server/wrangler.json");
 await access(config);
 const settings = JSON.parse(await readFile(config, "utf8"));
+// Missing or conflicting IDs fail before any remote operation.
+const binding = deploymentBinding(settings);
+await checkMigrations(process.cwd());
+settings.account_id = binding.accountId;
+settings.d1_databases[0].database_id = binding.databaseId;
+settings.d1_databases[0].migrations_dir = resolve("drizzle");
 function run(args, json = false) {
-  const result = spawnSync(process.execPath, [wrangler, ...args, "--config", config], { stdio: json ? ["ignore", "pipe", "inherit"] : "inherit", encoding: "utf8", env: { ...process.env, CI: "true" } });
-  if (result.error) throw result.error;
-  if (result.status !== 0) process.exit(result.status ?? 1);
-  return json ? JSON.parse(result.stdout) : null;
-}
-for (const binding of settings.d1_databases || []) {
-  binding.migrations_dir = resolve("drizzle");
-  if (!binding.database_id) {
-    const name = binding.database_name || `${settings.name}-${binding.binding.toLowerCase()}`;
-    let databases = run(["d1", "list", "--json"], true);
-    if (!Array.isArray(databases)) throw new Error("Unexpected Cloudflare database list response");
-    let database = databases.find((entry) => entry.name === name);
-    if (!database) {
-      run(["d1", "create", name, "--no-update-config"]);
-      databases = run(["d1", "list", "--json"], true);
-      database = databases.find((entry) => entry.name === name);
-    }
-    if (!database?.uuid) throw new Error("The new D1 database could not be resolved");
-    binding.database_name = name;
-    binding.database_id = database.uuid;
-  }
+    const result = spawnSync(process.execPath, [wrangler, ...args, "--config", config], { stdio: json ? ["ignore", "pipe", "inherit"] : "inherit", encoding: "utf8", env: { ...process.env, CI: "true", CLOUDFLARE_ACCOUNT_ID: binding.accountId } });
+    if (result.error)
+        throw result.error;
+    if (result.status !== 0)
+        process.exit(result.status ?? 1);
+    return json ? JSON.parse(result.stdout) : null;
 }
 await writeFile(config, JSON.stringify(settings, null, 2));
-// The binding name is stable even when Cloudflare generates resource IDs.
-// Schema migrations run before the new Worker becomes active.
-run(["d1", "migrations", "apply", "DB", "--remote"]);
-run(["deploy"]);
+const info = run(["d1", "info", binding.databaseId, "--json"], true);
+assert.equal(info.uuid || info.id, binding.databaseId, "D1 identity differs; refusing migration/deployment");
+if (binding.databaseName)
+    assert.equal(info.name, binding.databaseName, "D1 name differs from the reviewed binding");
+if (process.argv.includes("--check"))
+    console.log("Existing account and DB verified; no migrations or publication.");
+else {
+    run(["d1", "migrations", "apply", "DB", "--remote"]);
+    if (!process.argv.includes("--migrate-only"))
+        run(["deploy"]);
+}

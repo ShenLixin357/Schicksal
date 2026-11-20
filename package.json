@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && node scripts/insaniquarium/check-resources.mjs && vinext build",
     "start": "vinext start",
-    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase && npm run test:messenger && npm run test:shell && npm run test:architecture",
+    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase && npm run test:messenger && npm run test:shell && npm run test:architecture && npm run test:identity && npm run test:backup-restore && npm run test:migration-authority && npm run db:check",
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
     "test:minigames": "node --experimental-transform-types --test tests/potion-sort-engine.test.ts tests/merge-game-engine.test.ts tests/chryser-games.test.ts",
     "test:mafraer": "node --experimental-transform-types --test tests/mafraer-magic.test.ts tests/mafraer-observatory.test.ts",
@@ -37,7 +37,17 @@
     "test:messenger": "node --experimental-transform-types --test tests/messenger-api.test.mjs",
     "test:shell": "node --test tests/shell-preview.test.mjs",
     "test:architecture": "node scripts/architecture/check-boundaries.mjs && node --test tests/architecture-phase1.test.mjs tests/architecture-phase2.test.mjs && npm run audit:assets",
-    "audit:assets": "node scripts/architecture/audit-assets.mjs"
+    "audit:assets": "node scripts/architecture/audit-assets.mjs",
+    "db:check": "node --experimental-transform-types scripts/migrations.mjs check",
+    "db:seal": "node scripts/migrations.mjs seal",
+    "db:new": "node scripts/migrations.mjs new",
+    "test:identity": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/identity-boundary.test.mjs",
+    "test:backup-restore": "node --experimental-transform-types --test tests/backup-restore.test.mjs",
+    "test:migration-authority": "node --experimental-transform-types --test tests/migration-authority.test.mjs",
+    "backup:capture": "node --experimental-transform-types scripts/cloudflare/backup.mjs capture",
+    "backup:verify": "node --experimental-transform-types scripts/cloudflare/backup.mjs verify",
+    "backup:restore-local": "node --experimental-transform-types scripts/cloudflare/backup.mjs restore-local",
+    "deploy:check": "node --experimental-transform-types scripts/cloudflare/deploy-build.mjs --check"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
