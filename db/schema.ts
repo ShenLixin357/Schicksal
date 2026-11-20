@@ -331,3 +331,16 @@ export const memberInsaniquariumSaves = sqliteTable("member_insaniquarium_saves"
   updatedAt: text("updated_at").notNull(),
 });
 
+
+/** Private correspondence, introduced by migration 0012. Keep it in schema drift checks. */
+export const memberDirectMessages = sqliteTable("member_direct_messages", {
+  seq: integer("seq").primaryKey({ autoIncrement: true }),
+  id: text("id").notNull().unique(),
+  senderId: text("sender_id").notNull(),
+  recipientId: text("recipient_id").notNull(),
+  body: text("body").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
+}, (table) => [
+  index("member_direct_messages_sender_recent").on(table.senderId, table.seq),
+  index("member_direct_messages_recipient_recent").on(table.recipientId, table.seq),
+]);
