@@ -39,7 +39,8 @@ test("Lounge authorization survives code splitting and unauthorized logo remains
   assert.match(access, /CLUB_MEMBER_IDS = new Set\(\["amberina", "zxy", "truth"\]\)/);
   assert.match(access, /export function announceCommitteeLounge/);
   assert.match(room, /export function CommitteeLounge/);
-  assert.match(room, /fetch\("\/api\/committee-club"/);
+  assert.match(room, /from "\.\/lounge-api"/);
+  assert.match(read("app/club/lounge-api.ts"), /const endpoint = "\/api\/committee-club"/);
   assert.match(room, /MafraerLounge/);
   assert.match(page, /if \(!CLUB_MEMBER_IDS\.has\(citizen\.id\) \|\| portal\) return/);
   assert.match(page, /else if \(CLUB_MEMBER_IDS\.has\(citizen\.id\)\) enterLounge\(\)/);
@@ -89,7 +90,12 @@ test("all private data routes and D1 table ownership remain untouched by this fe
   const room = read("app/club/committee-lounge.tsx");
   const panel = read("app/parliament/parliament-section.tsx");
   assert.match(panel, /method: "POST"/);
-  assert.match(room, /method: "POST"/);
+  // Phase D moves transport into a typed client adapter. The presentation
+  // no longer constructs POST requests or claims an authenticated member ID.
+  const loungeTransport = read("app/club/lounge-api.ts");
+  assert.match(loungeTransport, /method: "POST"/);
+  assert.match(room, /postCommitteeAction/);
+  assert.doesNotMatch(room, /fetch\(/);
   assert.doesNotMatch(read("app/page.tsx"), /"\/api\/parliament"|"\/api\/committee-club"/);
 });
 

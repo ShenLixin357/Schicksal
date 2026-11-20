@@ -13,4 +13,3 @@ export const GAME_CABINET: readonly CabinetEntry[] = [
   { kind: "route", id: "aquarium", name: "怪怪水族箱", object: "迷你玻璃鱼缸", href: "/games/aquarium?from=game-room", x: 75, baseY: 65 },
 ];
 
-export const GAME_ROOM_RETURN_KEY = "schicksal:lounge-return";

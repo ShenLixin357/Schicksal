@@ -4,6 +4,7 @@ import { getDb } from "../../../db";
 import { ensureParliamentSchema } from "../../../db/parliament-schema";
 import { requireMember } from "../../../server/auth/member.ts";
 import { readJson, apiFailure } from "../../../server/http.ts";
+import { suggestedRouting } from "../../../server/parliament/policy.ts";
 import {
   parliamentAmendments,
   parliamentAuditEvents,
@@ -68,14 +69,6 @@ async function speakerRecord(itemId: string) {
     db.select().from(parliamentSpeakerVotes).where(eq(parliamentSpeakerVotes.itemId, itemId)),
   ]);
   return { meeting: meetings[0] ?? null, candidates, ballots };
-}
-
-function suggestedRouting(classification: string, ageBand: string, recusalRequested: boolean) {
-  if (classification === "constitutional") return "dual_review";
-  if (classification === "pending_review" || ageBand === "unknown") return "pending_review";
-  if (classification === "youth_autonomy" || (ageBand !== "12_plus" && recusalRequested)) return "youth_electorate";
-  if (ageBand === "12_plus") return "legislative_committee";
-  return "parliament";
 }
 
 async function audit(itemId: string, actorCitizenId: string, eventType: string, description: string, metadata: Record<string, unknown>, createdAt: string) {

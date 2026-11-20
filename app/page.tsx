@@ -22,7 +22,7 @@ import { lazy, useCallback, useEffect, useRef, useState, type CSSProperties, typ
 
 
 
-import { GAME_ROOM_RETURN_KEY } from "./club/game-room-catalogue";
+import { wantsGameRoomReturn } from "./club/game-room-return";
 import { CLUB_MEMBER_IDS, announceCommitteeLounge } from "./club/lounge-access";
 
 
@@ -284,9 +284,7 @@ function System({ citizen, logout, initialBriefing }: {
   }, []);
   useEffect(() => {
     if (!CLUB_MEMBER_IDS.has(citizen.id)) return;
-    let remembered = false;
-    try { remembered = window.sessionStorage.getItem(GAME_ROOM_RETURN_KEY) === "game-room"; } catch { /* Use the explicit return URL. */ }
-    if (remembered || new URLSearchParams(window.location.search).get("lounge") === "game-room") {
+    if (wantsGameRoomReturn(window)) {
       setSection("club"); setLoungeSeatingUnlocked(true);
     }
   }, [citizen.id]);

@@ -5,21 +5,24 @@ import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type F
 import { CITIZENS, type Citizen } from "../citizens";
 import { CLUB_MEMBER_IDS, LOUNGE_IDENTITIES } from "./lounge-access";
 import type { ClubProfile, ClubMessage, ClubData } from "./lounge-contract";
+import { fetchCommitteeRoom, fetchCommitteeHistory, postCommitteeAction } from "./lounge-api";
 import { ArticulatedFan, LaceFanDrawing } from "./articulated-fan";
-import { FAN_CYCLE_MS } from "./fan-motion";
+import { useRoomJourneys } from "./use-room-journeys";
+import { wantsGameRoomReturn, consumeGameRoomReturn } from "./game-room-return";
 import { MysticSigil } from "./mystic-marks";
 import { LoungeTable, LoungeTeaRitual } from "./tea-ritual";
 
 
-import { MafraerLounge, MAFRAER_ROOM_ASSETS } from "./mafraer-lounge";
+
 
 import { chatDate, chatTimestamp, mergeChatMessages, type ChatCursor } from "./chat-history";
-import { MagicChatScroll, MusicBoxDrawing, MusicBoxPortal, RotatingWordmageGlobe, startMusicBoxTune } from "./lounge-props";
+import { MagicChatScroll, MusicBoxDrawing, MusicBoxPortal, RotatingWordmageGlobe } from "./lounge-props";
 import { useMiniGameSystem } from "./minigames/use-mini-game-system";
 
 import { VaseExperience } from "./vase/vase-experience";
 import { getVase } from "./vase/vase-catalogue";
 import { EMBLEM_BLADES } from "../emblem/blade-spec";
+const MafraerLounge = lazy(() => import("./mafraer-lounge").then(module => ({ default: module.MafraerLounge })));
 const ChryserLounge = lazy(() => import("./chryser-lounge").then(module => ({ default: module.ChryserLounge })));
 const WordmageLounge = lazy(() => import("./wordmage-lounge").then(module => ({ default: module.WordmageLounge })));
 const WordmageGlobePassage = lazy(() => import("./wordmage-lounge").then(module => ({ default: module.WordmageGlobePassage })));
@@ -108,12 +111,12 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   const [maskAvatar, setMaskAvatar] = useState("sigil");
   const [clubStatus, setClubStatus] = useState("");
   const [saving, setSaving] = useState(false);
-  const [roomView, setRoomView] = useState<"committee" | "amberina" | "chryser" | "truth" | "game-room">(initialRoom);
-  const [fanTransition, setFanTransition] = useState<"enter" | "exit" | null>(null);
-  const [fireplaceOpening, setFireplaceOpening] = useState(false);
-  const [globeOpening, setGlobeOpening] = useState(false);
-  const [musicBoxOpening, setMusicBoxOpening] = useState(false);
   const [whisper, setWhisper] = useState("月光落在茶桌上，老书架仍像往常一样安静。");
+  const { roomView, setRoomView, fanTransition, fireplaceOpening, globeOpening,
+    musicBoxOpening, travelWithFan, openWordmageLounge,
+    openChryserLounge, openGameRoom } = useRoomJourneys({
+    initialRoom, setChatOpen, setClubStatus, setWhisper,
+  });
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const chatDialogRef = useRef<HTMLElement>(null);
   const chatCloseRef = useRef<HTMLButtonElement>(null);
@@ -121,28 +124,13 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   const historyRequestRef = useRef(0);
   const historyAbortRef = useRef<AbortController | null>(null);
   const historyScrollRef = useRef<{ height: number; top: number } | null>(null);
-  const musicBoxTimerRef = useRef<number | null>(null);
-  const musicBoxSoundRef = useRef<(() => void) | null>(null);
-  const musicBoxTravelRef = useRef(0);
-  const fanTimerRef = useRef<number | null>(null);
-  const fireplaceTimerRef = useRef<number | null>(null);
-  const fanTravelRef = useRef(0);
-  const globeTravelRef = useRef(0);
-  const globeTimerRef = useRef<number | null>(null);
-  const globeDeadlineRef = useRef<number | null>(null);
-
   const currentProfile = clubData.profiles?.find((profile) => profile.citizenId === citizen.id);
   const amberinaProfile = clubData.profiles?.find((profile) => profile.citizenId === "amberina");
 
   useEffect(() => {
-    let remembered = false;
-    try { remembered = window.sessionStorage.getItem(GAME_ROOM_RETURN_KEY) === "game-room"; } catch { /* URL still provides an explicit return. */ }
-    if (remembered || new URLSearchParams(window.location.search).get("lounge") === "game-room") {
+    if (wantsGameRoomReturn(window)) {
       setRoomView("game-room");
-      try { window.sessionStorage.removeItem(GAME_ROOM_RETURN_KEY); } catch { /* No stored return to clear. */ }
-      const url = new URL(window.location.href);
-      url.searchParams.delete("lounge");
-      window.history.replaceState(window.history.state, "", url);
+      consumeGameRoomReturn(window);
     }
   }, []);
 
@@ -151,9 +139,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     let active = true;
     const loadClub = async () => {
       try {
-        const response = await fetch(`/api/committee-club?citizenId=${encodeURIComponent(citizen.id)}`, { cache: "no-store" });
-        const payload = await response.json() as ClubData;
-        if (!response.ok) throw new Error(payload.error || "Committee Lounge 暂时没有回应。");
+        const payload = await fetchCommitteeRoom();
         if (active) setClubData(payload);
       } catch (error) {
         if (active) setClubStatus(error instanceof Error ? error.message : "Committee Lounge 暂时没有回应。");
@@ -191,144 +177,16 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   }, [chatOpen]);
 
   useEffect(() => () => {
-    fanTravelRef.current += 1;
-    globeTravelRef.current += 1;
-    musicBoxTravelRef.current += 1;
     historyRequestRef.current += 1;
     historyAbortRef.current?.abort();
-    musicBoxSoundRef.current?.();
-    if (musicBoxTimerRef.current !== null) window.clearTimeout(musicBoxTimerRef.current);
-    if (fanTimerRef.current !== null) window.clearTimeout(fanTimerRef.current);
-    if (fireplaceTimerRef.current !== null) window.clearTimeout(fireplaceTimerRef.current);
-    if (globeTimerRef.current !== null) window.clearTimeout(globeTimerRef.current);
-    if (globeDeadlineRef.current !== null) window.clearTimeout(globeDeadlineRef.current);
   }, []);
-
-  const travelWithFan = (nextRoom: "committee" | "amberina") => {
-    if (fanTransition || globeOpening || musicBoxOpening || fireplaceOpening) return;
-    setChatOpen(false);
-    setFanTransition(nextRoom === "amberina" ? "enter" : "exit");
-    const request = ++fanTravelRef.current;
-    const started = performance.now();
-    const background = new window.Image();
-    background.src = nextRoom === "amberina" ? MAFRAER_ROOM_ASSETS.moonlit : "/committee-lounge-word-globe-v1.png";
-    const completePassage = (loaded: boolean) => {
-      if (request !== fanTravelRef.current) return;
-      const elapsed = performance.now() - started;
-      const cycle = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 240 : FAN_CYCLE_MS;
-      // Keep dancing while the destination loads; leave on a full bloom, not mid-snap.
-      const finishAt = Math.max(1, Math.ceil(elapsed / cycle)) * cycle;
-      fanTimerRef.current = window.setTimeout(() => {
-        if (request !== fanTravelRef.current) return;
-        if (loaded) setRoomView(nextRoom);
-        else {
-          setClubStatus("房间的月光暂时没有回应，请再试一次。");
-          setWhisper("房间的月光暂时没有回应，请再试一次。");
-        }
-        setFanTransition(null);
-        fanTimerRef.current = null;
-      }, Math.max(0, finishAt - elapsed));
-    };
-    void background.decode().then(() => completePassage(true), () => completePassage(false));
-  };
-
-  const openWordmageLounge = () => {
-    if (globeOpening || fanTransition || fireplaceOpening || musicBoxOpening) return;
-    setChatOpen(false);
-    setGlobeOpening(true);
-    setWhisper("地球仪上的经纬线缓缓展开，磁场回应了言灵师的暗号。");
-    const request = ++globeTravelRef.current;
-    const started = performance.now();
-    const background = new window.Image();
-    let finished = false;
-    const complete = (loaded: boolean) => {
-      if (finished || request !== globeTravelRef.current) return;
-      finished = true;
-      if (globeDeadlineRef.current !== null) window.clearTimeout(globeDeadlineRef.current);
-      globeDeadlineRef.current = null;
-      const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 180 : 1900;
-      globeTimerRef.current = window.setTimeout(() => {
-        if (request !== globeTravelRef.current) return;
-        if (loaded) setRoomView("truth");
-        else {
-          setClubStatus("言灵通道暂时没有回应，请再试一次。");
-          setWhisper("地球仪安静地合上了航路。轻触它，可以再次尝试进入言灵师的 Lounge。");
-        }
-        setGlobeOpening(false);
-        globeTimerRef.current = null;
-      }, Math.max(0, minimum - (performance.now() - started)));
-    };
-    globeDeadlineRef.current = window.setTimeout(() => complete(false), 12000);
-    background.src = "/nishujiade-private-lounge-v1.png";
-    void background.decode().then(() => complete(true), () => complete(false));
-  };
-
-  const openChryserLounge = () => {
-    if (fireplaceOpening || globeOpening || fanTransition || musicBoxOpening) return;
-    setChatOpen(false);
-    setFireplaceOpening(true);
-    setWhisper("壁炉深处先出现一粒绿色余烬，随后整座炉膛突然燃烧起来。");
-    const started = performance.now();
-    const background = new window.Image();
-    background.src = "/chryser-private-lounge.png";
-    const complete = (loaded: boolean) => {
-      const elapsed = performance.now() - started;
-      const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 280 : 2600;
-      fireplaceTimerRef.current = window.setTimeout(() => {
-        if (loaded) setRoomView("chryser");
-        else {
-          setClubStatus("翡翠壁炉暂时无法打开，请再试一次。");
-          setWhisper("绿色余烬熄灭了；通往 Room No. 02 的门没有打开。");
-        }
-        setFireplaceOpening(false);
-        fireplaceTimerRef.current = null;
-      }, Math.max(0, minimum - elapsed));
-    };
-    void background.decode().then(() => complete(true), () => complete(false));
-  };
-
-  const openGameRoom = () => {
-    if (musicBoxOpening || globeOpening || fireplaceOpening || fanTransition) return;
-    setChatOpen(false); setMusicBoxOpening(true);
-    setWhisper("八音盒打开了。小小的星月随音乐转动，另一间明亮的房间正在醒来。");
-    musicBoxSoundRef.current?.();
-    musicBoxSoundRef.current = startMusicBoxTune();
-    const request = ++musicBoxTravelRef.current, started = performance.now();
-    const background = new window.Image();
-    let finished = false;
-    const complete = (loaded: boolean) => {
-      if (finished || request !== musicBoxTravelRef.current) return;
-      finished = true;
-      if (musicBoxTimerRef.current !== null) window.clearTimeout(musicBoxTimerRef.current);
-      const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 250 : 2400;
-      musicBoxTimerRef.current = window.setTimeout(() => {
-        if (request !== musicBoxTravelRef.current) return;
-        musicBoxSoundRef.current?.(); musicBoxSoundRef.current = null;
-        if (loaded) setRoomView("game-room");
-        else setWhisper("八音盒的房门暂时没有打开，请再轻触一次。");
-        setMusicBoxOpening(false); musicBoxTimerRef.current = null;
-      }, Math.max(0, minimum - (performance.now() - started)));
-    };
-    musicBoxTimerRef.current = window.setTimeout(() => complete(false), 8000);
-    background.src = "/lounge-game-room-v1.webp";
-    void background.decode().then(() => complete(true), () => complete(false));
-  };
 
   const reveal = (nextEffect: typeof effect, message: string) => {
     setEffect(nextEffect);
     setWhisper(message);
   };
 
-  const postClub = async (body: Record<string, string | number>) => {
-    const response = await fetch("/api/committee-club", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...body, citizenId: citizen.id }),
-    });
-    const payload = await response.json() as ClubData & { message?: ClubMessage; profile?: ClubProfile };
-    if (!response.ok) throw new Error(payload.error || "房间没能保存这次魔法。");
-    return payload;
-  };
+  const postClub = postCommitteeAction;
 
   const touchMoon = () => {
     setMoonlight(true);
@@ -352,12 +210,8 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     const applied = query.trim().slice(0, 120);
     if (!older) { setHistoryQuery(applied); setHistoryMessages([]); setHistoryCursor(null); historyScrollRef.current = null; }
     else if (chatMessagesRef.current) historyScrollRef.current = { height: chatMessagesRef.current.scrollHeight, top: chatMessagesRef.current.scrollTop };
-    const params = new URLSearchParams({ citizenId: citizen.id, q: applied });
-    if (older && historyCursor) { params.set("beforeAt", historyCursor.createdAt); params.set("beforeId", historyCursor.id); }
     try {
-      const response = await fetch(`/api/committee-club?${params}`, { cache: "no-store", signal: controller.signal });
-      const payload = await response.json() as ClubData;
-      if (!response.ok) throw new Error(payload.error || "卷轴暂时无法翻页。");
+      const payload = await fetchCommitteeHistory(applied, older ? historyCursor : null, controller.signal);
       if (request !== historyRequestRef.current) return;
       setHistoryMessages(previous => older ? mergeChatMessages(previous, payload.messages ?? []) : payload.messages ?? []);
       setHistoryCursor(payload.nextCursor ?? null);
@@ -448,7 +302,9 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   };
 
   if (roomView === "amberina") return <>
-    <AmberinaLounge visitor={citizen} ownerProfile={amberinaProfile} onBack={() => travelWithFan("committee")} />
+    <Suspense fallback={<RoomLoading name="玛法休息室"/>}>
+      <AmberinaLounge visitor={citizen} ownerProfile={amberinaProfile} onBack={() => travelWithFan("committee")} />
+    </Suspense>
     {fanTransition && <FanTransition direction={fanTransition} />}
   </>;
 
