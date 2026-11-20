@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "name": "0000_sleepy_otto_octavius.sql",
+      "sha256": "116406c67344eb6dacf3267bb7186208beb43f081b57b04ee66f13d6a87af9b4"
+    },
+    {
+      "name": "0001_low_aqueduct.sql",
+      "sha256": "6fc0412fa9d0df50b4c464811f9acdba0f78e6ff71050d0a1f2301f96ff5b882"
+    },
+    {
+      "name": "0002_familiar_amazoness.sql",
+      "sha256": "cb0cf0715675efff7ce4ed46add44e515942006c770d862080db884f37452e4e"
+    },
+    {
+      "name": "0003_empty_karnak.sql",
+      "sha256": "90ee22a67bcd94f4df3fdf4b99f7e04cd232cee07bd44756656ed5386c6b1610"
+    },
+    {
+      "name": "0004_careful_harry_osborn.sql",
+      "sha256": "fb5852f7452cc4050ff3f9828367fabef797d6dc51cfc2814aa1ac5139244617"
+    },
+    {
+      "name": "0005_round_thaddeus_ross.sql",
+      "sha256": "8852aef8b129d298e2fd88531641173040ce90c6ee74f263c9bba1c9341a564e"
+    },
+    {
+      "name": "0006_mysterious_morlocks.sql",
+      "sha256": "19975deee36fced2cffd433d53172714d24c491000ec17a022f1564f1b7e2606"
+    },
+    {
+      "name": "0007_member_credentials.sql",
+      "sha256": "dbb888ad120f734912a2b6b0238f3b0d97a1ecad89d3576de8a007b40ce459f4"
+    },
+    {
+      "name": "0008_member_aquarium_saves.sql",
+      "sha256": "9e00abdd69d5470998af108bd101ab5bf52fa00d7491c84d7b2f2d123e931633"
+    },
+    {
+      "name": "0009_member_insaniquarium_saves.sql",
+      "sha256": "3aba5d68dbca6e32c93794a8bf4641839db4897e35a1773e90df54ac84399132"
+    },
+    {
+      "name": "0010_emerald_cello_music.sql",
+      "sha256": "c21b315bb42988b5992772bd5138f785aeb23820d2cac08d710ec127565c8b4a"
+    },
+    {
+      "name": "0011_committee_vase_history.sql",
+      "sha256": "213f8aa8e05c67becae37cf30e9f307af54192a6d3c61b7437e2cc3789846d88"
+    },
+    {
+      "name": "0012_member_direct_messages.sql",
+      "sha256": "f139cbb7da639a55f3000295973e9e680032c99dd8597eeb7184978ddd93a27d"
+    },
+    {
+      "name": "0013_explicit_parliament_bootstrap.sql",
+      "sha256": "65041b183e3d111cdecaa8d1efef12bc549633d25254fd1b099a3276c1f08c8a"
+    }
+  ]
+}
