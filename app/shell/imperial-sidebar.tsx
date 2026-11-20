@@ -1,15 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Citizen } from "../citizens";
 import type { MemberPresence } from "../briefing/use-member-presence";
 import { SidebarPresence } from "../briefing/sidebar-presence";
 import { PRIMARY_NAV, COLLECTION_NAV, POINTS_NAV, type SidebarDestination } from "./navigation";
 import { NavigationIcon } from "./navigation-icons";
-
-const COLLECTION_IDS = new Set<string>(["library", "atlas", "photos", "archives"]);
-const POINTS_IDS = new Set<string>(["honors", "market"]);
+import { SidebarMenuGroup, SidebarNavCopy } from "./sidebar-menu-group";
 
 export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnterLounge, sharedMark,
   presence, members, selfId, renderMemberMark, onToggle, onLogo, onNavigate, onLogout }: {
@@ -27,28 +25,6 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
   onNavigate: (id: SidebarDestination) => void;
   onLogout: () => void;
 }) {
-  const [collectionExpanded, setCollectionExpanded] = useState(() => COLLECTION_IDS.has(activeSection));
-  const [pointsExpanded, setPointsExpanded] = useState(() => POINTS_IDS.has(activeSection));
-  useEffect(() => {
-    if (COLLECTION_IDS.has(activeSection)) setCollectionExpanded(true);
-    if (POINTS_IDS.has(activeSection)) setPointsExpanded(true);
-  }, [activeSection]);
-  const openCollection = () => {
-    if (collapsed) {
-      onToggle();
-      setCollectionExpanded(true);
-    } else {
-      setCollectionExpanded(value => !value);
-    }
-  };
-  const openPoints = () => {
-    if (collapsed) {
-      onToggle();
-      setPointsExpanded(true);
-    } else {
-      setPointsExpanded(value => !value);
-    }
-  };
   return <aside className="sidebar imperial-sidebar" id="imperial-sidebar">
     <div className="side-brand imperial-side-brand">
       <button className="imperial-logo-trigger" type="button" onClick={onLogo}
@@ -73,40 +49,19 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
       </div>
     </div>
     <nav className="imperial-main-nav" id="imperial-navigation" aria-label="帝国主导航">
-      {PRIMARY_NAV.map(item => item.id === "collection" ? <div key={item.id} className="imperial-nav-group">
-        <button type="button" className={`imperial-nav-entry ${COLLECTION_IDS.has(activeSection) ? "active" : ""}`}
-          aria-label="展开或收起帝国馆藏子菜单" aria-expanded={collectionExpanded && !collapsed}
-          aria-controls="imperial-collection-submenu" title={item.label} onClick={openCollection}>
+      {PRIMARY_NAV.map(item => item.id === "collection" || item.id === "honors"
+        ? <SidebarMenuGroup key={item.id} item={item}
+          menuId={item.id === "collection" ? "collection" : "points"}
+          items={item.id === "collection" ? COLLECTION_NAV : POINTS_NAV}
+          activeSection={activeSection} collapsed={collapsed}
+          onExpandSidebar={onToggle} onNavigate={onNavigate}/>
+        : <button type="button" key={item.id}
+          className={`imperial-nav-entry ${activeSection === item.id ? "active" : ""}`}
+          aria-current={activeSection === item.id ? "page" : undefined}
+          title={item.label} onClick={() => onNavigate(item.id)}>
           <span className="imperial-nav-icon"><NavigationIcon name={item.icon}/></span>
-          <strong>{item.label}</strong>
-          <span className={`imperial-nav-chevron ${collectionExpanded ? "expanded" : ""}`} aria-hidden="true"><NavigationIcon name="chevron" size={15}/></span>
-        </button>
-        {collectionExpanded && !collapsed && <div id="imperial-collection-submenu" className="imperial-nav-submenu">
-          {COLLECTION_NAV.map(child => <button type="button" key={child.id}
-            className={activeSection === child.id ? "active" : ""}
-            aria-current={activeSection === child.id ? "page" : undefined}
-            onClick={() => onNavigate(child.id)}>{child.label}</button>)}
-        </div>}
-      </div> : item.id === "honors" ? <div key={item.id} className="imperial-nav-group">
-        <button type="button" className={`imperial-nav-entry ${POINTS_IDS.has(activeSection) ? "active" : ""}`}
-          aria-label="展开或收起积分子菜单" aria-expanded={pointsExpanded && !collapsed}
-          aria-controls="imperial-points-submenu" title={item.label} onClick={openPoints}>
-          <span className="imperial-nav-icon"><NavigationIcon name={item.icon}/></span>
-          <strong>{item.label}</strong>
-          <span className={`imperial-nav-chevron ${pointsExpanded ? "expanded" : ""}`} aria-hidden="true"><NavigationIcon name="chevron" size={15}/></span>
-        </button>
-        {pointsExpanded && !collapsed && <div id="imperial-points-submenu" className="imperial-nav-submenu">
-          {POINTS_NAV.map(child => <button type="button" key={child.id}
-            className={activeSection === child.id ? "active" : ""}
-            aria-current={activeSection === child.id ? "page" : undefined}
-            onClick={() => onNavigate(child.id)}>{child.label}</button>)}
-        </div>}
-      </div> : <button type="button" key={item.id}
-        className={`imperial-nav-entry ${activeSection === item.id ? "active" : ""}`}
-        aria-current={activeSection === item.id ? "page" : undefined}
-        title={item.label} onClick={() => onNavigate(item.id)}>
-        <span className="imperial-nav-icon"><NavigationIcon name={item.icon}/></span><strong>{item.label}</strong>
-      </button>)}
+          <SidebarNavCopy label={item.label} en={item.en}/>
+        </button>)}
     </nav>
     <div className="schicksal-sidebar-footer">
       <SidebarPresence presence={presence} members={members} collapsed={collapsed} selfId={selfId}
