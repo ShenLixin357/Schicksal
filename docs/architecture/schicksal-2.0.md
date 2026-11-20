@@ -1,6 +1,6 @@
 # Schicksal 2.0 — Modular Monolith Architecture
 
-Status: **phases 1–2 code validated** (PR #10–11); security integration **C** in Draft PR #12, and scene/runtime isolation **D** in a separate stacked Draft PR. Safari visual parity, live D1 recovery rehearsal and any merge remain pending. The approved UI lives on `preview/sidebar-lounge-v4-20261120`; the production `main` branch is a separate, explicitly approval-gated release target.
+Status: **phases 1–2 code validated** (PR #10–11); **C** security in Draft #12, **D** Lounge scene isolation in Draft #13 and **E** identity/offices/performance in Draft #14. Code/CI and the pending migration 0014 are separate from user-approved Safari visual parity, live D1 recovery rehearsal and permission to merge/deploy. The approved UI lives on `preview/sidebar-lounge-v4-20261120`; the production `main` branch is a separate, explicitly approval-gated release target.
 
 ## 1. Why change the structure?
 
@@ -29,7 +29,9 @@ app/page.tsx (client coordinator; *no* scene drawing, DB rules or large CSS)
 
 app/api/*              server-only access and authorization
 db/ + drizzle/         centralized schema and migration discipline
-app/citizens.ts        single canonical member palette and identity metadata
+app/citizens.ts        stable account/member metadata and legacy office label
+app/identity/public.ts    public colors, marks, office lookup contract for new features
+app/identity/*         visual-registry, office-registry, reusable mark UI
 public/                current approved assets; preserve all original images
 scripts/architecture/  read-only audit and enforceable architectural boundaries
 ```
@@ -84,6 +86,7 @@ For the future Library Gallery, store master art and derivatives in external obj
 | **2 — domain extraction (PR #11)** | Parliament view and Lounge scene ownership, source-order-preserving CSS extraction, game/private room lazy chunks, load/retry boundaries | **Code/CI passed; Safari visual, full room interaction, authorization tests pending** |
 | **C — server security integration (PR #12)** | Reconcile migrations 0012/0013, real session boundaries, verified backup tool and fail-closed checked deploy | Automated tests/build passed; isolated D1 recovery & release approval pending |
 | **3 / D — remaining CSS and Scene Runtime** | **Started:** stale room callback cancellation, bounded scene image decode, immutable approved art/CSS regression. **Remaining:** selector-level scoping, reusable scene manager, asset loading and complete lifecycle tests | Code/CI and screenshot/interaction parity on phone/desktop; timeout/skip/reverse tests |
+| **E — shared identity, office, assets (PR #14)** | Public visual/office registries, reusable mark renderers, Atlas lazy chunks, asset audit, Briefing presence migration 0014 | Automated tests/build pending latest-head verification; visual parity, D1 rehearsal and future President election still pending |
 | **4 — parliamentary workflow and data** | Split server `app/api/parliament/route.ts` into typed service/state/transaction layers without altering decision rules | Existing voting/CSRF/idempotency/audit tests, isolated D1 previews, committee roles unchanged |
 | **5 — Lounge data + game asset dedup** | Separate room-specific save/rankings adapters and resource budgets; safely reduce duplicated third-party game assets | Per-member access tests, original interactions, identical resource paths and fidelity |
 | **6 — Library + comms** | Integrate reviewed Work Library Lab adapter, object-storage gallery, and communications after design approval | Independent artwork revisions, access controls, storage quota and backup acceptance |
