@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { CITIZENS, type Citizen } from "../citizens";
 import { CLUB_MEMBER_IDS, LOUNGE_IDENTITIES } from "./lounge-access";
 import type { ClubProfile, ClubMessage, ClubData } from "./lounge-contract";
@@ -9,17 +9,27 @@ import { ArticulatedFan, LaceFanDrawing } from "./articulated-fan";
 import { FAN_CYCLE_MS } from "./fan-motion";
 import { MysticSigil } from "./mystic-marks";
 import { LoungeTable, LoungeTeaRitual } from "./tea-ritual";
-import { ChryserLounge } from "./chryser-lounge";
-import { WordmageGlobePassage, WordmageLounge } from "./wordmage-lounge";
+
+
 import { MafraerLounge, MAFRAER_ROOM_ASSETS } from "./mafraer-lounge";
-import { GameRoom } from "./game-room";
+
 import { chatDate, chatTimestamp, mergeChatMessages, type ChatCursor } from "./chat-history";
 import { MagicChatScroll, MusicBoxDrawing, MusicBoxPortal, RotatingWordmageGlobe, startMusicBoxTune } from "./lounge-props";
-import { MiniGameSystem, useMiniGameSystem } from "./minigames/mini-game-system";
-import { LoungeLeaderboard } from "./minigames/lounge-leaderboard";
+import { useMiniGameSystem } from "./minigames/use-mini-game-system";
+
 import { VaseExperience } from "./vase/vase-experience";
 import { getVase } from "./vase/vase-catalogue";
 import { EMBLEM_BLADES } from "../emblem/blade-spec";
+const ChryserLounge = lazy(() => import("./chryser-lounge").then(module => ({ default: module.ChryserLounge })));
+const WordmageLounge = lazy(() => import("./wordmage-lounge").then(module => ({ default: module.WordmageLounge })));
+const WordmageGlobePassage = lazy(() => import("./wordmage-lounge").then(module => ({ default: module.WordmageGlobePassage })));
+const GameRoom = lazy(() => import("./game-room").then(module => ({ default: module.GameRoom })));
+const MiniGameSystem = lazy(() => import("./minigames/mini-game-system").then(module => ({ default: module.MiniGameSystem })));
+const LoungeLeaderboard = lazy(() => import("./minigames/lounge-leaderboard").then(module => ({ default: module.LoungeLeaderboard })));
+function RoomLoading({ name }: { name: string }) {
+  return <div className="lounge-module-loading" role="status">{name} · 正在打开…</div>;
+}
+
 
 /** The approved committee room, including all personal rooms, interactive
  * objects, chat and game entrance. Only ownership changes in this pass.
@@ -442,13 +452,13 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     {fanTransition && <FanTransition direction={fanTransition} />}
   </>;
 
-  if (roomView === "chryser") return <ChryserLounge citizenId={citizen.id} emblemBlades={EMBLEM_BLADES} onBack={() => setRoomView("committee")} />;
+  if (roomView === "chryser") return <Suspense fallback={<RoomLoading name="翡翠休息室"/>}><ChryserLounge citizenId={citizen.id} emblemBlades={EMBLEM_BLADES} onBack={() => setRoomView("committee")} /></Suspense>;
 
-  if (roomView === "truth") return <WordmageLounge onBack={() => setRoomView("committee")} />;
+  if (roomView === "truth") return <Suspense fallback={<RoomLoading name="魔法师休息室"/>}><WordmageLounge onBack={() => setRoomView("committee")} /></Suspense>;
 
-  if (miniGames.activeGame) return <MiniGameSystem citizenId={citizen.id} gameId={miniGames.activeGame} emblemBlades={EMBLEM_BLADES} onClose={miniGames.closeMiniGame} loungeTitle={roomView === "game-room" ? "八音盒游艺室" : undefined} backLabel={roomView === "game-room" ? "返回游戏室" : undefined} />;
+  if (miniGames.activeGame) return <Suspense fallback={<RoomLoading name="游艺室"/>}><MiniGameSystem citizenId={citizen.id} gameId={miniGames.activeGame} emblemBlades={EMBLEM_BLADES} onClose={miniGames.closeMiniGame} loungeTitle={roomView === "game-room" ? "八音盒游艺室" : undefined} backLabel={roomView === "game-room" ? "返回游戏室" : undefined} /></Suspense>;
 
-  if (roomView === "game-room") return <><GameRoom emblemBlades={EMBLEM_BLADES} onBack={() => setRoomView("committee")} onLaunch={miniGames.launchMiniGame} onRankings={() => setRankingsOpen(true)} />{rankingsOpen && <LoungeLeaderboard citizenId={citizen.id} onClose={() => setRankingsOpen(false)} />}</>;
+  if (roomView === "game-room") return <Suspense fallback={<RoomLoading name="游艺室"/>}><GameRoom emblemBlades={EMBLEM_BLADES} onBack={() => setRoomView("committee")} onLaunch={miniGames.launchMiniGame} onRankings={() => setRankingsOpen(true)} />{rankingsOpen && <Suspense fallback={<RoomLoading name="成绩簿"/>}><LoungeLeaderboard citizenId={citizen.id} onClose={() => setRankingsOpen(false)} /></Suspense>}</Suspense>;
 
   return (
     <>
@@ -513,7 +523,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
         </div>
       </div>
 
-      {globeOpening && <WordmageGlobePassage />}
+      {globeOpening && <Suspense fallback={null}><WordmageGlobePassage /></Suspense>}
       {musicBoxOpening && <div className="arcade-music-passage playing" role="status" aria-live="polite"><MusicBoxDrawing /><small>FOLLOW THE LITTLE MELODY</small><p>八音盒的另一面，是一间游艺室。</p><span>正在打开温暖的房门…</span></div>}
 
 
@@ -561,7 +571,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
         </aside>
       </>}
     </section>
-    {rankingsOpen && <LoungeLeaderboard citizenId={citizen.id} onClose={() => setRankingsOpen(false)} />}
+    {rankingsOpen && <Suspense fallback={<RoomLoading name="成绩簿"/>}><LoungeLeaderboard citizenId={citizen.id} onClose={() => setRankingsOpen(false)} /></Suspense>}
     {fanTransition && <FanTransition direction={fanTransition} />}
     </>
   );
