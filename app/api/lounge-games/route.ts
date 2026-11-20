@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { currentMember, sameOrigin } from "../../member-session";
+import { readJson, ApiError } from "../../../server/http.ts";
 import { BEST_UPSERT_SQL, GAME_MEMBERS, isGameId, isGameMember, performanceFromSnapshot, rankBests, validBoard, type GameBest } from "../../club/minigames/game-records";
 
 const BEST_SELECT = `SELECT b.game_id AS gameId, b.board_id AS boardId, b.citizen_id AS citizenId, b.run_id AS runId,
@@ -27,10 +28,14 @@ export async function POST(request: Request) {
   try {
     const member = await currentMember(request); if (!isGameMember(member)) return Response.json({ error: "请重新登录以同步成绩；本机待同步纪录会保留。" }, { status: 401, headers });
     if (request.headers.get("x-schicksal-member") !== member) return Response.json({ error: "登录身份已经改变；这位成员的待同步成绩会保留。" }, { status: 409, headers });
-    const raw = await request.text(); if (raw.length > 80000) return Response.json({ error: "成绩数据过长。" }, { status: 413, headers });
     let payload: Record<string, unknown>;
-    try { const value: unknown = JSON.parse(raw); if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(); payload = value as Record<string, unknown>; }
-    catch { return Response.json({ error: "成绩信息格式不正确。" }, { status: 400, headers }); }
+    try { payload = await readJson(request, 80000); }
+    catch (error) {
+      if (error instanceof ApiError) return Response.json({
+        error: error.status === 413 ? "成绩数据过长。" : "成绩信息格式不正确。",
+      }, { status: error.status, headers });
+      throw error;
+    }
     if (!isGameId(payload.gameId) || typeof payload.runId !== "string" || !/^[a-zA-Z0-9-]{8,80}$/.test(payload.runId)) return Response.json({ error: "成绩信息不完整。" }, { status: 400, headers });
     const result = performanceFromSnapshot(payload.gameId, payload.snapshot, Number(payload.durationMs), Number(payload.effortMoves));
     if (!result) return Response.json({ error: "这份成绩尚未达到该榜单的记录条件。" }, { status: 400, headers });

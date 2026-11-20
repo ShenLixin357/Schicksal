@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const memberCredentials = sqliteTable("member_credentials", {
   citizenId: text("citizen_id").primaryKey(),
@@ -357,4 +357,20 @@ export const memberDirectMessages = sqliteTable("member_direct_messages", {
 }, (table) => [
   index("member_direct_messages_sender_recent").on(table.senderId, table.seq),
   index("member_direct_messages_recipient_recent").on(table.recipientId, table.seq),
+]);
+
+/** Additive 0014 tables, previously created by Briefing request handlers. */
+export const briefingArchives = sqliteTable("briefing_archives", {
+  citizenId: text("citizen_id").notNull(),
+  taskId: text("task_id").notNull(),
+  archivedAt: text("archived_at").notNull(),
+}, table => [
+  primaryKey({ columns: [table.citizenId, table.taskId] }),
+]);
+export const memberPresence = sqliteTable("member_presence", {
+  sessionHash: text("session_hash").primaryKey().notNull(),
+  citizenId: text("citizen_id").notNull(),
+  lastSeenMs: integer("last_seen_ms").notNull(),
+}, table => [
+  index("member_presence_recent_idx").on(table.lastSeenMs),
 ]);

@@ -49,3 +49,13 @@ Keep unapproved changes on an isolated preview branch/Worker with its own
 preview D1. Never merge into `main`, touch production D1, or overwrite
 production secrets without separate, explicit user approval. Prefer a
 single consolidated commit for related changes.
+
+## Architecture contract for any NEW public feature (Library, Gallery, government, homepage)
+
+- **Read `docs/architecture/site-audit-2026-11-20.md` and `docs/architecture/lounge-isolation.md`** before adding a new module. Do not clone member colors, personal mark SVG code, approved PNG paths, official titles, or the eight-blade palette into that module.
+- **Public identity data:** import `CITIZENS`, `getPublicMemberVisual`, `EMBLEM_BLADES`, `officeHolders`, and `isCurrentPresident` through `app/identity/public.ts` or its lightweight owner files. Approved appearance variants live in `app/identity/visual-registry.ts`.
+- **Public mark UI:** use `app/identity/public-mark.tsx` / `PublicCitizenMark` and `app/emblem/compact-emblem.tsx` / `CompactEmpireEmblem` where appropriate. Home's 3D sculpture and Atlas's illustrated emblem are **distinct renderers**: do not silently redraw or recolor those while changing a compact mark. Coordinate all intended variants and obtain separate visual approval.
+- **Offices, Presidency and elections:** a current president is determined by a **verified office assignment**, never by `citizen.id === "amberina"`, array index zero, display alias, a member's color, or Lounge mask. In this Draft stage `office-registry.ts` is a static baseline; a live election is **not** implemented. Do not interpret Parliament Speaker elections as Presidential elections, and do not automatically grant site-admin permissions to the elected office holder.
+- **Lounge is a different identity domain.** `app/club/lounge-access.ts`, `app/club/mystic-marks.tsx`, private pseudonyms and avatar palettes remain independent from public identity rebrands and office changes. Do not import public marks into private magic art as a shortcut.
+- **Module state and resources:** keep new scenes isolated/lazy, preserve authored camera/lighting/animation and CSS source order, use authenticated member-scoped APIs rather than trusting client identity claims. Keep full Gallery originals and art variants outside an ever-growing public Git directory where practicable, with D1 metadata and verified object-store backups.
+- **Migrations:** never CREATE/ALTER tables on HTTP request. The additive `0014_briefing_presence.sql` is pending isolated-D1 rehearsal; applying it or publishing its dependent runtime to production needs explicit owner approval. Do not edit old sealed migration bytes.
