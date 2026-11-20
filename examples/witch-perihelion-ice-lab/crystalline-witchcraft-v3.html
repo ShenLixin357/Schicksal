@@ -490,46 +490,47 @@ function drawFreeze(c,progress){
  c.fillStyle=core;c.beginPath();c.arc(cx,cy,19,0,Math.PI*2);c.fill();
  c.restore();
 }
-function clipHalfPlane(poly,A,B,C){
- const out=[];if(!poly.length)return out;
- for(let i=0;i<poly.length;i++){
-  const s=poly[i],e=poly[(i+1)%poly.length];
-  const fs=s[0]*A+s[1]*B-C,fe=e[0]*A+e[1]*B-C;
-  const insideS=fs<=0,insideE=fe<=0;
-  if(insideS)out.push(s);
-  if(insideS!==insideE){
-   const den=fs-fe;if(Math.abs(den)<1e-8)continue;
-   const t=fs/den;
-   out.push([s[0]+t*(e[0]-s[0]),s[1]+t*(e[1]-s[1])]);
-  }
- }
- return out;
-}
-function makeVoronoi(){
+
+function makeSharpFragments(){
+ // Shared jittered vertices make a gapless shell before the first fracture.
+ // Each cell is triangulated into two long, very sharp ice-blade silhouettes,
+ // restoring the early pointed-shard style rather than chunky Voronoi plates.
  pieces=[];
- const sites=[],cx=w*.5,cy=h*.39;
- for(let i=0;i<38;i++){
-  const theta=i*2.39996323;
-  const r=Math.sqrt((i+.4)/38);
-  sites.push([cx+Math.cos(theta)*r*w*.73+(rand(i*9)-.5)*19,
-              cy+Math.sin(theta)*r*h*.82+(rand(i*5)-.5)*15]);
- }
- // Irregular Voronoi cells yield naturally unequal fracture shapes.
- for(let i=0;i<sites.length;i++){
-  let poly=[[0,0],[w,0],[w,h],[0,h]],a=sites[i];
-  for(let j=0;j<sites.length;j++)if(j!==i){
-   const b=sites[j],A=b[0]-a[0],B=b[1]-a[1];
-   poly=clipHalfPlane(poly,A,B,(b[0]*b[0]+b[1]*b[1]-a[0]*a[0]-a[1]*a[1])/2);
-   if(poly.length<3)break;
+ const cols=14,rows=6;
+ const verts=[];
+ for(let row=0;row<=rows;row++){
+  const line=[];
+  for(let col=0;col<=cols;col++){
+   const edge=col===0||col===cols||row===0||row===rows;
+   const x=w*col/cols+(edge?0:(rand(row*89+col*7)-.5)*w/cols*.44);
+   const y=h*row/rows+(edge?0:(rand(row*41+col*17)-.5)*h/rows*.26);
+   line.push([x,y]);
   }
-  if(poly.length<3)continue;
-  const center=poly.reduce((sum,p)=>[sum[0]+p[0],sum[1]+p[1]],[0,0]).map(v=>v/poly.length);
+  verts.push(line);
+ }
+ const cx=w*.5,cy=h*.39;
+ const add=(poly,n)=>{
   let minx=w,miny=h,maxx=0,maxy=0;
-  for(const p of poly){minx=Math.min(minx,p[0]);miny=Math.min(miny,p[1]);maxx=Math.max(maxx,p[0]);maxy=Math.max(maxy,p[1]);}
-  const angle=Math.atan2(center[1]-cy,center[0]-cx);
-  pieces.push({poly,cx:center[0],cy:center[1],box:[minx,miny,maxx,maxy],
-   angle,delay:.16+clamp(Math.hypot(center[0]-cx,center[1]-cy)/Math.hypot(w,h))*.26+rand(i*7)*.065,
-   vel:.6+.8*rand(i*27),rotate:(rand(i*13)-.5)*1.25,mass:.7+.65*rand(i*31)});
+  for(const [x,y] of poly){minx=Math.min(minx,x);miny=Math.min(miny,y);maxx=Math.max(maxx,x);maxy=Math.max(maxy,y);}
+  const px=poly.reduce((a,p)=>a+p[0],0)/3,py=poly.reduce((a,p)=>a+p[1],0)/3;
+  let maxlen=0,tip=poly[0],base=poly[1];
+  for(let j=0;j<3;j++){
+   const aa=poly[j],bb=poly[(j+1)%3],len=Math.hypot(aa[0]-bb[0],aa[1]-bb[1]);
+   if(len>maxlen){maxlen=len;tip=poly[(j+2)%3];base=[(aa[0]+bb[0])*.5,(aa[1]+bb[1])*.5];}
+  }
+  const angle=Math.atan2(py-cy,px-cx);
+  const distance=Math.hypot(px-cx,py-cy)/Math.hypot(w,h);
+  pieces.push({poly,box:[minx,miny,maxx,maxy],cx:px,cy:py,
+    tip,base,angle,delay:.13+distance*.22+rand(n*7)*.11,
+    speed:.56+.95*rand(n*23),spin:(rand(n*47)-.5)*1.85,
+    mass:.70+.8*rand(n*19),side:(rand(n*11)>.5?1:-1)});
+ };
+ let index=0;
+ for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
+  const A=verts[row][col],B=verts[row][col+1],C=verts[row+1][col+1],D=verts[row+1][col];
+  const diagonal=rand(row*17+col*7)>.5;
+  if(diagonal){add([A,B,C],index++);add([A,C,D],index++);}
+  else{add([A,B,D],index++);add([B,C,D],index++);}
  }
 }
 function cacheFull(){
@@ -537,62 +538,66 @@ function cacheFull(){
  drawFreeze(filmCtx,1);
  filmCtx.save();filmCtx.globalCompositeOperation='destination-over';
  filmCtx.drawImage(iceGL?iceGPU:iceFallbackCanvas,0,0,w,h);filmCtx.restore();
- // Backward-compatible permanent opaque substrate even without WebGL.
- // Every pixel of the frozen shell is covered before the card switches to front.
+ // Fully solid, softly varied substrate guarantees hidden card back.
  filmCtx.save();filmCtx.globalCompositeOperation='destination-over';
- filmCtx.fillStyle='#c8d4e9';filmCtx.fillRect(0,0,w,h);filmCtx.restore();
- glassGenerated=true;makeVoronoi();
+ filmCtx.fillStyle='#c5d0e5';filmCtx.fillRect(0,0,w,h);filmCtx.restore();
+ glassGenerated=true;makeSharpFragments();
 }
-function outlineFracture(c,alpha,progress){
- c.save();c.globalCompositeOperation='screen';c.lineWidth=.8;
- const cx=w*.5,cy=h*.39,maxr=Math.hypot(w,h)*progress;
- for(const piece of pieces){
-  if(Math.hypot(piece.cx-cx,piece.cy-cy)>maxr)continue;
-  c.beginPath();piece.poly.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();
-  c.strokeStyle='rgba(244,248,255,'+(.58*alpha).toFixed(3)+')';
-  c.shadowColor='rgba(186,211,249,.64)';c.shadowBlur=4*val('light');c.stroke();
+function shardOutline(c,frag){
+ c.beginPath();frag.poly.forEach(([x,y],j)=>j?c.lineTo(x,y):c.moveTo(x,y));c.closePath();
+}
+function drawCrackPropagation(c,q){
+ const cx=w*.5,cy=h*.39,rad=Math.hypot(w,h)*smooth(q/.20);
+ c.save();c.globalCompositeOperation='screen';
+ c.lineWidth=.66;
+ for(let i=0;i<pieces.length;i++){
+  const p=pieces[i],d=Math.hypot(p.cx-cx,p.cy-cy);
+  if(d>rad)continue;
+  const brightness=(1-smooth((q-.13)/.22))*(.42+.24*rand(i+2))*val('light');
+  if(brightness<.002)continue;
+  shardOutline(c,p);
+  c.strokeStyle='rgba(249,251,255,'+clamp(brightness).toFixed(3)+')';
+  c.shadowColor='rgba(204,228,255,.70)';c.shadowBlur=4;c.stroke();
  }
  c.restore();
 }
 function drawShatter(t){
  if(!glassGenerated)cacheFull();
- renderIce(1);
  iceGPU.style.opacity='0';iceFallbackCanvas.style.opacity='0';
  ctx.clearRect(0,0,w,h);
- const force=val('force'),q=clamp(t),crack=smooth(q/.23);
- const pre=smooth((q-.17)/.83);
- for(const z of pieces){
-  const d=clamp((q-z.delay)/(1-z.delay));
-  const travel=Math.pow(d,1.4),radius=force*160*z.vel*travel;
-  const drop=force*(55*d*d+92*d*d*d)/z.mass;
-  const dx=Math.cos(z.angle)*radius,dy=Math.sin(z.angle)*radius+drop;
-  const rotate=z.rotate*travel;
-  const opacity=1-smooth((d-.57)/.42);
-  if(opacity<.003)continue;
-  ctx.save();ctx.translate(z.cx+dx,z.cy+dy);ctx.rotate(rotate);ctx.translate(-z.cx,-z.cy);
-  ctx.beginPath();z.poly.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();
-  ctx.clip();
-  ctx.globalAlpha=opacity;
-  const [x0,y0,x1,y1]=z.box,pad=2;
-  const x=Math.max(0,x0-pad),y=Math.max(0,y0-pad);
-  const xEnd=Math.min(w,x1+pad),yEnd=Math.min(h,y1+pad);
-  const wd=xEnd-x,ht=yEnd-y;
-  if(wd>0&&ht>0)ctx.drawImage(filmCanvas,x*scale,y*scale,wd*scale,ht*scale,x,y,wd,ht);
+ const q=clamp(t),force=val('force');
+ // Complete opaque icy skin stays in place while crack veins first propagate.
+ // Individual triangular slices begin to move only after their own crack arrival.
+ for(let i=0;i<pieces.length;i++){
+  const p=pieces[i],d=clamp((q-p.delay)/(1-p.delay));
+  const t2=Math.pow(d,1.29),vx=Math.cos(p.angle)*force*180*p.speed;
+  const vy=Math.sin(p.angle)*force*124*p.speed;
+  const dx=vx*t2+p.side*force*19*d*d;
+  const dy=vy*t2+force*115*d*d/p.mass;
+  const ang=p.spin*t2;
+  const opacity=1-smooth((d-.59)/.41);
+  if(opacity<.002)continue;
+  ctx.save();ctx.translate(p.cx+dx,p.cy+dy);ctx.rotate(ang);ctx.translate(-p.cx,-p.cy);
+  shardOutline(ctx,p);ctx.clip();ctx.globalAlpha=opacity;
+  const [minx,miny,maxx,maxy]=p.box;
+  const x=Math.max(0,minx-2),y=Math.max(0,miny-2);
+  const xx=Math.min(w,maxx+2),yy=Math.min(h,maxy+2),bw=xx-x,bh=yy-y;
+  if(bw>0&&bh>0)ctx.drawImage(filmCanvas,x*scale,y*scale,bw*scale,bh*scale,x,y,bw,bh);
   ctx.restore();
-  if(q>.14){
-   ctx.save();ctx.translate(z.cx+dx,z.cy+dy);ctx.rotate(rotate);ctx.translate(-z.cx,-z.cy);
-   ctx.beginPath();z.poly.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();
-   ctx.lineWidth=.8;ctx.strokeStyle='rgba(231,245,255,'+(.48*opacity*val('light')).toFixed(3)+')';ctx.stroke();
+  if(q>.12&&q<.94){
+   ctx.save();ctx.translate(p.cx+dx,p.cy+dy);ctx.rotate(ang);ctx.translate(-p.cx,-p.cy);
+   ctx.globalAlpha=opacity*(.45+.20*Math.sin(d*Math.PI))*val('light');
+   shardOutline(ctx,p);ctx.strokeStyle='rgba(244,252,255,.68)';
+   ctx.lineWidth=.70;ctx.stroke();
+   // Momentary edge-spark on the long shard's slanted facet.
+   if(i%7===0&&d>.14&&d<.56){
+    ctx.beginPath();ctx.moveTo(p.tip[0],p.tip[1]);ctx.lineTo(p.base[0],p.base[1]);
+    ctx.lineWidth=.56;ctx.strokeStyle='rgba(255,252,255,.78)';ctx.stroke();
+   }
    ctx.restore();
   }
  }
- // Before the sheet breaks apart, light travels through the fracture network.
- if(q<.29)outlineFracture(ctx,(1-smooth((q-.18)/.11))*.9,crack);
-}
-
-function bezierP(ax,ay,bx,by,cx,cy,t){
- const v=1-t;
- return [v*v*ax+2*v*t*bx+t*t*cx,v*v*ay+2*v*t*by+t*t*cy];
+ if(q<.34)drawCrackPropagation(ctx,q);
 }
 function drawMagic(t,type){
  sx.clearRect(0,0,sw,sh);
