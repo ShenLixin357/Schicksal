@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { GAME_CABINET, GAME_ROOM_RETURN_KEY } from "./game-room-catalogue";
+import { GAME_CABINET } from "./game-room-catalogue";
+import { rememberGameRoomReturn } from "./game-room-return";
 import { LoungeSolitaireDeckFigure } from "./lounge-solitaire";
 import type { EmblemBlade, MiniGameId } from "./minigames/mini-game-types";
 
@@ -41,7 +42,7 @@ export function GameRoom({ onBack, onLaunch, onRankings, emblemBlades }: { emble
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [consoleOpen, catalogueOpen]);
-  const rememberReturn = () => { try { window.sessionStorage.setItem(GAME_ROOM_RETURN_KEY, "game-room"); } catch { /* Direct return link remains available. */ } };
+  const rememberReturn = () => rememberGameRoomReturn(window);
   const launch = (id: MiniGameId) => { setCatalogueOpen(false); onLaunch(id); };
   const closeDialog = () => { setConsoleOpen(false); setCatalogueOpen(false); (consoleOpen ? consoleTrigger : catalogueTrigger).current?.focus(); };
   return <section className={`lounge-game-room ${softLight ? "game-room-soft-light" : ""}`} aria-label="温暖明亮的天命游戏室">
