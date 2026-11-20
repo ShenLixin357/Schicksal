@@ -91,10 +91,6 @@
   justify-content:center; align-items:center; gap:13px; text-align:center; }
 .shell-placeholder h1 { margin:0; font:400 clamp(2rem,4vw,3rem)/1.3 var(--serif); color:#34495b; }
 .shell-placeholder p { margin:0; font-size:.9rem; letter-spacing:.18em; color:#9b9085; }
-.points-hub-tabs { display:flex; gap:14px; flex-wrap:wrap; border-bottom:1px solid rgba(106,116,124,.17); margin-bottom:25px; }
-.points-hub-tabs button { border:0; border-bottom:2px solid transparent; background:transparent; cursor:pointer;
-  font-size:.82rem; color:#718093; padding:13px 8px; }
-.points-hub-tabs button.active { color:#304a62; border-bottom-color:#b69b69; }
 @media (max-width:760px) {
   .imperial-sidebar { position:sticky; }
   .imperial-sidebar .imperial-side-brand {
