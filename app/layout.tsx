@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./club/lounge-scenes.css";
 import "./navigation-layout.css";
 import "./club/lounge-magic.css";
 import "./shell/shell.css";
