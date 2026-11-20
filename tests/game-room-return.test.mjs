@@ -21,6 +21,8 @@ function fixture(startUrl = "https://schicksal.invalid/?lounge=game-room&other=1
       state: { preserved: true },
       replaceState(state, title, next) {
         changes.push({ state, title, next: next.toString() });
+        runtime.location.href = next.toString();
+        runtime.location.search = new URL(next).search;
       },
     },
   };
@@ -63,7 +65,7 @@ test("consume is idempotent, preserves unrelated parameters and only clears retu
   rememberGameRoomReturn(runtime);
   consumeGameRoomReturn(runtime);
   consumeGameRoomReturn(runtime);
-  assert.equal(changes.length, 2); // Mock location does not auto-navigate.
+  assert.equal(changes.length, 1); // Real history.replaceState updates the current URL.
   assert.equal(changes[0].next, "https://schicksal.invalid/?other=1&other=2#part");
   assert.equal(data.get("schicksal:unrelated"), "keep");
   assert.equal(data.has(GAME_ROOM_RETURN_KEY), false);
