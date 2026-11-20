@@ -7,7 +7,7 @@
  * Private Lounge masks and names are deliberately NOT exported: those are
  * independent character personas and must not change with elections/rebrands.
  */
-export { CITIZENS, citizenRepresentativeColor, hasLeaderInsignia } from "../citizens";
+export { CITIZENS, citizenRepresentativeColor } from "../citizens";
 export type { Citizen } from "../citizens";
 export { EMBLEM_BLADES } from "../emblem/blade-spec";
 export {
