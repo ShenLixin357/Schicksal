@@ -27,26 +27,29 @@ test("room art and transition styles stay byte-identical to approved phase 2", (
 });
 
 test("all room transitions invalidate stale network callbacks on unmount", () => {
+  const journey = read("app/club/use-room-journeys.ts");
   const lounge = read("app/club/committee-lounge.tsx");
+  assert.match(lounge, /useRoomJourneys\(\{/);
+  assert.doesNotMatch(journey, /historyRequestRef|historyAbortRef|committee_club_messages|member_direct_messages/);
   for (const name of ["fanTravelRef", "globeTravelRef", "musicBoxTravelRef", "fireplaceTravelRef"]) {
-    assert.match(lounge, new RegExp(`\\b${name}\\.current \\+= 1`), `unmount must invalidate ${name}`);
+    assert.match(journey, new RegExp(`\\b${name}\\.current \\+= 1`), `unmount must invalidate ${name}`);
     assert.match(lounge, new RegExp(`request !== ${name}\\.current`), `stale completion must be guarded: ${name}`);
   }
   for (const name of ["fanDeadlineRef", "fireplaceDeadlineRef", "globeDeadlineRef"]) {
-    assert.ok(lounge.includes(`if (${name}.current !== null) window.clearTimeout(${name}.current)`), `unmount must clear ${name}`);
-    assert.ok(lounge.includes(`${name}.current = window.setTimeout(() =>`), `hung image must time out: ${name}`);
+    assert.ok(journey.includes(`if (${name}.current !== null) window.clearTimeout(${name}.current)`), `unmount must clear ${name}`);
+    assert.ok(journey.includes(`${name}.current = window.setTimeout(() =>`), `hung image must time out: ${name}`);
   }
 });
 
 test("scene loading uses bounded image decoding, without altering approved timings", () => {
-  const lounge = read("app/club/committee-lounge.tsx");
+  const journey = read("app/club/use-room-journeys.ts");
   const passage = read("app/transitions/lounge-passage.tsx");
-  assert.match(lounge, /const minimum = window\.matchMedia\("\(prefers-reduced-motion: reduce\)"\)\.matches \? 280 : 2600/);
-  assert.match(lounge, /const cycle = window\.matchMedia\("\(prefers-reduced-motion: reduce\)"\)\.matches \? 240 : FAN_CYCLE_MS/);
+  assert.match(journey, /const minimum = window\.matchMedia\("\(prefers-reduced-motion: reduce\)"\)\.matches \? 280 : 2600/);
+  assert.match(journey, /const cycle = window\.matchMedia\("\(prefers-reduced-motion: reduce\)"\)\.matches \? 240 : FAN_CYCLE_MS/);
   assert.match(passage, /const ENTER_DURATION = 4000/);
   assert.match(passage, /Click anywhere \(or press Escape\) to skip/);
-  assert.match(lounge, /fireplaceDeadlineRef\.current = window\.setTimeout\(\(\) => complete\(false\), 12000\)/);
-  assert.match(lounge, /fanDeadlineRef\.current = window\.setTimeout\(\(\) => completePassage\(false\), 12000\)/);
+  assert.match(journey, /fireplaceDeadlineRef\.current = window\.setTimeout\(\(\) => complete\(false\), 12000\)/);
+  assert.match(journey, /fanDeadlineRef\.current = window\.setTimeout\(\(\) => completePassage\(false\), 12000\)/);
 });
 
 test("game engines remain demand-loaded from an independent room boundary", () => {
