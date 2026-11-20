@@ -137,17 +137,32 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   useEffect(() => {
     if (roomView !== "committee" || miniGames.activeGame) return;
     let active = true;
+    let controller: AbortController | null = null;
     const loadClub = async () => {
+      // Do not wake private chat/database polling in a hidden tab. Refetch on
+      // return so an inactive visitor sees the latest seats and messages.
+      if (document.visibilityState !== "visible") return;
+      controller?.abort();
+      const request = new AbortController();
+      controller = request;
       try {
-        const payload = await fetchCommitteeRoom();
-        if (active) setClubData(payload);
+        const payload = await fetchCommitteeRoom(request.signal);
+        if (active && !request.signal.aborted) setClubData(payload);
       } catch (error) {
-        if (active) setClubStatus(error instanceof Error ? error.message : "Committee Lounge 暂时没有回应。");
+        if (active && !request.signal.aborted)
+          setClubStatus(error instanceof Error ? error.message : "Committee Lounge 暂时没有回应。");
       }
     };
     void loadClub();
-    const timer = window.setInterval(loadClub, chatOpen ? 3500 : 15000);
-    return () => { active = false; window.clearInterval(timer); };
+    const timer = window.setInterval(() => { void loadClub(); }, chatOpen ? 3500 : 15000);
+    const onVisible = () => { if (document.visibilityState === "visible") void loadClub(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      active = false;
+      controller?.abort();
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [chatOpen, citizen.id, roomView, miniGames.activeGame]);
 
   useEffect(() => {
