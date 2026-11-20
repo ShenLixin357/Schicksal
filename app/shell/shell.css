@@ -1,4 +1,7 @@
-/* Preview shell: navigation-only styling. Does not recolour scene art. */
+/* Preview shell: navigation-only styling. Does not recolour scene art.
+ * Preserve the original 248px/200px/collapsed64px sidebar widths from
+ * navigation-layout.css and original 0.74rem / 6px nav type scale.
+ * Small-screen labels are NOT shrunk below the original type size. */
 .imperial-sidebar .imperial-side-brand {
   display:grid;
   grid-template-columns:46px minmax(0,1fr) 33px;
@@ -36,11 +39,11 @@
   .imperial-nav-entry,.imperial-nav-submenu button):focus-visible {
   outline:2px solid #ac9063; outline-offset:2px;
 }
-.imperial-sidebar .imperial-main-nav { flex:1; min-height:0; padding:15px 0 10px; overflow-y:auto; }
+.imperial-sidebar .imperial-main-nav { flex:1; min-height:0; padding:17px 0 10px; overflow-y:auto; }
 .imperial-sidebar .imperial-main-nav > .imperial-nav-entry,
 .imperial-sidebar .imperial-nav-group > .imperial-nav-entry {
-  width:100%; min-height:48px; display:flex; align-items:center; gap:13px;
-  padding:8px 10px; border:0; border-left:2px solid transparent; border-radius:0;
+  width:100%; min-height:49px; display:flex; align-items:center; gap:0;
+  padding:0 9px; border:0; border-left:2px solid transparent; border-radius:0;
   background:transparent; text-align:left; color:#738095; cursor:pointer;
 }
 /* Match the original two-line nav hierarchy; the subtitle is decorative,
@@ -60,7 +63,7 @@
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .imperial-sidebar .imperial-nav-icon {
-  flex:0 0 23px; display:grid; place-items:center; color:inherit;
+  flex:0 0 25px; display:grid; place-items:center; color:inherit;
 }
 .imperial-sidebar .imperial-nav-chevron { display:grid; place-items:center; opacity:.6; transition:transform .24s ease; }
 .imperial-sidebar .imperial-nav-chevron.expanded { transform:rotate(90deg); }
@@ -115,7 +118,7 @@
     justify-content:center;
   }
   .imperial-sidebar .imperial-main-nav .imperial-nav-copy { flex:0 1 auto; }
-  .imperial-sidebar .imperial-nav-copy > strong { font-size:.67rem; }
+  /* Preserve the original site's 0.74rem title size at tablet/mobile. */
   .imperial-sidebar .imperial-nav-copy > small { display:none; }
   .imperial-sidebar .imperial-nav-icon { flex:0 0 20px; }
   .imperial-sidebar .imperial-nav-chevron { display:none; }
@@ -136,9 +139,7 @@
   .system.sidebar-collapsed .imperial-sidebar .imperial-logo-trigger { width:40px; height:40px; }
   .system.sidebar-collapsed .imperial-sidebar .imperial-logo-trigger .imperial-lounge-mark { width:37px; height:37px; }
 }
-@media (max-width:370px) {
-  .imperial-sidebar .imperial-nav-copy > strong { font-size:.6rem; }
-}
+/* Do not reintroduce mobile-only label shrinkage: original nav used .74rem. */
 
 /* A transient, design-neutral wait state for deferred module chunks. */
 .feature-loading {
