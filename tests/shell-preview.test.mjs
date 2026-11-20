@@ -49,7 +49,8 @@ test("sidebar icons, single-click members, phone and reversible logo are present
   assert.doesNotMatch(presence, /long.?press|onPointerDown|onOpenIndex/);
   assert.match(page, /onLogo=\{\(\) => \{ if \(clubOpen\) exitLounge\(\)/);
   assert.doesNotMatch(page, /onLogo=[^\n]*else setSection\("home"\)/);
-  assert.match(page, /CLUB_MEMBER_IDS = new Set\(\["amberina", "zxy", "truth"\]\)/);
+  assert.match(read("app/club/lounge-access.ts"), /CLUB_MEMBER_IDS = new Set\(\["amberina", "zxy", "truth"\]\)/);
+  assert.match(page, /import \{ CLUB_MEMBER_IDS, announceCommitteeLounge \} from "\.\/club\/lounge-access";/);
   assert.match(page, /if \(target === "profile"\) setViewedCitizenId\(citizen.id\)/);
   const styles = read("app/shell/shell.css");
   assert.match(styles, /font:500 \.74rem\/1\.4 var\(--sans\)/);

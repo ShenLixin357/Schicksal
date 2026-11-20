@@ -1,6 +1,6 @@
 # Schicksal 2.0 — Modular Monolith Architecture
 
-Status: **active staged refactor** (branch `refactor/schicksal-architecture-phase1-20261120`). The approved UI lives on `preview/sidebar-lounge-v4-20261120`; the production `main` branch is a separate, explicitly approval-gated release target.
+Status: **phase 1 + phase 2 code validated** (current branch `refactor/schicksal-architecture-phase2-20261120`, draft PR #11). Safari visual parity and any merge remain pending. The approved UI lives on `preview/sidebar-lounge-v4-20261120`; the production `main` branch is a separate, explicitly approval-gated release target.
 
 ## 1. Why change the structure?
 
@@ -41,7 +41,7 @@ Keep the exact original `Emblem compact` and each member's approved identity pre
 ## 3. CSS and art isolation
 
 - Design tokens (`--serif`, `--sans`, shared colours), resets and genuinely shared typography remain global.
-- Each feature owns its main stylesheet. In Phase 1, original homepage and photo archive CSS declarations were copied **without modification** into `home/home.css` and `photos/photo-archive.css`, with their earlier global declarations removed. Existing responsive rules and palette overrides retain their original content.
+- Each feature owns its main stylesheet. In Phase 1, original homepage and photo archive CSS declarations were copied **without modification** into `home/home.css` and `photos/photo-archive.css`, with their earlier global declarations removed. In phase 2, the remaining original parliament, archive and Lounge rules were divided into ordered, feature-owned stylesheets loaded by `app/layout.tsx`. The existing declarations were compared to the phase-1 source and remained unchanged. **File ownership is not yet CSS selector scoping**; broad legacy selectors still require a later carefully tested scoping pass. Existing responsive rules and palette overrides retain their original content.
 - Remaining global selectors are **legacy debt**. Next phases should migrate one domain at a time to explicitly scoped CSS (or CSS Modules), preserving computed styles and media breakpoints. Avoid blindly prefixing or reordering all rules at once.
 - Lounge approved 2D/3D art is not a byproduct of CSS migrations; no new lighting, brightness, camera position, asset filenames or image edits.
 - Original Apple/Safari and narrow-screen visual verification is mandatory before merging each CSS migration.
@@ -80,10 +80,12 @@ For the future Library Gallery, store master art and derivatives in external obj
 
 | Stage | Scope | Acceptance |
 |---|---|---|
-| **1 — foundation (this PR)** | Home, photo, archive, emblem data extraction; two CSS domains; route union; photo/archive JS split; architecture guard and read-only asset audit | Existing API/game/briefing tests, strict build, no artwork or DB changes, full layout comparisons |
-| **2 — CSS + core runtime** | Finish CSS ownership, generic Scene Runtime, camera/animation lifecycle, navigation restoration, safe chunk load/error/retry | Room and page visual parity; click-to-skip, reverse, mobile, unavailable-resource fallback |
-| **3 — parliamentary architecture** | Extract parliament UI from page, define workflow and service contracts, modularize large API route without altering decision rules | Existing voting/CSRF/idempotency/audit tests, D1 isolated previews, committee roles unchanged |
-| **4 — Lounge + games** | Isolate room entry, props, private scenes, save/rankings adapters, dynamic game registries and resource budgets | Per-member access tests, original interactions and asset fidelity; no new eager imports |
+| **1 — foundation (PR #10)** | Home, photo, archive, emblem data extraction; route union; initial dynamic chunks; boundaries and asset audit | **Code/CI passed; visual comparison pending** |
+| **2 — domain extraction (PR #11)** | Parliament view and Lounge scene ownership, source-order-preserving CSS extraction, game/private room lazy chunks, load/retry boundaries | **Code/CI passed; Safari visual, full room interaction, authorization tests pending** |
+| **3 — remaining CSS and Scene Runtime** | Scope legacy global selectors, build reusable scene readiness/cancel/skip/reverse lifecycle, isolate state persistence from visuals | Exact screenshot/interaction parity on phone and desktop, pause/skip/failure tests |
+| **4 — parliamentary workflow and data** | Split server `app/api/parliament/route.ts` into typed service/state/transaction layers without altering decision rules | Existing voting/CSRF/idempotency/audit tests, isolated D1 previews, committee roles unchanged |
+| **5 — Lounge data + game asset dedup** | Separate room-specific save/rankings adapters and resource budgets; safely reduce duplicated third-party game assets | Per-member access tests, original interactions, identical resource paths and fidelity |
+| **6 — Library + comms** | Integrate reviewed Work Library Lab adapter, object-storage gallery, and communications after design approval | Independent artwork revisions, access controls, storage quota and backup acceptance |
 | **5 — Library + comms** | Integrate reviewed Work Library Lab through an adapter and object-storage gallery; replace communications placeholder when specified | Independent artwork and content revisions, access controls, storage quota and backup acceptance |
 
 **No stage is represented as complete until its code, automated checks and user-approved visual behaviour all pass.** An approved UI screenshot and an architecture code refactor are separate sign-offs.

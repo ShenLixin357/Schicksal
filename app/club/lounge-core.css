@@ -1,0 +1,120 @@
+/* Committee Restroom — member-only Halloween club */
+.club-portal { position: relative; flex: 0 0 auto; width: 100%; min-height: 92px; margin: 7px 0 12px; padding: 0 8px; border: 0; border-top: 1px solid rgba(91,65,120,.12); border-bottom: 1px solid rgba(91,65,120,.12); background: radial-gradient(circle at 50% 50%,rgba(126,72,168,.12),transparent 67%); display: flex; align-items: center; gap: 4px; cursor: pointer; isolation: isolate; }
+.club-portal > img { width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 8px 13px rgba(73,36,99,.28)); animation: clubPortalFloat 3.2s ease-in-out infinite; }
+.club-portal > span { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; text-align: left; opacity: .7; transition: opacity .2s,transform .2s; }
+.club-portal strong { color: #5d3d76; font: 400 .76rem var(--serif); }
+.club-portal small { color: #8c729a; font-size: 5px; letter-spacing: .09em; line-height: 1.45; }
+.club-portal > i { position: absolute; z-index: -1; left: 40px; top: 41px; width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(132,77,178,.36); animation: clubPortalRing 2.2s ease-out infinite; }
+.club-portal:hover > span,.club-portal.active > span { opacity: 1; transform: translateX(2px); }
+.club-portal.active { background: radial-gradient(circle at 35% 50%,rgba(245,141,37,.16),rgba(112,62,154,.12) 45%,transparent 72%); }
+
+.club-system { background: #130d20; }
+.club-system::before { opacity: 0; }
+.club-system .sidebar { border-right-color: rgba(190,147,226,.12); background: linear-gradient(180deg,#191126,#110c1d); box-shadow: 16px 0 42px rgba(3,1,8,.25); }
+.club-system .side-brand { border-bottom-color: rgba(202,166,226,.12); color: #f4e9ff; }
+.club-system .wordmark span,.club-system .sidebar nav button > span,.club-system .sidebar nav button > small,.club-system .side-user > div span { color: #88779b; }
+.club-system .sidebar nav > button { color: #9c8baa; }
+.club-system .sidebar nav > button:hover { color: #f3e8ff; background: rgba(134,87,171,.09); }
+.club-system .side-user { border-top-color: rgba(202,166,226,.12); color: #e8dff1; }
+.club-system .club-portal { border-color: rgba(208,169,239,.15); background: radial-gradient(circle at 35% 50%,rgba(245,141,37,.18),rgba(109,59,151,.17) 46%,transparent 73%); }
+.club-system .club-portal strong { color: #ffd58d; }
+.club-system .club-portal small { color: #bba7cc; }
+.club-main { height: 100svh; overflow: hidden; }
+.club-content { min-height: 100svh; padding: 0; }
+
+.committee-restroom { position: relative; min-height: 100svh; overflow: hidden; isolation: isolate; background: #130d20; color: #fff8ee; animation: clubRoomReveal .75s cubic-bezier(.2,.75,.2,1) both; }
+.club-room-art { z-index: -4; object-fit: cover; object-position: 50% 50%; transition: filter .9s ease,transform 7s ease; }
+.committee-restroom:hover .club-room-art { transform: scale(1.008); }
+.club-room-shade { position: absolute; z-index: -3; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 48%,transparent 25%,rgba(12,5,20,.08) 62%,rgba(8,3,14,.72) 118%),linear-gradient(180deg,rgba(10,3,19,.28),transparent 31%,rgba(6,2,13,.2)); }
+.club-firelight { position: absolute; z-index: -2; right: -9%; bottom: -25%; width: 55%; aspect-ratio: 1; border-radius: 50%; pointer-events: none; background: radial-gradient(circle,rgba(255,137,35,.24),rgba(255,104,21,.09) 42%,transparent 69%); mix-blend-mode: screen; animation: clubFire 2.8s ease-in-out infinite alternate; transition: opacity .7s; }
+.club-wisps { position: absolute; z-index: 1; inset: 0; overflow: hidden; pointer-events: none; }
+.club-wisps i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #c5f8ff; box-shadow: 0 0 10px 3px rgba(110,229,255,.58); opacity: 0; animation: clubWisp 7s linear infinite; }
+.club-wisps i:nth-child(1) { left: 19%; bottom: 7%; animation-delay: .4s; }
+.club-wisps i:nth-child(2) { left: 43%; bottom: 1%; animation-delay: 2.1s; }
+.club-wisps i:nth-child(3) { left: 69%; bottom: 4%; animation-delay: 4.3s; }
+.club-wisps i:nth-child(4) { left: 86%; bottom: 11%; animation-delay: 5.4s; }
+
+.club-room-toolbar { position: absolute; z-index: 10; top: 22px; left: 26px; right: 26px; min-height: 45px; display: flex; align-items: center; justify-content: space-between; gap: 18px; color: rgba(255,244,232,.78); }
+.club-room-toolbar button { min-height: 40px; padding: 0 15px; border: 1px solid rgba(239,211,255,.23); border-radius: 999px; background: rgba(18,9,29,.48); color: #f8ebff; box-shadow: 0 8px 24px rgba(4,1,9,.16); backdrop-filter: blur(12px); cursor: pointer; transition: background .2s,border-color .2s,transform .2s; }
+.club-room-toolbar button:hover { transform: translateY(-1px); border-color: rgba(255,203,122,.62); background: rgba(77,39,94,.62); }
+.club-room-toolbar > div { padding: 10px 13px; border-radius: 999px; background: rgba(18,9,29,.34); display: flex; align-items: center; gap: 8px; color: #d7c6e4; font-size: 7px; letter-spacing: .18em; backdrop-filter: blur(10px); }
+.club-room-toolbar > div i { width: 7px; height: 7px; border-radius: 50%; background: #ffb148; box-shadow: 0 0 10px #ff892f; animation: clubMemberPulse 2s ease-in-out infinite; }
+
+.club-room-title { position: absolute; z-index: 3; top: 10%; left: 50%; width: min(650px,67%); transform: translateX(-50%); text-align: center; text-shadow: 0 4px 24px #13091e,0 1px 2px rgba(13,5,22,.9); pointer-events: none; }
+.club-room-title small { color: #ffd48d; font-size: 7px; font-weight: 700; letter-spacing: .35em; }
+.club-room-title h1 { margin: 10px 0 4px; color: #fff9ef; font: 500 clamp(1.9rem,3.4vw,4rem)/.9 var(--serif); letter-spacing: .06em; }
+.club-room-title h1 em { color: #ffbd58; font-weight: 400; }
+.club-room-title p { margin: 10px 0 0; color: rgba(244,228,255,.86); font: 400 .85rem var(--serif); letter-spacing: .25em; }
+
+.club-seat-members { position: absolute; z-index: 4; inset: 0; pointer-events: none; }
+.club-seat-members > div { --member-color: #fff; position: absolute; display: flex; flex-direction: column; align-items: center; gap: 7px; color: #fff; pointer-events: auto; filter: drop-shadow(0 7px 12px rgba(6,2,12,.55)); }
+.club-seat-members > div:nth-child(1) { left: 30.5%; top: 55%; }
+.club-seat-members > div:nth-child(2) { left: 50%; top: 49%; }
+.club-seat-members > div:nth-child(3) { left: 70.4%; top: 55%; }
+.club-seat-members .citizen-mark { width: 48px; height: 48px; border-color: color-mix(in srgb,var(--member-color) 75%,white); background: rgba(21,10,31,.68); box-shadow: 0 0 0 5px rgba(18,9,27,.28),0 0 22px color-mix(in srgb,var(--member-color) 35%,transparent); }
+.club-seat-members .club-member-name { padding: 5px 8px; border-radius: 999px; background: rgba(16,7,26,.64); color: #f8edff; font-size: 7px; letter-spacing: .08em; opacity: 0; transform: translateY(-3px); transition: opacity .2s,transform .2s; white-space: nowrap; backdrop-filter: blur(8px); }
+.club-seat-members > div:hover .club-member-name { opacity: 1; transform: translateY(0); }
+
+.club-hotspot { --hotspot: #ffd178; position: absolute; z-index: 7; width: 48px; height: 48px; margin: -24px 0 0 -24px; padding: 0; border: 1px solid rgba(255,232,188,.24); border-radius: 50%; background: rgba(37,15,51,.12); cursor: pointer; box-shadow: 0 0 0 0 rgba(255,188,78,.2); animation: clubHotspot 2.5s ease-out infinite; }
+.club-hotspot > i { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%,-50%); background: var(--hotspot); box-shadow: 0 0 13px 4px color-mix(in srgb,var(--hotspot) 64%,transparent); transition: transform .2s; }
+.club-hotspot > span { position: absolute; left: 50%; bottom: 56px; padding: 7px 10px; border: 1px solid rgba(255,233,205,.2); border-radius: 999px; transform: translateX(-50%) translateY(4px); background: rgba(18,7,28,.78); color: #fff3e4; font-size: 7px; letter-spacing: .08em; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .2s,transform .2s; backdrop-filter: blur(10px); }
+.club-hotspot:hover > span,.club-hotspot[aria-pressed="true"] > span { opacity: 1; transform: translateX(-50%) translateY(0); }
+.club-hotspot:hover > i,.club-hotspot[aria-pressed="true"] > i { transform: translate(-50%,-50%) scale(1.7); }
+.club-hotspot.moon { --hotspot: #d7eaff; left: 50.6%; top: 25%; }
+.club-hotspot.portrait { --hotspot: #be91ff; left: 74%; top: 27%; }
+.club-hotspot.cat { --hotspot: #84f0ea; left: 13%; top: 79%; }
+.club-hotspot.pumpkin { --hotspot: #ffad3e; left: 86%; top: 75%; }
+.club-hotspot.table { --hotspot: #ffe7a4; left: 53%; top: 65%; }
+
+.club-whisper { position: absolute; z-index: 8; left: 50%; bottom: 24px; width: min(560px,calc(100% - 48px)); min-height: 84px; padding: 15px 23px; transform: translateX(-50%); border: 1px solid rgba(245,216,255,.21); border-radius: 18px; background: linear-gradient(115deg,rgba(18,8,28,.78),rgba(49,23,63,.57)); box-shadow: 0 18px 44px rgba(4,1,8,.32); text-align: center; backdrop-filter: blur(18px); }
+.club-whisper small { color: #ffcb74; font-size: 6px; letter-spacing: .2em; }
+.club-whisper p { margin: 8px 0 0; color: #f9efff; font: 400 .9rem/1.5 var(--serif); }
+
+.committee-restroom.moonlight .club-room-art { filter: saturate(.78) brightness(.62) contrast(1.08) hue-rotate(8deg); }
+.committee-restroom.moonlight .club-firelight { opacity: 0; }
+.committee-restroom.moonlight .club-room-shade { background: radial-gradient(circle at 50% 24%,rgba(103,149,255,.06),rgba(6,2,18,.26) 45%,rgba(5,1,12,.7) 110%); }
+.committee-restroom.effect-moon .club-room-title { text-shadow: 0 0 26px rgba(157,199,255,.68),0 4px 24px #13091e; }
+.committee-restroom.effect-pumpkin .club-firelight { animation-duration: .72s; opacity: 1; }
+.committee-restroom.effect-portrait .club-hotspot.portrait { border-color: rgba(209,174,255,.76); box-shadow: 0 0 32px rgba(181,119,255,.72); }
+.committee-restroom.effect-cat .club-hotspot.cat { box-shadow: 0 0 34px rgba(93,243,233,.7); }
+.committee-restroom.effect-table .club-seat-members .citizen-mark { animation: clubMemberPulse 1.6s ease-in-out infinite; }
+
+@keyframes clubPortalFloat { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+@keyframes clubPortalRing { 0% { transform: scale(.5); opacity: .7; } 100% { transform: scale(5.2); opacity: 0; } }
+@keyframes clubRoomReveal { from { opacity: 0; filter: blur(9px); transform: scale(1.02); } to { opacity: 1; filter: blur(0); transform: scale(1); } }
+@keyframes clubFire { from { opacity: .68; transform: scale(.96); } to { opacity: 1; transform: scale(1.05); } }
+@keyframes clubWisp { 0% { opacity: 0; transform: translate3d(0,0,0) scale(.6); } 14% { opacity: .82; } 78% { opacity: .35; } 100% { opacity: 0; transform: translate3d(42px,-72vh,0) scale(1.2); } }
+@keyframes clubMemberPulse { 0%,100% { opacity: .72; filter: brightness(1); } 50% { opacity: 1; filter: brightness(1.32); } }
+@keyframes clubHotspot { 0% { box-shadow: 0 0 0 0 rgba(255,213,132,.28); } 70%,100% { box-shadow: 0 0 0 13px rgba(255,213,132,0); } }
+
+@media (max-width: 760px) {
+  .club-system .sidebar { background: linear-gradient(90deg,#171022,#100b1a); }
+  .club-portal { position: fixed; z-index: 40; left: 12px; bottom: 12px; width: 68px; min-height: 68px; margin: 0; padding: 0; border: 1px solid rgba(255,202,118,.35); border-radius: 50%; background: rgba(25,12,36,.86); box-shadow: 0 13px 34px rgba(5,1,10,.42); backdrop-filter: blur(12px); }
+  .club-portal > img { width: 62px; height: 62px; }
+  .club-portal > span,.club-portal > i { display: none; }
+  .club-main { height: auto; }
+  .club-content { min-height: calc(100svh - 59px); }
+  .committee-restroom { min-height: calc(100svh - 59px); }
+  .club-room-art { object-position: 50% 50%; }
+  .club-room-toolbar { top: 12px; left: 12px; right: 12px; }
+  .club-room-toolbar > div { display: none; }
+  .club-room-toolbar button { min-height: 36px; padding: 0 11px; font-size: .7rem; }
+  .club-room-title { top: 11%; width: 86%; }
+  .club-room-title small { font-size: 6px; letter-spacing: .22em; }
+  .club-room-title h1 { font-size: clamp(1.45rem,7vw,2.1rem); line-height: .98; }
+  .club-room-title p { font-size: .7rem; letter-spacing: .16em; }
+  .club-seat-members { z-index: 6; inset: auto; left: 50%; top: 25%; display: flex; gap: 12px; transform: translateX(-50%); }
+  .club-seat-members > div,.club-seat-members > div:nth-child(1),.club-seat-members > div:nth-child(2),.club-seat-members > div:nth-child(3) { position: static; }
+  .club-seat-members .citizen-mark { width: 39px; height: 39px; }
+  .club-seat-members .club-member-name { display: none; }
+  .club-hotspot { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+  .club-hotspot.moon { left: 51%; top: 35%; }
+  .club-hotspot.portrait { left: 77%; top: 39%; }
+  .club-hotspot.cat { left: 16%; top: 70%; }
+  .club-hotspot.pumpkin { left: 84%; top: 69%; }
+  .club-hotspot.table { left: 52%; top: 64%; }
+  .club-hotspot > span { bottom: 50px; }
+  .club-whisper { bottom: 17px; width: calc(100% - 28px); min-height: 76px; padding: 13px 17px; border-radius: 15px; }
+  .club-whisper p { font-size: .78rem; }
+}
+

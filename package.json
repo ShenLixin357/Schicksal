@@ -36,7 +36,7 @@
     "test:cello": "node --experimental-strip-types --test tests/emerald-cello.test.mjs tests/cello-audio.test.mjs",
     "test:messenger": "node --experimental-transform-types --test tests/messenger-api.test.mjs",
     "test:shell": "node --test tests/shell-preview.test.mjs",
-    "test:architecture": "node scripts/architecture/check-boundaries.mjs && node --test tests/architecture-phase1.test.mjs && npm run audit:assets",
+    "test:architecture": "node scripts/architecture/check-boundaries.mjs && node --test tests/architecture-phase1.test.mjs tests/architecture-phase2.test.mjs && npm run audit:assets",
     "audit:assets": "node scripts/architecture/audit-assets.mjs"
   },
   "dependencies": {

@@ -47,7 +47,9 @@ test("existing beige website mark and circles/leader dots use the enhanced gold;
   assert.match(archive,/className="reader-author-mark" style=\{\{ "--mark": authorMarkColor/);
   assert.match(page,/authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} \/>\}/);
   assert.match(entry,/\.citizen-mark::before \{[^\n]*var\(--mark\)/);
-  assert.match(globals,/\.citizen-mark\.leader::after \{[^\n]*var\(--mark\)/);
+  // This office-only outline was migrated with the original scene CSS.
+  const loungeStyles=source("../app/club/lounge-scenes.css");
+  assert.match(loungeStyles,/\.citizen-mark\.leader::after \{[^\n]*var\(--mark\)/);
   assert.match(entry,/\.citizen-mark\.personal-simple\.leader \{\s*background: transparent;\s*box-shadow: none;/);
   assert.doesNotMatch(page,/citizen-mark-mist/);
   assert.doesNotMatch(layout,/amberina-personal-fog|oat-sage-theme/);
@@ -55,12 +57,16 @@ test("existing beige website mark and circles/leader dots use the enhanced gold;
 
 test("ALL parliamentary insignia show original even for seat members, candidate, votes and commenters",()=>{
   const pg=source("../app/page.tsx");
-  const section=pg.slice(pg.indexOf("function ParliamentSection("),pg.indexOf("function HonorsSection("));
+  const section=source("../app/parliament/parliament-section.tsx");
   assert.ok(section.length>3000);
-  const marks=[...section.matchAll(/<CitizenMark citizen=\{[^}]+\}[^>]*\/>/g)].map(x=>x[0]);
-  assert.ok(marks.length>=8,"expected eight or more parliament usages, got "+marks.length);
-  for(const mark of marks)assert.match(mark,/display="official"/,"parliament badge missing official mode: "+mark);
-  assert.match(section,/electedSpeaker && <CitizenMark citizen=\{electedSpeaker\} display="official"/);
+  const marks=[...section.matchAll(/renderOfficialMark\(/g)];
+  assert.ok(marks.length>=8,"expected eight or more parliament official marks, got "+marks.length);
+  assert.match(section,/renderOfficialMark\(electedSpeaker\)/);
+  assert.match(section,/renderOfficialMark\(citizenFor\(request\.citizenId\)!\)/);
+  // The official-mode renderer is supplied by the parent rather than being
+  // copied into the parliament domain, preserving the exact approved colours.
+  assert.match(pg,/renderOfficialMark=\{member => <CitizenMark citizen=\{member\} display="official" \/>\}/);
+  assert.doesNotMatch(section,/<CitizenMark citizen=/);
   // The member-presence footer moved to the extracted shell; identity rules did not change.
   assert.match(pg,/renderMemberMark=\{memberId => \{/);
   assert.match(pg,/<CitizenMark citizen=\{member\} display=\{clubOpen \? "official" : "web"\}/);
@@ -84,7 +90,7 @@ test("user's scores and all other representative colours always use #F3ED87",()=
   assert.match(photos,/citizenRepresentativeColor\(subject\)/);
   assert.match(photos,/renderCitizenMark/);
   assert.match(profile,/style=\{\{ "--citizen": citizenRepresentativeColor\(citizen\) \} as CSSProperties\}><div className="profile-mark"/);
-  assert.match(page,/style=\{\{ "--citizen": citizenRepresentativeColor\(member\) \} as CSSProperties\}/);
+  assert.match(source("../app/parliament/parliament-section.tsx"),/style=\{\{ "--citizen": citizenRepresentativeColor\(member\) \} as CSSProperties\}/);
   const blades=source("../app/emblem/blade-spec.ts");
   assert.match(blades,/const EMBLEM_BLADES:/);
   assert.match(blades,/color: citizen\.accent,/);

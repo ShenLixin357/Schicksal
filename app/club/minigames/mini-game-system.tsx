@@ -1,17 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { LoungeSolitaire } from "../lounge-solitaire";
 import { getMiniGame } from "./mini-game-registry";
 import { MiniGameShell } from "./mini-game-shell";
 import type { EmblemBlade, MiniGameId } from "./mini-game-types";
-
-export function useMiniGameSystem() {
-  const [activeGame, setActiveGame] = useState<MiniGameId | null>(null);
-  const launchMiniGame = useCallback((id: MiniGameId) => setActiveGame(id), []);
-  const closeMiniGame = useCallback(() => setActiveGame(null), []);
-  return { activeGame, launchMiniGame, closeMiniGame };
-}
 
 export function MiniGameSystem({ gameId, citizenId, emblemBlades, onClose, loungeTitle, backLabel }: {
   gameId: MiniGameId;

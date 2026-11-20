@@ -1,0 +1,138 @@
+/* Committee Restroom v15 — tangible props, moon spell, private scroll and masks. */
+.club-hotspot.scroll { --hotspot: #ffe0a1; left: 51.5%; top: 53%; }
+.club-hotspot.vase { --hotspot: #d8a8ff; left: 74.5%; top: 43%; }
+.club-hotspot.scroll[aria-pressed="true"],.club-hotspot.vase[aria-pressed="true"] { border-color: rgba(255,224,161,.7); box-shadow: 0 0 30px rgba(212,163,255,.48); }
+
+.club-moon-magic { position: absolute; z-index: 6; inset: 0; overflow: hidden; pointer-events: none; }
+.club-moon-magic > i { position: absolute; left: 50.6%; top: 25%; width: 54px; height: 54px; margin: -27px; border: 1px solid rgba(220,239,255,.88); border-radius: 50%; box-shadow: 0 0 24px rgba(164,208,255,.72),inset 0 0 16px rgba(255,255,255,.38); animation: clubMoonRing 1.75s cubic-bezier(.18,.72,.23,1) both; }
+.club-moon-magic > i:nth-child(2) { animation-delay: .16s; }
+.club-moon-magic > i:nth-child(3) { animation-delay: .32s; }
+.club-moon-magic > b { position: absolute; left: 50.6%; top: 25%; color: #f8fbff; font: 700 1.25rem/1 var(--serif); text-shadow: 0 0 11px #b6d8ff,0 0 24px #9878ff; animation: clubMoonStar 1.85s ease-out both; }
+.club-moon-magic > b:nth-of-type(1) { --moon-x: -126px; --moon-y: 122px; animation-delay: .05s; }
+.club-moon-magic > b:nth-of-type(2) { --moon-x: 118px; --moon-y: 82px; animation-delay: .18s; }
+.club-moon-magic > b:nth-of-type(3) { --moon-x: 18px; --moon-y: 212px; animation-delay: .29s; }
+.club-moon-magic > span { position: absolute; left: 50.6%; top: 25%; width: 26vw; height: 75vh; transform: translate(-50%,0) perspective(250px) rotateX(12deg); transform-origin: top; background: linear-gradient(180deg,rgba(201,225,255,.25),rgba(139,115,255,.08) 48%,transparent 86%); clip-path: polygon(44% 0,56% 0,100% 100%,0 100%); filter: blur(3px); mix-blend-mode: screen; animation: clubMoonBeam 2.2s ease-out both; }
+
+.club-cup-origin { position: absolute; z-index: 5; left: 29%; top: 55%; width: 92px; height: 62px; transform: translate(-50%,-50%); border-radius: 50%; background: radial-gradient(ellipse,rgba(25,10,27,.96) 0 42%,rgba(37,16,37,.74) 62%,transparent 76%); filter: blur(2px); pointer-events: none; }
+.club-floating-cup { position: absolute; z-index: 8; left: 29%; top: 55%; width: clamp(80px,9vw,122px); height: clamp(66px,7.4vw,94px); margin: 0; padding: 0; transform: translate(-50%,-50%); border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 10px 10px rgba(6,1,11,.6)); }
+.club-floating-cup img { width: 100%; height: 100%; object-fit: contain; transition: filter .2s,transform .2s; }
+.club-floating-cup:hover img { transform: translateY(-3px) rotate(-2deg); filter: brightness(1.12) drop-shadow(0 0 12px rgba(203,151,255,.7)); }
+.club-floating-cup > span { position: absolute; left: 50%; bottom: calc(100% + 6px); padding: 7px 10px; border: 1px solid rgba(255,218,149,.28); border-radius: 999px; transform: translateX(-50%) translateY(4px); background: rgba(18,7,28,.84); color: #fff3df; font-size: 7px; letter-spacing: .08em; white-space: nowrap; opacity: 0; transition: opacity .2s,transform .2s; backdrop-filter: blur(10px); }
+.club-floating-cup:hover > span,.club-floating-cup:focus-visible > span { opacity: 1; transform: translateX(-50%) translateY(0); }
+.club-floating-cup.levitating { animation: clubCupLevitate 2.35s cubic-bezier(.18,.78,.18,1) both; }
+.club-floating-cup.levitating::after { content: "✦  ·  ✧"; position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); color: #e9c8ff; font-size: .85rem; letter-spacing: .14em; text-shadow: 0 0 12px #a87bff; animation: clubCupDust 2.2s ease-out both; }
+
+.club-vase-display { position: absolute; z-index: 6; left: 74.5%; top: 43%; width: 114px; height: 122px; transform: translate(-50%,-50%); display: grid; place-items: center; pointer-events: none; }
+.club-vase-display:not(.vase-autumn) { border-radius: 50%; background: radial-gradient(ellipse,rgba(25,9,28,.96) 0 42%,rgba(35,14,39,.74) 61%,transparent 77%); }
+.club-vase-display > span { display: block; font-size: clamp(3.1rem,6vw,5.25rem); line-height: 1; filter: drop-shadow(0 9px 9px rgba(5,1,9,.65)) drop-shadow(0 0 9px rgba(210,151,255,.35)); animation: clubVaseAppear .55s cubic-bezier(.18,.8,.24,1) both,clubVaseSway 3.6s .55s ease-in-out infinite; }
+
+.club-vase-menu { position: absolute; z-index: 22; top: 17%; right: 3%; width: min(360px,43%); max-height: 66%; padding: 18px; border: 1px solid rgba(240,211,255,.28); border-radius: 24px; background: linear-gradient(155deg,rgba(28,13,40,.96),rgba(60,28,72,.93)); box-shadow: 0 24px 70px rgba(4,1,9,.58),inset 0 1px rgba(255,255,255,.08); overflow-y: auto; backdrop-filter: blur(20px); animation: clubMenuIn .3s cubic-bezier(.2,.8,.2,1) both; }
+.club-vase-menu > header { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.club-vase-menu > header small { display: block; color: #ffce7d; font-size: 6px; letter-spacing: .18em; }
+.club-vase-menu > header strong { display: block; margin-top: 4px; color: #fff4e9; font: 400 1.2rem var(--serif); }
+.club-vase-menu > header button,.club-chat-drawer > header > button { width: 34px; height: 34px; padding: 0; border: 1px solid rgba(245,218,255,.2); border-radius: 50%; background: rgba(255,255,255,.05); color: #f9ebff; font-size: 1.15rem; cursor: pointer; }
+.club-vase-menu section { margin-top: 16px; }
+.club-vase-menu h3 { margin: 0 0 8px; color: #bba8c9; font-size: 7px; letter-spacing: .16em; font-weight: 600; }
+.club-vase-menu section > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+.club-vase-menu section button { min-width: 0; min-height: 76px; padding: 8px 5px; border: 1px solid rgba(237,211,255,.12); border-radius: 14px; background: rgba(255,255,255,.045); color: #eee1f5; cursor: pointer; }
+.club-vase-menu section button:hover,.club-vase-menu section button.selected { border-color: rgba(255,205,119,.62); background: rgba(255,180,71,.1); box-shadow: 0 0 20px rgba(255,153,67,.1); }
+.club-vase-menu section button span { display: block; font-size: 1.65rem; }
+.club-vase-menu section button strong { display: block; margin-top: 5px; font-size: .66rem; font-weight: 500; }
+
+.club-drawer-scrim { position: fixed; z-index: 48; inset: 0; border: 0; background: rgba(7,2,12,.58); backdrop-filter: blur(3px); cursor: default; animation: clubScrimIn .24s ease both; }
+.club-chat-drawer { position: fixed; z-index: 50; top: 0; right: 0; width: min(460px,calc(100vw - 220px)); height: 100svh; border-left: 1px solid rgba(247,218,255,.25); background: linear-gradient(165deg,#201027 0,#2b1431 45%,#180c21 100%); box-shadow: -28px 0 76px rgba(3,1,8,.56); color: #f9efff; display: flex; flex-direction: column; overflow: hidden; animation: clubDrawerIn .38s cubic-bezier(.2,.8,.2,1) both; }
+.club-chat-drawer::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .18; background-image: radial-gradient(circle at 15% 9%,#ffd88d 0 1px,transparent 1.8px),radial-gradient(circle at 79% 18%,#c9a6ff 0 1px,transparent 1.8px); background-size: 41px 41px,57px 57px; }
+.club-chat-drawer > header { position: relative; flex: 0 0 auto; min-height: 112px; padding: 24px 24px 18px; border-bottom: 1px solid rgba(240,215,255,.13); display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; background: linear-gradient(180deg,rgba(119,66,126,.18),transparent); }
+.club-chat-drawer > header small { color: #ffce7d; font-size: 6px; letter-spacing: .23em; }
+.club-chat-drawer > header h2 { margin: 5px 0 1px; color: #fff4e7; font: 400 1.55rem/1.1 var(--serif); }
+.club-chat-drawer > header p { margin: 5px 0 0; color: #aa96b7; font-size: .67rem; }
+.club-chat-identity { position: relative; flex: 0 0 auto; min-height: 66px; padding: 11px 18px; border-bottom: 1px solid rgba(240,215,255,.11); display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 10px; background: rgba(255,255,255,.025); }
+.club-chat-identity .citizen-mark,.club-chat-identity > .club-mask-avatar { width: 40px; height: 40px; }
+.club-chat-identity small { display: block; color: #9d88ab; font-size: 5px; letter-spacing: .16em; }
+.club-chat-identity strong { display: block; margin-top: 3px; color: #fff0d7; font: 400 .92rem var(--serif); }
+.club-chat-identity > button { padding: 7px 10px; border: 1px solid rgba(255,212,145,.28); border-radius: 999px; background: rgba(255,187,81,.08); color: #f2d7a7; font-size: .64rem; cursor: pointer; }
+.club-mask-avatar { width: 34px; height: 34px; border: 1px solid rgba(242,218,255,.24); border-radius: 50%; background: radial-gradient(circle,rgba(132,80,151,.48),rgba(32,15,43,.92)); display: inline-grid; place-items: center; font-size: 1.25rem; box-shadow: 0 0 16px rgba(190,121,255,.22); }
+.club-mask-avatar.avatar-crystal_ball { animation: clubCrystalPulse 2s ease-in-out infinite; }
+
+.club-mask-editor { position: relative; flex: 0 0 auto; padding: 15px 18px 17px; border-bottom: 1px solid rgba(240,215,255,.14); background: rgba(60,30,70,.82); animation: clubMaskIn .22s ease both; }
+.club-mask-editor > header { display: flex; align-items: center; justify-content: space-between; }
+.club-mask-editor > header strong { font: 400 .92rem var(--serif); }
+.club-mask-editor > header button { padding: 0; border: 0; background: transparent; color: #bda9c7; font-size: .65rem; cursor: pointer; }
+.club-mask-editor label { margin-top: 12px; display: grid; gap: 5px; }
+.club-mask-editor label span,.club-mask-editor legend { color: #bca7c6; font-size: 6px; letter-spacing: .12em; }
+.club-mask-editor input,.club-chat-compose input { min-width: 0; height: 40px; padding: 0 12px; border: 1px solid rgba(239,214,255,.18); border-radius: 11px; outline: 0; background: rgba(10,4,17,.38); color: #fff4fb; font: inherit; }
+.club-mask-editor input:focus,.club-chat-compose input:focus { border-color: rgba(255,203,116,.68); box-shadow: 0 0 0 3px rgba(255,190,83,.08); }
+.club-mask-editor fieldset { margin: 11px 0 0; padding: 0; border: 0; }
+.club-mask-editor fieldset > div { margin-top: 6px; display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; }
+.club-mask-editor fieldset button { min-width: 0; height: 48px; padding: 4px 2px; border: 1px solid rgba(237,214,255,.12); border-radius: 10px; background: rgba(255,255,255,.035); color: #f6ebfa; cursor: pointer; }
+.club-mask-editor fieldset button.selected { border-color: #ffc96e; background: rgba(255,180,69,.12); }
+.club-mask-editor fieldset button span { display: block; font-size: 1.1rem; }
+.club-mask-editor fieldset button small { display: none; }
+.club-mask-save { width: 100%; min-height: 38px; margin-top: 11px; border: 1px solid rgba(255,212,142,.5); border-radius: 11px; background: linear-gradient(120deg,#8b5b2b,#b27b34); color: #fff5e4; font-size: .7rem; cursor: pointer; }
+
+.club-chat-messages { position: relative; flex: 1 1 auto; min-height: 0; padding: 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; scrollbar-color: #6a466f transparent; }
+.club-chat-messages > article { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 9px; align-items: end; }
+.club-chat-messages > article.mine { grid-template-columns: minmax(0,1fr) 34px; }
+.club-chat-messages > article.mine > :first-child { grid-column: 2; }
+.club-chat-messages > article.mine > div { grid-column: 1; grid-row: 1; justify-self: end; background: linear-gradient(145deg,rgba(125,74,141,.9),rgba(81,39,99,.94)); border-color: rgba(232,196,255,.22); }
+.club-chat-messages > article > .citizen-mark,.club-chat-messages > article > .club-mask-avatar { width: 32px; height: 32px; }
+.club-chat-messages > article > div { max-width: min(320px,83%); padding: 9px 11px; border: 1px solid rgba(235,211,248,.12); border-radius: 14px 14px 14px 4px; background: rgba(23,11,31,.72); }
+.club-chat-messages > article.mine > div { border-radius: 14px 14px 4px 14px; }
+.club-chat-messages article header { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.club-chat-messages article header strong { color: #f5cf8d; font-size: .63rem; font-weight: 600; }
+.club-chat-messages article time { color: #8f7b99; font-size: .55rem; }
+.club-chat-messages article p { margin: 5px 0 0; color: #fff4fb; font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
+.club-chat-empty { margin: auto; text-align: center; color: #9d89a8; }
+.club-chat-empty span { display: block; font-size: 2.4rem; animation: clubScrollFloat 3s ease-in-out infinite; }
+.club-chat-empty p { margin: 9px 0; font: 400 .8rem/1.6 var(--serif); }
+.club-sticker { display: inline-block; font-size: 2rem; line-height: 1.15; transform-origin: center; }
+.sticker-ghost { animation: clubGhost 2.2s ease-in-out infinite; }.sticker-sparkles { animation: clubSparkle 1.45s ease-in-out infinite; }.sticker-pumpkin { animation: clubPumpkin 1.8s ease-in-out infinite; }.sticker-crystal { animation: clubCrystalPulse 1.65s ease-in-out infinite; }.sticker-bat { animation: clubBat 1.3s ease-in-out infinite; }.sticker-candy { animation: clubCandy 1.2s ease-in-out infinite; }.sticker-moon { animation: clubMoonSticker 2.1s ease-in-out infinite; }
+.club-sticker-rail { position: relative; flex: 0 0 auto; padding: 8px 14px; border-top: 1px solid rgba(240,215,255,.11); display: flex; justify-content: center; gap: 5px; overflow-x: auto; background: rgba(7,3,12,.18); }
+.club-sticker-rail button { flex: 0 0 42px; width: 42px; height: 42px; padding: 0; border: 1px solid transparent; border-radius: 11px; background: transparent; cursor: pointer; }
+.club-sticker-rail button:hover { border-color: rgba(255,211,140,.28); background: rgba(255,255,255,.045); }
+.club-sticker-rail .club-sticker { font-size: 1.45rem; }
+.club-chat-compose { position: relative; flex: 0 0 auto; padding: 8px 14px 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.club-chat-compose button { min-width: 64px; border: 1px solid rgba(255,213,143,.45); border-radius: 11px; background: linear-gradient(130deg,#8b5c2c,#a86b29); color: #fff6e6; cursor: pointer; }
+.club-chat-compose button:disabled,.club-sticker-rail button:disabled,.club-mask-save:disabled { opacity: .42; cursor: not-allowed; }
+.club-chat-status { position: relative; flex: 0 0 auto; min-height: 0; max-height: 0; margin: 0; padding: 0 18px; color: #ffcf86; font-size: .64rem; text-align: center; opacity: 0; overflow: hidden; transition: max-height .2s,opacity .2s,padding .2s; }
+.club-chat-status.visible { max-height: 40px; padding-bottom: 10px; opacity: 1; }
+
+@keyframes clubMoonRing { 0% { opacity: .95; transform: scale(.45); } 100% { opacity: 0; transform: scale(9.5); } }
+@keyframes clubMoonStar { 0% { opacity: 0; transform: translate(-50%,-50%) scale(.2) rotate(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--moon-x)),calc(-50% + var(--moon-y))) scale(1.35) rotate(160deg); } }
+@keyframes clubMoonBeam { 0% { opacity: 0; transform: translate(-50%,0) perspective(250px) rotateX(12deg) scaleX(.2); } 22%,64% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,0) perspective(250px) rotateX(12deg) scaleX(1.18); } }
+@keyframes clubCupLevitate { 0%,100% { transform: translate(-50%,-50%) rotate(0); } 23% { transform: translate(-50%,-105%) rotate(-8deg); } 52% { transform: translate(-50%,-125%) rotate(7deg); } 77% { transform: translate(-50%,-102%) rotate(-3deg); } }
+@keyframes clubCupDust { 0% { opacity: 0; transform: translate(-50%,0) scale(.6); } 28%,65% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,26px) scale(1.25); } }
+@keyframes clubVaseAppear { from { opacity: 0; transform: translateY(14px) scale(.72); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes clubVaseSway { 0%,100% { transform: rotate(-1deg); } 50% { transform: rotate(2deg); } }
+@keyframes clubMenuIn { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes clubScrimIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes clubDrawerIn { from { opacity: 0; transform: translateX(35px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes clubMaskIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes clubScrollFloat { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+@keyframes clubGhost { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(4deg); } }
+@keyframes clubSparkle { 0%,100% { transform: scale(.86) rotate(0); filter: brightness(.9); } 50% { transform: scale(1.2) rotate(18deg); filter: brightness(1.45) drop-shadow(0 0 7px #ffe99e); } }
+@keyframes clubPumpkin { 0%,100% { transform: translateY(0) scaleX(1); } 47% { transform: translateY(-5px) scaleX(.94); } 58% { transform: translateY(0) scaleX(1.06); } }
+@keyframes clubCrystalPulse { 0%,100% { transform: scale(.95); filter: drop-shadow(0 0 2px #b681ff); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 9px #c7a2ff); } }
+@keyframes clubBat { 0%,100% { transform: rotate(-8deg) translateY(1px); } 50% { transform: rotate(9deg) translateY(-4px) scaleX(.88); } }
+@keyframes clubCandy { 0%,100% { transform: rotate(-7deg); } 50% { transform: rotate(9deg) scale(1.08); } }
+@keyframes clubMoonSticker { 0%,100% { transform: rotate(-8deg); filter: drop-shadow(0 0 2px #ffe9a8); } 50% { transform: rotate(8deg) scale(1.08); filter: drop-shadow(0 0 10px #ffe9a8); } }
+
+@media (max-width: 760px) {
+  .club-hotspot.scroll { left: 51%; top: 54%; }
+  .club-hotspot.vase { left: 75%; top: 44%; }
+  .club-cup-origin,.club-floating-cup { left: 28%; top: 56%; }
+  .club-floating-cup { width: 78px; height: 64px; }
+  .club-vase-display { left: 75%; top: 44%; width: 92px; height: 101px; }
+  .club-vase-display > span { font-size: 3.3rem; }
+  .club-vase-menu { top: 19%; right: 12px; width: min(350px,calc(100% - 24px)); max-height: 61%; padding: 15px; }
+  .club-chat-drawer { width: 100vw; }
+  .club-chat-drawer > header { min-height: 100px; padding: 19px 18px 14px; }
+  .club-chat-identity { padding-left: 14px; padding-right: 14px; }
+  .club-chat-messages { padding: 14px; }
+  .club-whisper { z-index: 12; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .club-moon-magic > i,.club-moon-magic > b,.club-moon-magic > span,.club-floating-cup.levitating,.club-floating-cup.levitating::after,.club-vase-display > span,.club-sticker,.club-chat-empty span,.club-mask-avatar.avatar-crystal_ball { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+
