@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { cookieToken, currentMember, digest, MEMBER_SESSION_SECONDS, sameOrigin, sessionCookie, verifyMemberPassword } from "../../member-session";
+import { readJson, ApiError } from "../../../server/http.ts";
 
 export async function GET(request: Request) {
   try { return Response.json({ citizenId: await currentMember(request) }, { headers: { "Cache-Control": "no-store" } }); }
@@ -8,10 +9,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "请从本站登录。" }, { status: 403 });
   try {
-    const raw = await request.text(); if (raw.length > 4096) return Response.json({ error: "登录信息过长。" }, { status: 400 });
     let payload: { citizenId?: unknown; password?: unknown };
-    try { const value: unknown = JSON.parse(raw); if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(); payload = value; }
-    catch { return Response.json({ error: "登录信息格式不正确。" }, { status: 400 }); }
+    try { payload = await readJson(request, 4096); }
+    catch (error) {
+      if (error instanceof ApiError) return Response.json({
+        error: error.status === 413 ? "登录信息过长。" : "登录信息格式不正确。",
+      }, { status: 400 });
+      throw error;
+    }
     const citizenId = typeof payload.citizenId === "string" ? payload.citizenId : "", password = typeof payload.password === "string" ? payload.password : "";
     const now = Date.now(), windowKey = await digest(`${request.headers.get("CF-Connecting-IP") || "local"}:${Math.floor(now / 60000)}`);
     const rate = await env.DB.prepare("INSERT INTO member_login_windows (window_key, attempts, expires_at) VALUES (?, 1, ?) ON CONFLICT(window_key) DO UPDATE SET attempts=attempts+1 RETURNING attempts").bind(windowKey, now + 120000).first<{ attempts: number }>();
