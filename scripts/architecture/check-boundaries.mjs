@@ -52,7 +52,7 @@ for (const [source, name] of [
     fail(`${name} must not embed secrets`);
 }
 const mainLineBudget = 650;
-const globalLineBudget = 1200;
+const globalLineBudget = 360;
 if (page.split("\n").length > mainLineBudget)
   fail(`page.tsx has regrown above ${mainLineBudget} lines; extract a feature instead`);
 if (css.split("\n").length > globalLineBudget)
@@ -60,8 +60,25 @@ if (css.split("\n").length > globalLineBudget)
 
 for (const spec of ['@import "./home/home.css";', '@import "./photos/photo-archive.css";'])
   if (!css.includes(spec)) fail(`globals.css missing module style: ${spec}`);
-if (!read("app/layout.tsx").includes('import "./club/lounge-scenes.css";'))
-  fail("layout.tsx must load migrated private-scene styles after globals.css");
+const cssLoadOrder = [
+  "./globals.css",
+  "./club/lounge-core.css",
+  "./parliament/parliament-workspace.css",
+  "./archives/archive-reader.css",
+  "./parliament/parliament-scenes.css",
+  "./club/lounge-v15.css",
+  "./club/lounge-scenes.css",
+];
+const layout = read("app/layout.tsx");
+let previousCssPosition = -1;
+for (const cssPath of cssLoadOrder) {
+  const index = layout.indexOf('import "' + cssPath + '";');
+  if (index < 0) fail(`layout.tsx does not import ${cssPath}`);
+  else if (index <= previousCssPosition) fail(`CSS declaration order changed at ${cssPath}`);
+  previousCssPosition = index;
+}
+if (css.includes("/* Committee Restroom") || css.includes("/* Persistent parliament workspace"))
+  fail("globals.css still contains feature-owned private room/parliament workspace styles");
 for (const legacy of ["function PersistentParliamentSection(", "function CommitteeLounge(", "function ClubMysticMark("])
   if (page.includes(legacy)) fail(`page.tsx still owns a heavy feature: ${legacy}`);
 for (const feature of ["./parliament/parliament-section", "./club/committee-lounge"])
