@@ -63,7 +63,7 @@ test("0014 preserves existing Briefing archives and live presence data", async (
         db.prepare("INSERT INTO briefing_archives VALUES(?,?,?)").run("amberina","vote-test","2026-11-19T00:00:00Z");
         db.prepare("INSERT INTO member_presence VALUES(?,?,?)").run("session-test","zxy",123456);
         db.exec(files[14].sql);
-        assert.deepEqual(db.prepare("SELECT citizen_id AS member,task_id AS task,archived_at AS at FROM briefing_archives").get(), {
+        assert.deepEqual({ ...db.prepare("SELECT citizen_id AS member,task_id AS task,archived_at AS at FROM briefing_archives").get() }, {
             member:"amberina",task:"vote-test",at:"2026-11-19T00:00:00Z",
         });
         assert.equal(db.prepare("SELECT last_seen_ms AS time FROM member_presence WHERE citizen_id='zxy'").get()?.time,123456);
