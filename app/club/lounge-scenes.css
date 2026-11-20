@@ -1603,3 +1603,14 @@
 @keyframes chryserFishDrift { from { margin-left:-7%; } to { margin-left:12%; } }
 @keyframes chryserAquariumBubble { from { bottom:-5%; opacity:0; } 20% { opacity:.7; } to { bottom:110%; opacity:0; } }
 @media(prefers-reduced-motion:reduce) { .chryser-aquarium-water i,.chryser-aquarium-water b { animation:none; } }
+
+/* Loading a previously unvisited private room/game; no new lighting is added to art. */
+.lounge-module-loading {
+  min-height: min(64svh, 520px);
+  display: grid;
+  place-items: center;
+  color: #c4b6d0;
+  background: #130e1c;
+  font: 400 .78rem/1.6 var(--serif);
+  letter-spacing: .07em;
+}
