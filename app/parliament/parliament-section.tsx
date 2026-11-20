@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode, type FormEvent } from "react";
+import { startTransition, useEffect, useState, type CSSProperties, type ReactNode, type FormEvent } from "react";
 import { CITIZENS, citizenRepresentativeColor, type Citizen } from "../citizens";
 import { PageHead } from "../shell/page-head";
 import { SpeakerManagement } from "../speaker-management";
