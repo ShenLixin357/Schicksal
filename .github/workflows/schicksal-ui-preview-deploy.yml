@@ -1,12 +1,13 @@
 name: Deploy isolated Schicksal UI preview
 
-# This workflow NEVER runs on a normal push. A connected coding agent can
-# trigger it only with an explicit [preview-deploy] commit message, after the
-# site owner has set the required GitHub repository secrets.
+# Preview-only, never production. This isolated reviewer branch contains the
+# already-tested draft PR #16 code. Trigger only on an explicit [preview-deploy]
+# commit; the deployment targets schicksal-ui-preview + dedicated preview D1.
+# Existing preview Worker may be replaced; main and production remain untouched.
 on:
   push:
     branches:
-      - "preview/sidebar-lounge-v4-20261120"
+      - "preview/schicksal-2-live-review-20261121"
     paths:
       - ".github/workflows/schicksal-ui-preview-deploy.yml"
       - "scripts/cloudflare/prepare-ui-preview.mjs"
