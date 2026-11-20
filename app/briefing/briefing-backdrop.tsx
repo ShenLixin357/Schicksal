@@ -1,3 +1,5 @@
+import { BRIEFING_BACKDROP_COLORS } from "../identity/visual-registry";
+
 /**
  * Schicksal briefing paper decoration: warm ivory with two small concentrations
  * of softly tinted ellipses at the margins. No faceted/crystalline geometry.
@@ -5,7 +7,7 @@
  * and the authentic <Emblem compact /> rendered by app/page.tsx.
  */
 export function BriefingBackdrop() {
-  const palette = ["#e0b95b", "#7ca7d4", "#d8878a", "#78b29c", "#abd2dd", "#d7a1c1", "#d9a26d", "#9887bd"] as const;
+  const palette = [...BRIEFING_BACKDROP_COLORS];
   return <div className="imperial-briefing-canvas" aria-hidden="true">
     <svg viewBox="0 0 1440 960" preserveAspectRatio="xMidYMid slice" fill="none" focusable="false">
       <defs>
