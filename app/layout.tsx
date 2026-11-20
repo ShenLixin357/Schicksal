@@ -3,6 +3,7 @@ import "./globals.css";
 import "./navigation-layout.css";
 import "./club/lounge-magic.css";
 import "./shell/shell.css";
+import "./shell/placeholder.css";
 import "./transitions/lounge-passage.css";
 
 export const metadata: Metadata = {
