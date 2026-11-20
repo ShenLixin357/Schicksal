@@ -68,7 +68,20 @@ test("preserved Lounge styles now live outside globals and remain ordered after 
   assert.match(lounge,/Committee Lounge v19/);
   assert.match(lounge,/@keyframes clubVaseObjectIn/);
   assert.match(lounge,/@keyframes chryserAquariumBubble/);
-  assert.ok(layout.indexOf('import "./globals.css";') < layout.indexOf('import "./club/lounge-scenes.css";'));
+  const ordered = [
+    "./globals.css", "./club/lounge-core.css",
+    "./parliament/parliament-workspace.css", "./archives/archive-reader.css",
+    "./parliament/parliament-scenes.css", "./club/lounge-v15.css",
+    "./club/lounge-scenes.css",
+  ];
+  const indices = ordered.map(path => layout.indexOf('import "'+path+'";'));
+  assert.ok(indices.every((value,index) => value >= 0 && (index === 0 || value > indices[index-1])), "the original CSS cascade order must remain unchanged");
+  assert.match(read("app/club/lounge-core.css"), /Committee Restroom — member-only Halloween club/);
+  assert.match(read("app/parliament/parliament-workspace.css"), /Persistent parliament workspace/);
+  assert.match(read("app/archives/archive-reader.css"), /National Archives: the authored record/);
+  assert.match(read("app/parliament/parliament-scenes.css"), /Parliament v13/);
+  assert.match(read("app/club/lounge-v15.css"), /Committee Restroom v15/);
+  assert.ok(globals.split("\\n").length < 360);
   assert.match(lounge,/\.lounge-module-loading/);
 });
 
@@ -78,4 +91,13 @@ test("all private data routes and D1 table ownership remain untouched by this fe
   assert.match(panel, /method: "POST"/);
   assert.match(room, /method: "POST"/);
   assert.doesNotMatch(read("app/page.tsx"), /"\/api\/parliament"|"\/api\/committee-club"/);
+});
+
+test("deferred feature errors are recoverable and cannot bypass the mandatory briefing", () => {
+  const suspense = read("app/shell/feature-suspense.tsx");
+  assert.match(suspense, /class FeatureLoadBoundary extends Component/);
+  assert.match(suspense, /getDerivedStateFromError/);
+  assert.match(suspense, /window.location.reload\(\)/);
+  assert.match(suspense, /<FeatureLoadBoundary key=\{label\}/);
+  assert.match(read("app/page.tsx"), /mandatory-briefing-gate/);
 });
