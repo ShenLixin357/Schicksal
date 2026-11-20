@@ -1,4 +1,4 @@
-import { GAME_ROOM_RETURN_KEY } from "./game-room-catalogue";
+export const GAME_ROOM_RETURN_KEY = "schicksal:lounge-return";
 
 /**
  * The external full-page games are the only consumers of this temporary
