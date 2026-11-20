@@ -56,9 +56,17 @@ test("game engines remain demand-loaded from an independent room boundary", () =
   const lounge = read("app/club/committee-lounge.tsx");
   const shell = read("app/page.tsx");
   const mini = read("app/club/minigames/use-mini-game-system.ts");
-  for (const chunk of ["./chryser-lounge", "./wordmage-lounge", "./game-room", "./minigames/mini-game-system", "./minigames/lounge-leaderboard"]) {
+  for (const chunk of ["./mafraer-lounge", "./chryser-lounge", "./wordmage-lounge", "./game-room", "./minigames/mini-game-system", "./minigames/lounge-leaderboard"]) {
     assert.ok(lounge.includes(`lazy(() => import("${chunk}")`), `must keep code-split chunk ${chunk}`);
   }
+  const journeys = read("app/club/use-room-journeys.ts");
+  const assets = read("app/club/mafraer-assets.ts");
+  const bedroom = read("app/club/mafraer-lounge.tsx");
+  assert.match(assets, /mafraer-ice-bedroom-moonlit-v4\\.png/);
+  assert.match(assets, /mafraer-ice-bedroom-lit-v4\\.png/);
+  assert.match(journeys, /from "\\.\\/mafraer-assets"/);
+  assert.doesNotMatch(journeys, /from "\\.\\/mafraer-lounge"/);
+  assert.match(bedroom, /from "\\.\\/mafraer-assets"/);
   assert.match(shell, /lazy\(\(\) => import\("\.\/club\/committee-lounge"\)/);
   assert.doesNotMatch(mini, /from ["']\.\/mini-game-system|from ["']\.\/lounge-leaderboard/);
 });
