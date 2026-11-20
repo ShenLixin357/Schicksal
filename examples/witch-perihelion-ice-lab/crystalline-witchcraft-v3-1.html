@@ -396,118 +396,225 @@ function blade(c,x,y,ex,ey,width,light,inner=true){
  }
  c.restore();
 }
+
+// The six arms are a real animated crystal construction, not an enlarged stamp.
+// Every shape uses the same snow nucleus at (50%,39%) as the spell / freezing.
+function icePolar(cx,cy,a,r){return [cx+Math.cos(a)*r,cy+Math.sin(a)*r];}
+function fineArc(c,from,control,to,alpha=.5,width=.5){
+ c.beginPath();c.moveTo(...from);c.quadraticCurveTo(...control,...to);
+ c.lineWidth=width;c.strokeStyle='rgba(236,247,255,'+clamp(alpha).toFixed(3)+')';c.stroke();
+}
+function traceNeedleWindow(c,cx,cy,a,centerR,length,halfWidth,alpha){
+ // Narrow unfilled quatrefoil/lozenge opening: an actual transparent void
+ // in the skeletal filigree, not a solid diamond pasted on top.
+ const u=Math.cos(a),v=Math.sin(a),nx=-v,ny=u,front=centerR+length*.50,rear=centerR-length*.50;
+ const p0=[cx+u*rear,cy+v*rear],p1=[cx+u*front,cy+v*front];
+ c.save();c.lineJoin='miter';
+ c.beginPath();c.moveTo(...p0);
+ c.quadraticCurveTo(cx+u*centerR+nx*halfWidth,cy+v*centerR+ny*halfWidth,...p1);
+ c.quadraticCurveTo(cx+u*centerR-nx*halfWidth,cy+v*centerR-ny*halfWidth,...p0);
+ c.closePath();c.strokeStyle='rgba(254,250,255,'+clamp(alpha).toFixed(3)+')';c.lineWidth=.63;c.stroke();
+ c.beginPath();c.moveTo(...p0);c.lineTo(...p1);
+ c.strokeStyle='rgba(169,190,245,'+clamp(alpha*.38).toFixed(3)+')';c.lineWidth=.3;c.stroke();
+ c.restore();
+}
+function iceRosette(c,p,L,cx,cy){
+ // Two cathedral-like interlaced hexagonal rings, and six open ice lancets.
+ // Deliberately airy: almost everything is linework, with the original ice below.
+ const q=smooth(p/.32);
+ if(q<=0)return;
+ c.save();
+ for(const [radius,alpha,width]of [[8.5,.73,.72],[16.8,.47,.55],[28.4,.31,.46]]){
+  c.beginPath();
+  for(let i=0;i<6;i++){
+   const a=-Math.PI/2+i*Math.PI/3;
+   const point=icePolar(cx,cy,a,radius*q);
+   i?c.lineTo(...point):c.moveTo(...point);
+  }
+  c.closePath();
+  c.strokeStyle='rgba(241,247,255,'+clamp(alpha*q*L).toFixed(3)+')';
+  c.lineWidth=width;c.stroke();
+ }
+ // Six lotus-pointed apertures grow out of the hexagon's sides.
+ const petals=smooth((p-.13)/.26);
+ for(let i=0;i<6;i++){
+  const a=-Math.PI/2+i*Math.PI/3;
+  const left=icePolar(cx,cy,a-.23,12*q),right=icePolar(cx,cy,a+.23,12*q);
+  const peak=icePolar(cx,cy,a,29*q*petals),ctrl=icePolar(cx,cy,a,18*q*petals);
+  c.beginPath();c.moveTo(...left);
+  c.quadraticCurveTo(...ctrl,...peak);
+  c.quadraticCurveTo(...ctrl,...right);
+  c.strokeStyle='rgba(246,251,255,'+clamp(.58*L*petals).toFixed(3)+')';
+  c.lineWidth=.64;c.stroke();
+  const windowR=22*q*petals;
+  traceNeedleWindow(c,cx,cy,a,windowR,7.5*petals,1.2*petals,.53*L*petals);
+ }
+ // Quiet champagne/pearl highlights at cardinal structural joints, not glitter.
+ for(let i=0;i<6;i++){
+  const a=-Math.PI/2+i*Math.PI/3,[x,y]=icePolar(cx,cy,a,17*q);
+  c.fillStyle='rgba(255,242,226,'+clamp(.34*q*L).toFixed(3)+')';
+  c.beginPath();c.arc(x,y,.75,0,Math.PI*2);c.fill();
+ }
+ c.restore();
+}
 function drawArm(c,a,p,i){
  const cx=w*.5,cy=h*.39,density=val('density'),L=val('light');
- const R=Math.min(w*.447,h*.295)*(1+.048*(rand(i*17)-.5));
- const delay=.024*(i%3),local=smooth((p-delay)/(.77+.045*rand(i+30)));
+ // Six 60-degree main axes never rotate away from true sixfold geometry.
+ // Small selected length differences are crystalline growth irregularity only.
+ const R=Math.min(w*.457,h*.305)*(1+[-.036,.065,-.004,.046,-.030,.025][i]);
+ const delay=[0,.013,.028,.010,.023,.017][i];
+ const local=smooth((p-delay)/(.79+.021*(i%3)));
  if(local<=0)return;
- const u=Math.cos(a),v=Math.sin(a),dx=u*R*local,dy=v*R*local;
- const tx=cx+dx,ty=cy+dy;
- // Main crystal needle grows forward, with twin subtly separated polished facets.
- blade(c,cx,cy,tx,ty,1.95+1.15*(1-local),L);
- const layered=.20+.14*rand(i+11);
- const fx=cx+u*R*local*layered,fy=cy+v*R*local*layered;
- blade(c,fx,fy,cx+u*R*local*.89,cy+v*R*local*.89,.74,L*.62);
- // Eight paired secondary branches: delayed by attachment point, two generations deep.
- for(let j=1;j<=8;j++){
-  const t=.105+j*.098,when=.028+t*.70;
-  if(p<when)continue;
-  const grow=smooth((p-when)/(.20+.06*rand(i*12+j)));
-  const x=cx+u*R*t,y=cy+v*R*t;
+ const u=Math.cos(a),v=Math.sin(a),nx=-v,ny=u;
+ const tipX=cx+u*R*local,tipY=cy+v*R*local;
+ // A faceted spear with a split, pierced longitudinal spine.
+ blade(c,cx,cy,tipX,tipY,2.35+1.0*(1-local),L*.95);
+ const ribsStart=20,eyeholeAt=.52;
+ if(R*local>ribsStart){
+  const start=icePolar(cx,cy,a,ribsStart);
+  const qx=cx+u*R*local*.92,qy=cy+v*R*local*.92;
   for(const side of [-1,1]){
-   const az=a+side*(.55+.11*rand(i*31+j*5+side*3));
-   const len=R*(.16+.105*rand(j*9+i*6+side))*(1-.38*t)*density*grow;
-   const bx=x+Math.cos(az)*len,by=y+Math.sin(az)*len;
-   blade(c,x,y,bx,by,.45+.31*(1-t),L*.87,false);
-   // Smaller blade thorns spring from already formed ribs.
-   if(j===3||j===5||j===7){
-    const secondary=smooth((p-when-.10)/.19);
-    if(secondary>0){
-     const ex=x+(bx-x)*.64,ey=y+(by-y)*.64;
-     const tilt=az+side*(.36+.10*rand(j+i));
-     const reach=len*.29*secondary;
-     blade(c,ex,ey,ex+Math.cos(tilt)*reach,ey+Math.sin(tilt)*reach,.27,L*.74,false);
+   c.beginPath();c.moveTo(start[0]+nx*side*1.8,start[1]+ny*side*1.8);
+   c.bezierCurveTo(cx+u*R*.46+nx*side*3.65,cy+v*R*.46+ny*side*3.65,
+      cx+u*R*.72+nx*side*2.05,cy+v*R*.72+ny*side*2.05,qx,qy);
+   c.strokeStyle='rgba('+(side===1?'255,249,253':'169,205,251')+','+clamp(.43*L*local).toFixed(3)+')';
+   c.lineWidth=.55;c.stroke();
+  }
+ }
+ // Multiple open-etched crystal lancets at strategically spaced stations.
+ for(const [at,size]of [[.26,8.1],[.49,11.8],[.73,9.0]]){
+  const gate=smooth((local-at-.01)/.15);
+  if(gate<=0)continue;
+  traceNeedleWindow(c,cx,cy,a,R*at,size*gate,2.05*gate,.70*L*gate);
+ }
+ // Paired, layered rib-branch families. The secondary "twigs" are themselves
+ // crystalline double points, not white polyline decorations.
+ for(let j=0;j<10;j++){
+  const at=.12+j*.077;
+  const when=.060+at*.67+.015*rand(i*11+j*13);
+  const grow=smooth((p-when)/(.20+.045*rand(i*31+j+1)));
+  if(grow<=0)continue;
+  const x=cx+u*R*at,y=cy+v*R*at;
+  for(const side of [-1,1]){
+   const variance=(rand(j*19+i*7+side*5)-.5)*.12;
+   const theta=a+side*(.52+variance);
+   const baseLen=R*(.125+.094*rand(i*13+j*3+side))*(1-.32*at)*density;
+   const length=baseLen*grow;
+   const ex=x+Math.cos(theta)*length,ey=y+Math.sin(theta)*length;
+   blade(c,x,y,ex,ey,.48+.34*(1-at),L*.84,false);
+   if(j%2===0){
+    // A fine offset parallel facet emphasizes thin carved ice blades.
+    c.beginPath();c.moveTo(x+nx*side*.65,y+ny*side*.65);
+    c.lineTo(x+(ex-x)*.73+nx*side*.2,y+(ey-y)*.73+ny*side*.2);
+    c.strokeStyle='rgba(224,239,255,'+clamp(.34*L*grow).toFixed(3)+')';
+    c.lineWidth=.35;c.stroke();
+   }
+   if(j===2||j===4||j===7||j===9){
+    const second=smooth((p-when-.085)/.17);
+    if(second>0){
+     const originX=x+(ex-x)*.67,originY=y+(ey-y)*.67;
+     const theta2=theta+side*(.29+.15*rand(i+j));
+     const reach=length*(.20+.1*rand(j+7))*second;
+     blade(c,originX,originY,originX+Math.cos(theta2)*reach,
+        originY+Math.sin(theta2)*reach,.21,L*.72,false);
     }
    }
   }
-  // Fine hollow cutouts appear only at select positions.
-  if(j===3||j===6){
-   const op=smooth((p-when-.09)/.16);
-   hollowLance(c,cx+u*R*(t+.020),cy+v*R*(t+.020),a,5.7+2.4*rand(i*9+j),L*op);
+  // Hollow open "eyelets" between paired ribs; no opaque jeweled lozenges.
+  if(j===1||j===5||j===8){
+   const appear=smooth((p-when-.065)/.16);
+   traceNeedleWindow(c,cx,cy,a,R*(at+.017),7.5*appear,1.65*appear,L*.47*appear);
   }
  }
- // Pierced slender ice point, hand-cut rather than thick diamond.
- if(local>.88){
-  const appear=smooth((local-.88)/.12);
-  hollowLance(c,tx,ty,a,8.1,L*appear);
+ // Lace bridges between adjacent branches: fine flowing Gothic ice tracery.
+ const filigree=smooth((p-.37)/.40);
+ if(filigree>0){
+  for(let j=1;j<=5;j++){
+   const at=.21+j*.107;
+   const radial=R*at,fold=R*(.018+.024*rand(i*9+j*5));
+   const start=icePolar(cx,cy,a,radial);
+   const left=icePolar(cx,cy,a-.17,radial+fold);
+   const right=icePolar(cx,cy,a+.17,radial+fold);
+   const ctrl=icePolar(cx,cy,a,radial+fold*1.9);
+   fineArc(c,start,ctrl,left,.33*L*filigree,.43);
+   fineArc(c,start,ctrl,right,.33*L*filigree,.43);
+  }
  }
- // Directional specular tip flash tracks the growth front.
- const gleam=Math.pow(Math.sin(Math.PI*local),4)*.70*L;
- if(gleam>.002){
-  const glow=c.createRadialGradient(tx,ty,0,tx,ty,9);
-  glow.addColorStop(0,'rgba(255,252,255,'+clamp(gleam*.85).toFixed(3)+')');
-  glow.addColorStop(.24,'rgba(213,229,255,'+clamp(gleam*.38).toFixed(3)+')');
-  glow.addColorStop(1,'rgba(172,199,248,0)');
-  c.fillStyle=glow;c.beginPath();c.arc(tx,ty,9,0,Math.PI*2);c.fill();
+ const pointVisible=smooth((local-.88)/.12);
+ if(pointVisible>0){
+  traceNeedleWindow(c,cx,cy,a,R*local,8.0*pointVisible,1.15*pointVisible,L*.82*pointVisible);
+ }
+ // A traveling specular crystal front, small & concentrated, not a glowing blob.
+ const gleam=Math.pow(Math.sin(Math.PI*local),5)*L*.68;
+ if(gleam>.003){
+  const tip=c.createRadialGradient(tipX,tipY,0,tipX,tipY,7);
+  tip.addColorStop(0,'rgba(255,252,255,'+clamp(gleam).toFixed(3)+')');
+  tip.addColorStop(.32,'rgba(209,230,255,'+clamp(gleam*.32).toFixed(3)+')');
+  tip.addColorStop(1,'rgba(206,223,255,0)');
+  c.fillStyle=tip;c.beginPath();c.arc(tipX,tipY,7,0,Math.PI*2);c.fill();
  }
 }
 function drawFreeze(c,progress){
  c.clearRect(0,0,w,h);
- const p=clamp(progress),L=val('light');if(p<=0)return;
+ const p=clamp(progress),L=val('light');
+ if(p<=0)return;
  if(c===ctx)renderIce(p);
  const cx=w*.5,cy=h*.39;
  c.save();c.globalCompositeOperation='screen';
- // Main crown is concentrated within the card; frost tendrils reach further.
- for(let i=0;i<6;i++){drawArm(c,-Math.PI/2+i*Math.PI/3,p,i);}
- // Ice flowers / secondary dendritic aureole: highly fine, irregular, not a tiled snow icon.
- const bloom=smooth((p-.37)/.60);
- for(let i=0;i<6;i++){
-  const a=-Math.PI/2+i*Math.PI/3,u=Math.cos(a),v=Math.sin(a);
-  const R=Math.min(w*.44,h*.29),outer=Math.min(w*.64,h*.55);
-  const growth=smooth((p-.38-.022*(i%3))/.57);
-  const start=R*.82,end=R+(outer-R)*growth;
-  if(growth<=0)continue;
-  iceStroke(c,cc=>{
-   cc.moveTo(cx+u*start,cy+v*start);
-   const bend=3.8*Math.sin(5.0*a+i);
-   cc.quadraticCurveTo(cx+u*(start+end)*.5-v*bend,cy+v*(start+end)*.5+u*bend,cx+u*end,cy+v*end);
-  },.48,.35*L);
-  for(let j=0;j<5;j++){
-   const at=(j+.5)/5,tt=start+(end-start)*at;
-   const knot=smooth((growth-at*.45)/.55);if(knot<=0)continue;
-   const x=cx+u*tt,y=cy+v*tt;
+ iceRosette(c,p,L,cx,cy);
+ // Six majestic long ice ribs from a single core.
+ for(let i=0;i<6;i++)drawArm(c,-Math.PI/2+i*Math.PI/3,p,i);
+ // Secondary open tracery interlaces adjacent arms like a frozen rose-window:
+ // a delicate ring of pointed apertures, never a filled busy flower.
+ const lace=smooth((p-.39)/.54);
+ if(lace>0){
+  const mainRadius=Math.min(w*.457,h*.305);
+  for(let i=0;i<6;i++){
+   const a=-Math.PI/2+i*Math.PI/3+Math.PI/6;
+   const r1=mainRadius*.38,r2=mainRadius*.74;
+   const left=icePolar(cx,cy,a-.18,r1),right=icePolar(cx,cy,a+.18,r1);
+   const peak=icePolar(cx,cy,a,r2*lace);
+   const ctrlA=icePolar(cx,cy,a-.36,r2*.59*lace);
+   const ctrlB=icePolar(cx,cy,a+.36,r2*.59*lace);
+   fineArc(c,left,ctrlA,peak,.41*L*lace,.52);
+   fineArc(c,peak,ctrlB,right,.41*L*lace,.52);
+   // Suspended slender diamond aperture with a genuine unpainted interior.
+   traceNeedleWindow(c,cx,cy,a,mainRadius*.55,15*lace,3.0*lace,.46*L*lace);
    for(const side of [-1,1]){
-    const aa=a+side*(.41+.10*rand(i*14+j*3));
-    const ll=(3.8+8.9*rand(i*41+j))*knot*val('density');
-    blade(c,x,y,x+Math.cos(aa)*ll,y+Math.sin(aa)*ll,.22,L*.35,false);
+    const s=icePolar(cx,cy,a+side*.26,mainRadius*.62);
+    const t=icePolar(cx,cy,a+side*.20,mainRadius*.83*lace);
+    fineArc(c,s,icePolar(cx,cy,a+side*.38,mainRadius*.78*lace),t,.24*L*lace,.37);
    }
   }
  }
- // Concentric hexagonal central sacred crown, with etched tiny cutouts.
- const q=smooth(p/.27);
- for(const radius of [6.8,12.8,20.8]){
-  c.beginPath();
-  for(let i=0;i<6;i++){
-   const a=-Math.PI/2+i*Math.PI/3;
-   const x=cx+Math.cos(a)*radius*q,y=cy+Math.sin(a)*radius*q;
-   i?c.lineTo(x,y):c.moveTo(x,y);
-  }
-  c.closePath();
-  c.strokeStyle='rgba(248,250,255,'+clamp((radius<10?.68:.36)*q*L).toFixed(3)+')';
-  c.lineWidth=radius<10?.78:.45;c.stroke();
- }
+ // Delicate far-reaching frost filaments appear after the ornate core:
+ // they suggest the shell freezing beyond the snowflake without hiding its shape.
  for(let i=0;i<6;i++){
   const a=-Math.PI/2+i*Math.PI/3;
-  hollowLance(c,cx+Math.cos(a)*16*q,cy+Math.sin(a)*16*q,a,3.4*q,L*q);
+  const spread=smooth((p-.58-.022*(i%3))/.38);
+  if(spread<=0)continue;
+  const r0=Math.min(w*.46,h*.305)*.83;
+  const r1=Math.min(w*.62,h*.51)*spread;
+  if(r1<=r0)continue;
+  fineArc(c,icePolar(cx,cy,a,r0),icePolar(cx,cy,a+.025,r1*.72),
+     icePolar(cx,cy,a,r1),.25*L*spread,.42);
+  for(let j=0;j<5;j++){
+   const frac=(j+1)/6,rr=r0+(r1-r0)*frac;
+   for(const side of [-1,1]){
+    const from=icePolar(cx,cy,a,rr);
+    const to=icePolar(cx,cy,a+side*.25,rr+3.1+7.3*rand(i*17+j*7+side));
+    blade(c,from[0],from[1],to[0],to[1],.17,L*.34*spread,false);
+   }
+  }
  }
- const core=c.createRadialGradient(cx,cy,0,cx,cy,19);
- core.addColorStop(0,'rgba(255,249,255,'+clamp(.66*L*q).toFixed(3)+')');
- core.addColorStop(.20,'rgba(223,234,255,'+clamp(.21*L*q).toFixed(3)+')');
- core.addColorStop(1,'rgba(207,215,255,0)');
- c.fillStyle=core;c.beginPath();c.arc(cx,cy,19,0,Math.PI*2);c.fill();
+ // Preserve a centered pearl-like light seed; details are geometric, not plastic.
+ const center=c.createRadialGradient(cx,cy,0,cx,cy,16);
+ center.addColorStop(0,'rgba(255,249,254,'+clamp(.51*L*smooth(p/.24)).toFixed(3)+')');
+ center.addColorStop(.30,'rgba(209,230,255,'+clamp(.19*L*smooth(p/.24)).toFixed(3)+')');
+ center.addColorStop(1,'rgba(210,224,249,0)');
+ c.fillStyle=center;c.beginPath();c.arc(cx,cy,16,0,Math.PI*2);c.fill();
  c.restore();
 }
-
 function makeSharpFragments(){
  // Shared jittered vertices make a gapless shell before the first fracture.
  // Each cell is triangulated into two long, very sharp ice-blade silhouettes,
