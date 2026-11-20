@@ -12,7 +12,7 @@ import { MysticSigil } from "./mystic-marks";
 import { LoungeTable, LoungeTeaRitual } from "./tea-ritual";
 
 
-import { MafraerLounge } from "./mafraer-lounge";
+
 
 import { chatDate, chatTimestamp, mergeChatMessages, type ChatCursor } from "./chat-history";
 import { MagicChatScroll, MusicBoxDrawing, MusicBoxPortal, RotatingWordmageGlobe } from "./lounge-props";
@@ -21,6 +21,7 @@ import { useMiniGameSystem } from "./minigames/use-mini-game-system";
 import { VaseExperience } from "./vase/vase-experience";
 import { getVase } from "./vase/vase-catalogue";
 import { EMBLEM_BLADES } from "../emblem/blade-spec";
+const MafraerLounge = lazy(() => import("./mafraer-lounge").then(module => ({ default: module.MafraerLounge })));
 const ChryserLounge = lazy(() => import("./chryser-lounge").then(module => ({ default: module.ChryserLounge })));
 const WordmageLounge = lazy(() => import("./wordmage-lounge").then(module => ({ default: module.WordmageLounge })));
 const WordmageGlobePassage = lazy(() => import("./wordmage-lounge").then(module => ({ default: module.WordmageGlobePassage })));
@@ -315,7 +316,9 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   };
 
   if (roomView === "amberina") return <>
-    <AmberinaLounge visitor={citizen} ownerProfile={amberinaProfile} onBack={() => travelWithFan("committee")} />
+    <Suspense fallback={<RoomLoading name="玛法休息室"/>}>
+      <AmberinaLounge visitor={citizen} ownerProfile={amberinaProfile} onBack={() => travelWithFan("committee")} />
+    </Suspense>
     {fanTransition && <FanTransition direction={fanTransition} />}
   </>;
 
