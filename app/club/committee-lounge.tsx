@@ -155,7 +155,10 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
     };
     void loadClub();
     const timer = window.setInterval(() => { void loadClub(); }, chatOpen ? 3500 : 15000);
-    const onVisible = () => { if (document.visibilityState === "visible") void loadClub(); };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadClub();
+      else controller?.abort();
+    };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
