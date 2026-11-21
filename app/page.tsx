@@ -87,32 +87,36 @@ function Opening({ done }: { done: () => void }) {
   );
 }
 
-function Login({ enter, replay }: { enter: (citizen: Citizen, mode:AccountMode) => void; replay: () => void }) {
+function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode) => void; replay: () => void }) {
   const [selectedId, setSelectedId] = useState("amberina");
+  const [loginMode, setLoginMode] = useState<AccountMode>("citizen");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
-  const [loginMode,setLoginMode] = useState<AccountMode>("citizen");
-  const held = useRef(false);
-  const holdTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stopHold = () => { if(holdTimeout.current!==null)clearTimeout(holdTimeout.current);holdTimeout.current=null; };
-  const beginHold = (item:Citizen) => {
-    stopHold();held.current=false;
-    if(!item.locked) holdTimeout.current=setTimeout(()=>{
-      held.current=true;setSelectedId(item.id);setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");setError("");
-    },650);
+  const selected = CITIZENS.find(item => item.id === selectedId)!;
+  const chooseCitizen = (id: string) => {
+    setSelectedId(id); setLoginMode("citizen"); setPassword(""); setError("");
   };
-  const selected = CITIZENS.find((item) => item.id === selectedId)!;
+  const chooseMinistry = () => {
+    setLoginMode("technology"); setPassword(""); setError("");
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (loggingIn) return;
     setLoggingIn(true); setError("");
     try {
-      const response = await fetch("/api/member-session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ citizenId: selected.id, password, accountMode: loginMode }) });
-      const payload = await response.json() as { error?: string };
+      // Only the dedicated official entry is allowed to request the minister
+      // password. The server resolves the active officeholder, not this UI.
+      const citizenId = loginMode === "technology" ? "technology" : selected.id;
+      const response = await fetch("/api/member-session", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ citizenId, password, accountMode: loginMode }) });
+      const payload = await response.json() as { error?: string; citizenId?: string; accountMode?: AccountMode };
       if (!response.ok) throw new Error(payload.error || "登录暂时未能完成。");
-      setPassword(""); enter(selected,loginMode);
+      const current = CITIZENS.find(item => item.id === payload.citizenId && !item.locked);
+      if (!current || payload.accountMode !== loginMode) throw new Error("服务器返回的身份不一致。");
+      setPassword(""); enter(current, payload.accountMode);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "暂时无法连接登录服务。"); }
     finally { setLoggingIn(false); }
   };
@@ -128,25 +132,42 @@ function Login({ enter, replay }: { enter: (citizen: Citizen, mode:AccountMode) 
           <div className="secure-seal"><span>01</span><small>FIRST SCHICKSAL EMPIRE<br />SECURE INTERNAL GATE</small></div>
         </div>
         <div className="login-panel">
-          <div className="panel-head"><div><span>STEP 01</span><h2>选择身份</h2></div><small>05 / 08 IDENTIFIED</small></div>
+          <div className="panel-head"><div><span>STEP 01</span><h2>选择身份</h2></div><small>05 / 08 CITIZENS · 01 OFFICE</small></div>
           <div className="identity-grid">
-            {CITIZENS.map((item) => (
+            {CITIZENS.map(item => (
               <button type="button" disabled={item.locked} key={item.id}
-                onPointerDown={()=>beginHold(item)} onPointerUp={stopHold} onPointerLeave={stopHold} onPointerCancel={stopHold}
-                onContextMenu={event=>{if(!item.locked){event.preventDefault();held.current=true;stopHold();setSelectedId(item.id);setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");setError("");}}}
-                onKeyDown={event=>{if(event.shiftKey && event.key==="Enter" && !item.locked){event.preventDefault();held.current=true;stopHold();setSelectedId(item.id);setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");}}}
-                onClick={() => { if(held.current){held.current=false;return;}setSelectedId(item.id);setLoginMode("citizen");setError(""); }} className={`${selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`} style={{ "--citizen": citizenRepresentativeColor(item) } as CSSProperties}>
-                {item.id===selectedId && loginMode==="technology" ? <Emblem compact/> : <CitizenMark citizen={item} placement="login-react-picker" />}<span><strong>{item.id===selectedId && loginMode==="technology"?"科技部部长":item.username}</strong><small>{item.locked ? "RECORD SEALED" : item.name}</small></span><i />
+                onClick={() => chooseCitizen(item.id)}
+                aria-pressed={loginMode === "citizen" && selectedId === item.id}
+                className={`${loginMode === "citizen" && selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`}
+                style={{ "--citizen": citizenRepresentativeColor(item) } as CSSProperties}>
+                <CitizenMark citizen={item} placement="login-react-picker" />
+                <span><strong>{item.username}</strong><small>{item.locked ? "RECORD SEALED" : item.name}</small></span><i />
               </button>
             ))}
+            <button type="button" key="technology-ministry" onClick={chooseMinistry}
+              aria-pressed={loginMode === "technology"}
+              className={`technology-login-card ${loginMode === "technology" ? "selected" : ""}`}>
+              <Emblem compact />
+              <span><strong>科技部部长</strong><small>MINISTRY OF TECHNOLOGY</small></span><i />
+            </button>
           </div>
           <form onSubmit={submit} className="access-form">
-            <div className="panel-head access-head"><div><span>STEP 02 · {loginMode==="technology"?"科技部部长":selected.username}</span><h2>{loginMode==="technology"?"个人账号密码":"输入登录密码"}</h2></div><small>RECOGNISED AS<br />{loginMode==="technology"?"MINISTRY OF TECHNOLOGY":selected.name}</small></div>
-            {!selected.locked && <button type="button" className="technology-login-mode-button" onClick={()=>{setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");setError("");}}>
-              {loginMode==="citizen"?"长按身份卡，或点此切换部长账号":"当前：部长账号 · 切回个人登录"}
-            </button>}
-            <label><span>Password · 密码</span><div><input type={show ? "text" : "password"} value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} placeholder="输入密码" aria-invalid={Boolean(error)} /><button type="button" onClick={() => setShow(!show)}>{show ? "HIDE" : "SHOW"}</button></div></label>
-            <footer><p className={error ? "error" : ""} role="status">{error || `正在以 ${loginMode==="technology"?"科技部部长":selected.username} 的身份登录`}</p><button className="primary" type="submit" disabled={loggingIn}>{loggingIn ? "正在登录…" : "LOGIN"} <span>→</span></button></footer>
+            <div className="panel-head access-head">
+              <div><span>STEP 02 · {loginMode === "technology" ? "科技部部长" : selected.username}</span>
+                <h2>{loginMode === "technology" ? "部长专用密码" : "输入登录密码"}</h2></div>
+              <small>RECOGNISED AS<br />{loginMode === "technology" ? "OFFICIAL MINISTRY" : selected.name}</small>
+            </div>
+            <label><span>Password · 密码</span><div>
+              <input type={show ? "text" : "password"} value={password}
+                onChange={event => { setPassword(event.target.value); setError(""); }}
+                placeholder={loginMode === "technology" ? "请输入部长专用密码" : "输入密码"}
+                aria-invalid={Boolean(error)} autoComplete="current-password" />
+              <button type="button" onClick={() => setShow(!show)}>{show ? "HIDE" : "SHOW"}</button>
+            </div></label>
+            <footer><p className={error ? "error" : ""} role="status">
+              {error || (loginMode === "technology" ? "部长专用入口不接受个人密码" : `正在以 ${selected.username} 的身份登录`)}
+            </p>
+            <button className="primary" type="submit" disabled={loggingIn}>{loggingIn ? "正在登录…" : "LOGIN"} <span>→</span></button></footer>
           </form>
         </div>
       </section>
