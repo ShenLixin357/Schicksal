@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { currentMember, sameOrigin, sessionCookie } from "../../member-session";
 import { requireTechnologyMinister } from "../../../server/auth/member.ts";
+import { ApiError } from "../../../server/http.ts";
 import { hashMemberPassword } from "../../member-passwords";
 import { CITIZENS } from "../../citizens";
 
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
       id: citizen.id, label: citizen.username, name: citizen.name,
       configured: saved.results.some((row) => row.citizenId === citizen.id) || typeof configured[citizen.id] === "string" && (configured[citizen.id] as string).length > 0,
     })) });
-  } catch { return reply({ error: "暂时无法读取成员设置。" }, 503); }
+  } catch (error) { return reply({ error: error instanceof ApiError ? error.message : "暂时无法读取成员设置。" }, error instanceof ApiError ? error.status : 503); }
 }
 
 export async function POST(request: Request) {
@@ -41,5 +42,5 @@ export async function POST(request: Request) {
       env.DB.prepare("DELETE FROM member_sessions WHERE citizen_id = ?").bind(id),
     ]);
     return Response.json({ ok: true, requiresLogin: id === adminMember }, { headers: { ...headers, ...(id === adminMember ? { "Set-Cookie": sessionCookie(request, "", 0) } : {}) } });
-  } catch { return reply({ error: "暂时无法保存成员密码，请稍后重试。" }, 503); }
+  } catch (error) { return reply({ error: error instanceof ApiError ? error.message : "暂时无法保存成员密码，请稍后重试。" }, error instanceof ApiError ? error.status : 503); }
 }
