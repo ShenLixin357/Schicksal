@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { CITIZENS, citizenRepresentativeColor } from "../app/citizens.ts";
 import {
   AMBERINA_MARK_PLACEMENTS, amberinaMarkAt, amberinaVariantAt,
@@ -28,6 +29,13 @@ test("official colour cannot be replaced by the stronger glyph-only colour", () 
   assert.equal(member.markColor,"#F3ED87");
   assert.equal(citizenRepresentativeColor(member),"#F3ED87");
   assert.equal(member.accent,"#f3c969","independent shared-emblem blade palette must remain unchanged");
+});
+
+test("secure inlined anonymous login art is byte-identical to the locked original Simple", () => {
+  const a = readFileSync(new URL("../app/assets/amberina-login-mark-official.png", import.meta.url));
+  const b = readFileSync(new URL("../public/amberina-personal-simple-official.png", import.meta.url));
+  assert.deepEqual(a, b, "entry art must never silently fall back to the strong glyph");
+  assert.equal(createHash("sha256").update(a).digest("hex"), "55b230019268fce29feb9011ba2d220f3576ec3d8c4d7659049548228b1e4823");
 });
 
 test("no implicit mark display default or unapproved mark calls remain", () => {
