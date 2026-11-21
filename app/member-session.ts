@@ -35,6 +35,15 @@ export async function currentMember(request: Request): Promise<string | null> {
  */
 export async function verifyTechnologyPassword(citizenId: string, password: string): Promise<boolean> {
   if (!await isIncumbentTechnologyMinister(citizenId) || !password || password.length > 1024) return false;
+  // The direct entry NEVER accepts the current minister's personal password,
+  // even if someone accidentally configures the two secrets identically.
+  if (await verifyMemberPassword(citizenId, password)) return false;
+  const stored = await env.DB.prepare(
+    "SELECT password_hash AS hash,password_salt AS salt FROM technology_direct_credentials WHERE office_id='technology'"
+  ).first<{hash:string;salt:string}>();
+  if (stored) return matchesMemberPassword(password,stored.salt,stored.hash);
+  // Optional first-setup fallback for a deployment without a configured hash.
+  // A subsequent in-console password setup overrides this Worker secret.
   const secret = (env as unknown as { SCHICKSAL_MINISTRY_DIRECT_PASSWORD?: string }).SCHICKSAL_MINISTRY_DIRECT_PASSWORD;
   if (!secret || secret.length < 12) return false;
   const [a,b] = await Promise.all([digest(password), digest(secret)]);
