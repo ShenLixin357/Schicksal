@@ -81,3 +81,19 @@
 .gallery-empty p { max-width: 380px; margin: 0; color: #7d8999; font-size: .74rem; line-height: 1.7; }
 .photo-privacy-note { margin: 18px auto 0 !important; padding: 15px 18px; border-left: 2px solid var(--gold); background: rgba(233,210,161,.13); color: #6c7b8e; font-size: .7rem; line-height: 1.7; }
 .photo-privacy-note strong { margin-right: 12px; color: var(--gold); font-size: 6px; letter-spacing: .16em; }
+
+/* Archive management UI only: original scene geometry/colours stay untouched. */
+.photo-gallery-toolbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.photo-gallery-toolbar button,.photo-card-actions button,.photo-inline-edit button {
+  border:1px solid var(--line-strong); background:transparent; color:var(--paper);
+  padding:7px 10px; font:500 .7rem var(--sans); cursor:pointer;
+}
+.photo-card-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:13px; }
+.photo-card-actions button:disabled,.photo-inline-edit button:disabled { opacity:.45; cursor:not-allowed; }
+.photo-inline-edit { margin-top:12px; padding:12px; display:grid; gap:10px; background:rgba(255,255,255,.45); border:1px solid var(--line); }
+.photo-inline-edit label { display:grid; gap:5px; font:500 .68rem var(--sans); }
+.photo-inline-edit input:not([type=checkbox]),.photo-inline-edit textarea { box-sizing:border-box; min-width:0; width:100%; border:1px solid var(--line-strong); padding:8px; background:#fffdf8; color:var(--ink); font:inherit; }
+.photo-inline-edit fieldset { border:1px solid var(--line); padding:8px; }
+.photo-inline-edit legend { font-size:.68rem; color:var(--paper); }
+.photo-edit-subjects { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:8px; }
+.photo-edit-subjects label { display:flex; align-items:center; gap:5px; }
