@@ -18,7 +18,7 @@ async function fixture() {
  INSERT INTO emerald_music_melodies(id,creator_id,client_id,notes_json,tempo,message,created_at) VALUES('melody','truth','client','[{"pitch":"C3","beats":1}]',80,'留言','2026-11-14');
  INSERT INTO member_insaniquarium_saves(citizen_id,state_json,revision,updated_at) VALUES('zxy','{"version":1,"files":{"users.dat":"AAECAw=="}}',7,'2026-11-14');
  INSERT INTO member_credentials VALUES('zxy','hash-sentinel','salt-sentinel',1,'amberina');
- INSERT INTO member_sessions VALUES('old-session','zxy',9999999999999);
+ INSERT INTO member_sessions(token_hash,citizen_id,expires_at) VALUES('old-session','zxy',9999999999999);
  INSERT INTO member_login_windows VALUES('window',2,9999999999999);
  `;
     return { directory, files, text, input: { sql, output: join(directory, "backup"), sourceCommit: "a".repeat(40), sourceDatabaseId: "11111111-2222-4333-8444-555555555555", getObject: async (key) => files.has(key) ? { body: files.get(key) } : null } };
