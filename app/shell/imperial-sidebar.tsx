@@ -49,9 +49,10 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
       </div>
     </div>
     <nav className="imperial-main-nav" id="imperial-navigation" aria-label="帝国主导航">
-      {PRIMARY_NAV.map(item => item.id === "collection" || item.id === "honors"
+      {PRIMARY_NAV.map((item, index) => item.id === "collection" || item.id === "honors"
         ? <SidebarMenuGroup key={item.id} item={item}
           menuId={item.id === "collection" ? "collection" : "points"}
+          indexLabel={String(index + 1).padStart(2, "0")}
           items={item.id === "collection" ? COLLECTION_NAV : POINTS_NAV}
           activeSection={activeSection} collapsed={collapsed}
           onExpandSidebar={onToggle} onNavigate={onNavigate}/>
@@ -59,7 +60,7 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
           className={`imperial-nav-entry ${activeSection === item.id ? "active" : ""}`}
           aria-current={activeSection === item.id ? "page" : undefined}
           title={item.label} onClick={() => onNavigate(item.id)}>
-          <span className="imperial-nav-icon"><NavigationIcon name={item.icon}/></span>
+          <span className="imperial-nav-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
           <SidebarNavCopy label={item.label} en={item.en}/>
         </button>)}
     </nav>
