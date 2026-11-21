@@ -4,6 +4,7 @@ import { getDb } from "../../../db";
 import { ensurePhotoSchema } from "../../../db/photo-schema";
 import { archivePhotos } from "../../../db/schema";
 import { requireMember } from "../../../server/auth/member.ts";
+import { isCurrentTechnologyMinister } from "../../identity/office-registry.ts";
 import { readJson, apiFailure, ApiError } from "../../../server/http.ts";
 import { getPhotoStorage, PhotoStorageError, type PhotoStorage } from "../../photo-storage";
 
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
     const member = await requireMember(request);
     await ensurePhotoSchema();
     const trash = new URL(request.url).searchParams.get("trash") === "1";
-    if (trash && member !== "amberina") return Response.json({ error: "仅管理员可以查看回收站。" }, { status: 403 });
+    if (trash && !isCurrentTechnologyMinister(member)) return Response.json({ error: "仅管理员可以查看回收站。" }, { status: 403 });
     const rows = await getDb()
       .select()
       .from(archivePhotos)
@@ -171,7 +172,7 @@ export async function POST(request: Request) {
   }
 }
 
-/** Every member may edit only their own active photos; the owner may edit all. */
+/** Every member may edit only their own active photos; the confirmed Technology Minister may edit all. */
 export async function PATCH(request: Request) {
   try {
     const member = await requireMember(request);
@@ -180,7 +181,7 @@ export async function PATCH(request: Request) {
     if (!id) return Response.json({ error: "缺少照片编号。" }, { status: 400 });
     const [existing] = await getDb().select().from(archivePhotos).where(eq(archivePhotos.id, id)).limit(1);
     if (!existing || existing.deletedAt) return Response.json({ error: "照片不存在或已进入回收站。" }, { status: 404 });
-    if (member !== "amberina" && member !== existing.uploaderCitizenId) return Response.json({ error: "只能编辑自己上传的照片。" }, { status: 403 });
+    if (!isCurrentTechnologyMinister(member) && member !== existing.uploaderCitizenId) return Response.json({ error: "只能编辑自己上传的照片。" }, { status: 403 });
     const payload = await readJson<{ title?: unknown; description?: unknown; era?: unknown; capturedAt?: unknown; subjects?: unknown }>(request, 4096);
     const changes: Partial<typeof archivePhotos.$inferInsert> = {};
     if ("title" in payload) {
@@ -213,7 +214,7 @@ export async function DELETE(request: Request) {
     if (!id) return Response.json({ error: "缺少照片编号。" }, { status: 400 });
     const [row] = await getDb().select().from(archivePhotos).where(eq(archivePhotos.id, id)).limit(1);
     if (!row) return Response.json({ error: "找不到这张照片。" }, { status: 404 });
-    if (member !== "amberina" && member !== row.uploaderCitizenId) return Response.json({ error: "只能删除自己上传的照片。" }, { status: 403 });
+    if (!isCurrentTechnologyMinister(member) && member !== row.uploaderCitizenId) return Response.json({ error: "只能删除自己上传的照片。" }, { status: 403 });
     if (row.deletedAt) return Response.json({ deleted: true, alreadyInTrash: true });
     const [updated] = await getDb().update(archivePhotos)
       .set({ deletedAt: new Date().toISOString(), deletedByCitizenId: member })
@@ -223,11 +224,11 @@ export async function DELETE(request: Request) {
   } catch (error) { return apiFailure(error, "无法将照片移入回收站。"); }
 }
 
-/** Only the site owner can restore trashed photos; original storage key is untouched. */
+/** Only the authenticated Technology Minister may restore trashed photos; original storage key is untouched. */
 export async function PUT(request: Request) {
   try {
     const member = await requireMember(request);
-    if (member !== "amberina") return Response.json({ error: "仅管理员可以恢复照片。" }, { status: 403 });
+    if (!isCurrentTechnologyMinister(member)) return Response.json({ error: "仅管理员可以恢复照片。" }, { status: 403 });
     await ensurePhotoSchema();
     const id = new URL(request.url).searchParams.get("id")?.trim();
     if (!id) return Response.json({ error: "缺少照片编号。" }, { status: 400 });
