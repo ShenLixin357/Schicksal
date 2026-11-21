@@ -10,6 +10,7 @@ import { CITIZENS, citizenRepresentativeColor, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
 import { isCurrentPresident, currentOfficeLabel } from "./identity/office-registry";
 import { PublicCitizenMark as CitizenMark } from "./identity/public-mark";
+import { ATLAS_VISUAL_APPROVED } from "./shell/navigation";
 import { CompactEmpireEmblem as Emblem } from "./emblem/compact-emblem";
 
 import { atlasOfficesForCitizen, atlasName, atlasCodename } from "./atlas/atlas-data";
@@ -340,7 +341,7 @@ function System({ citizen, logout, initialBriefing }: {
     case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "atlas":
     case "citizens":
-    case "emblem": content = <FeatureSuspense label="天命图谱"><SchicksalAtlas key={focusedCitizenId ?? "atlas-default"} initialCitizenId={focusedCitizenId ?? undefined} onVisitCitizen={openAtlasProfile} onOpenHandbook={openAtlasHandbook}/></FeatureSuspense>; break;
+    case "emblem": content = ATLAS_VISUAL_APPROVED ? <FeatureSuspense label="天命图谱"><SchicksalAtlas key={focusedCitizenId ?? "atlas-default"} initialCitizenId={focusedCitizenId ?? undefined} onVisitCitizen={openAtlasProfile} onOpenHandbook={openAtlasHandbook}/></FeatureSuspense> : <section className="feature-loading" aria-label="天命图谱美术尚未验收">天命图谱美术尚未通过验收，暂不开放展示。</section>; break;
     case "parliament": content = <><div className="atlas-parliament-help"><button type="button" title="查阅图书馆政务手册" onClick={openAtlasHandbook}>▤ 政务手册 ↗</button></div><FeatureSuspense label="帝国政务"><PersistentParliamentSection citizen={citizen} requestedItemId={parliamentDeepLink} requestedFocus={parliamentDeepLinkFocus} focusReferendums={parliamentFocus === "referendum"} renderOfficialMark={(member, placement) => <CitizenMark citizen={member} placement={placement} />} /></FeatureSuspense></>; break;
     case "honors": content = <HonorsSection/>; break;
     case "calendar": content = <CalendarSection />; break;
