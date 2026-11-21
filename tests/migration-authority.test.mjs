@@ -14,7 +14,7 @@ const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier 
 const { ensureParliamentSchema } = await import("../db/parliament-schema.ts"), { ensurePhotoSchema } = await import("../db/photo-schema.ts"), { ensureBriefingInboxSchema } = await import("../app/briefing/inbox-schema.ts");
 hooks.deregister();
 after(() => { delete globalThis.__schemaCheckEnv; });
-test("fresh migrations apply and all query-model columns/types match", async () => { assert.equal((await checkMigrations(root)).length, 19); });
+test("fresh migrations apply and all query-model columns/types match", async () => { assert.equal((await checkMigrations(root)).length, 20); });
 test("merged release preserves vase migration 0011 and retains direct messages 0012 and appends parliament bootstrap as 0013", async () => {
     const files = await migrationFiles(root);
     assert.equal(files[11].name, "0011_committee_vase_history.sql");
@@ -102,7 +102,7 @@ test("sealed SQL cannot change and new migrations require sealing", async () => 
         await writeFile(path, original + "\n-- changed");
         await assert.rejects(checkHistory(directory), /cannot be rewritten/);
         await writeFile(path, original);
-        await writeFile(join(directory, "drizzle/0019_future.sql"), "--new\n");
+        await writeFile(join(directory, "drizzle/0020_future.sql"), "--new\n");
         await assert.rejects(checkHistory(directory), /seal/);
     }
     finally {
