@@ -55,6 +55,7 @@ const ArchivesSection = lazy(() => import("./archives/archive-section").then(mod
 const CommitteeLounge = lazy(() => import("./club/committee-lounge").then(module => ({ default: module.CommitteeLounge })));
 
 type AccountMode = "citizen" | "technology";
+type AuthSource = "personal" | "ministry-direct";
 type Phase = "opening" | "login" | "welcome" | "system";
 type Section = SiteSection;
 
@@ -86,7 +87,7 @@ function Opening({ done }: { done: () => void }) {
   );
 }
 
-function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode) => void; replay: () => void }) {
+function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode, authSource: AuthSource) => void; replay: () => void }) {
   const [selectedId, setSelectedId] = useState("amberina");
   const [loginMode, setLoginMode] = useState<AccountMode>("citizen");
   const [password, setPassword] = useState("");
@@ -111,11 +112,11 @@ function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode)
       const response = await fetch("/api/member-session", { method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ citizenId, password, accountMode: loginMode }) });
-      const payload = await response.json() as { error?: string; citizenId?: string; accountMode?: AccountMode };
+      const payload = await response.json() as { error?: string; citizenId?: string; accountMode?: AccountMode; authSource?: AuthSource };
       if (!response.ok) throw new Error(payload.error || "登录暂时未能完成。");
       const current = CITIZENS.find(item => item.id === payload.citizenId && !item.locked);
       if (!current || payload.accountMode !== loginMode) throw new Error("服务器返回的身份不一致。");
-      setPassword(""); enter(current, payload.accountMode);
+      setPassword(""); enter(current, payload.accountMode, payload.authSource === "ministry-direct" ? "ministry-direct" : "personal");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "暂时无法连接登录服务。"); }
     finally { setLoggingIn(false); }
   };
@@ -260,8 +261,8 @@ function PublicAtlasCitizenProfile({ citizen, onBack, offices }: { citizen: Citi
 
 function ProfileSection({ citizen, offices }: { citizen: Citizen; offices: readonly Office[] | null }) { return <SelfProfilePage citizen={citizen} offices={offices} renderMark={<CitizenMark citizen={citizen} placement="profile-personal-simple" />}/>; }
 
-function System({ citizen, accountMode, offices, onAccountModeChange, logout, initialBriefing }: {
-  citizen: Citizen; accountMode:AccountMode; offices: readonly Office[] | null; onAccountModeChange:(mode:AccountMode)=>void; logout: () => void; initialBriefing: BriefingFeed;
+function System({ citizen, accountMode, authSource, offices, onAccountModeChange, logout, initialBriefing }: {
+  citizen: Citizen; accountMode:AccountMode; authSource:AuthSource; offices: readonly Office[] | null; onAccountModeChange:(mode:AccountMode)=>void; logout: () => void; initialBriefing: BriefingFeed;
 }) {
   const [section,setSection] = useState<Section>("home");
   const isCurrentMinister = Boolean(offices && isCurrentTechnologyMinister(citizen.id, offices));
@@ -269,7 +270,7 @@ function System({ citizen, accountMode, offices, onAccountModeChange, logout, in
   const switchBusy = useRef(false);
   const [modeSwitchMessage,setModeSwitchMessage] = useState("");
   const switchAccountImmediately = () => {
-    if (!(accountMode === "technology" || isCurrentMinister) || switchBusy.current) return;
+    if (authSource !== "personal" || !(accountMode === "technology" || isCurrentMinister) || switchBusy.current) return;
     switchBusy.current = true;
     setSwitchingMode(true); setModeSwitchMessage("");
     const target: AccountMode = accountMode === "technology" ? "citizen" : "technology";
@@ -479,7 +480,7 @@ function System({ citizen, accountMode, offices, onAccountModeChange, logout, in
           document.querySelector(".system-main")?.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onLogout={logout}
-        onSelfLongPress={accountMode === "technology" || isCurrentMinister ? switchAccountImmediately : undefined}
+        onSelfLongPress={authSource === "personal" && (accountMode === "technology" || isCurrentMinister) ? switchAccountImmediately : undefined}
       />
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>
         <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
@@ -502,6 +503,7 @@ export default function Home() {
   const [phase, setPhase] = useState<Phase>("opening");
   const [citizen, setCitizen] = useState(CITIZENS[0]);
   const [accountMode,setAccountMode] = useState<AccountMode>("citizen");
+  const [authSource,setAuthSource] = useState<AuthSource>("personal");
   const [offices,setOffices] = useState<readonly Office[] | null>(null);
   const [preload, setPreload] = useState<PreparedBriefing>({ status: "loading" });
   const [preloadAttempt, setPreloadAttempt] = useState(0);
@@ -529,7 +531,7 @@ export default function Home() {
     const controller = new AbortController();
     restoreController.current = controller;
     void fetch("/api/member-session", { cache: "no-store", signal: controller.signal })
-      .then(async (response) => response.ok ? await response.json() as { citizenId?: string; accountMode?: AccountMode } : null)
+      .then(async (response) => response.ok ? await response.json() as { citizenId?: string; accountMode?: AccountMode; authSource?: AuthSource } : null)
       .then((session) => {
         if (controller.signal.aborted) return;
         const member = CITIZENS.find((item) => item.id === session?.citizenId && !item.locked);
@@ -537,6 +539,7 @@ export default function Home() {
         restoredCitizen.current = member;
         setCitizen(member);
         setAccountMode(session?.accountMode==="technology"?"technology":"citizen");
+        setAuthSource(session?.authSource==="ministry-direct"?"ministry-direct":"personal");
         let entryCompleted = false;
         try { entryCompleted = window.sessionStorage.getItem("schicksal:entry-complete") === "1"; window.sessionStorage.removeItem("schicksal:entry-complete"); } catch { /* Retain the normal opening when storage is unavailable. */ }
         setPhase((current) => entryCompleted || current === "login" ? "welcome" : current);
@@ -557,9 +560,11 @@ export default function Home() {
       }).catch(() => { if (live) setOffices(null); });
       void fetch("/api/member-session", { cache: "no-store" }).then(async response => {
         if (!response.ok) return;
-        const payload = await response.json() as { citizenId?: string; accountMode?: AccountMode };
-        if (live && payload.citizenId === citizen.id)
+        const payload = await response.json() as { citizenId?: string; accountMode?: AccountMode; authSource?: AuthSource };
+        if (live && payload.citizenId === citizen.id) {
           setAccountMode(payload.accountMode === "technology" ? "technology" : "citizen");
+          setAuthSource(payload.authSource === "ministry-direct" ? "ministry-direct" : "personal");
+        }
       }).catch(() => undefined);
     };
     refresh();
@@ -599,12 +604,12 @@ export default function Home() {
     setPhase("system");
   }, [citizen.id, preload]);
   if (phase === "opening") return <Opening done={() => setPhase(restoredCitizen.current ? "welcome" : "login")} />;
-  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next,mode) => { restoreController.current?.abort(); setCitizen(next); setOffices(null); setAccountMode(mode); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
+  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next,mode,source) => { restoreController.current?.abort(); setCitizen(next); setOffices(null); setAccountMode(mode); setAuthSource(source); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
   // A phase transition alone never grants site access. If its live feed
   // is missing, keep the authenticated member on the Welcome gate.
   if (phase === "welcome" || !systemBriefing) return <Welcome citizen={citizen} accountMode={accountMode} offices={offices} enter={enterSystem}
     preloadStatus={preload.citizenId && preload.citizenId !== citizen.id ? "loading" : preload.status}
     retry={retryPreload} />;
-  return <System citizen={citizen} accountMode={accountMode} offices={offices} onAccountModeChange={setAccountMode} initialBriefing={systemBriefing.feed}
+  return <System citizen={citizen} accountMode={accountMode} authSource={authSource} offices={offices} onAccountModeChange={setAccountMode} initialBriefing={systemBriefing.feed}
     logout={() => { void logoutMember(); }} />;
 }
