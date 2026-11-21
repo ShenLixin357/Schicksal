@@ -1,8 +1,8 @@
 /**
  * Central public office registry: positions belong to offices, not personal
- * marks, login records, or Lounge masks. Current static assignments are the
- * approved baseline. A future authenticated election/appointment service
- * will publish a verified snapshot here; UI must not invent office transfers.
+ * marks, login records, or Lounge masks. Historical assignments below are the initial metadata baseline. Current
+ * officeholders come only from the authenticated live office snapshot. The
+ * election processor will update server-side current_office_holders.
  */
 export type Office = {
   id: string;
@@ -36,13 +36,21 @@ export function isCurrentPresident(citizenId: string, snapshot: readonly Office[
   return officeHolders("president", snapshot).includes(citizenId);
 }
 /** Derive display office from current assignments; do not trust stale Citizen.office. */
+export function officesForCitizen(citizenId: string, snapshot: readonly Office[] = ATLAS_OFFICES): Office[] {
+  return snapshot.filter(office => office.holderIds.includes(citizenId));
+}
+/** Titles are computed from the same current office roster as permissions.
+ * Never fall back to a former office in citizen.office after a transition.
+ */
 export function currentOfficeLabel(
   citizen: { id: string; office: string },
   snapshot: readonly Office[] = ATLAS_OFFICES,
 ): string {
   if (isCurrentPresident(citizen.id, snapshot)) return "President of the First Empire";
-  if (citizen.office === "President of the First Empire") return "Citizen of the First Empire";
-  return citizen.office;
+  const held = officesForCitizen(citizen.id, snapshot);
+  const primary = held.find(office => office.category === "ministry" || office.category === "institution")
+    ?? held.find(office => office.category === "committee");
+  return primary?.english ?? "Citizen of the First Empire";
 }
 /**
  * Pure draft transition helper for election logic/tests. No mutations, writes
