@@ -10,7 +10,7 @@ import { NavigationIcon } from "./navigation-icons";
 import { SidebarMenuGroup, SidebarNavCopy } from "./sidebar-menu-group";
 
 export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnterLounge, sharedMark,
-  presence, members, selfId, renderMemberMark, onToggle, onLogo, onNavigate, onLogout }: {
+  presence, members, selfId, renderMemberMark, onToggle, onLogo, onNavigate, onLogout, onSelfLongPress }: {
   activeSection: string;
   collapsed: boolean;
   loungeOpen: boolean;
@@ -24,6 +24,7 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
   onLogo: () => void;
   onNavigate: (id: SidebarDestination) => void;
   onLogout: () => void;
+  onSelfLongPress?: () => void;
 }) {
   return <aside className="sidebar imperial-sidebar" id="imperial-sidebar">
     <div className="side-brand imperial-side-brand">
@@ -65,7 +66,7 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
     </nav>
     <div className="schicksal-sidebar-footer">
       <SidebarPresence presence={presence} members={members} collapsed={collapsed} selfId={selfId}
-        renderMark={renderMemberMark} onMember={() => onNavigate("messenger")}/>
+        renderMark={renderMemberMark} onMember={() => onNavigate("messenger")} onSelfLongPress={onSelfLongPress}/>
       <button type="button" className="schicksal-sidebar-logout"
         onClick={onLogout} title="退出登录" aria-label="退出登录">↗</button>
     </div>
