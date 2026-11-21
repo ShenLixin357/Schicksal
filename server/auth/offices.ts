@@ -19,13 +19,15 @@ export async function readCurrentOffices(): Promise<Office[]> {
     confirmed: rows.some(row => row.officeId === office.id),
   }));
 }
-export async function isIncumbentTechnologyMinister(citizenId: string): Promise<boolean> {
-  if (!citizenId) return false;
+export async function currentTechnologyMinisterId(): Promise<string | null> {
   const result = await env.DB.prepare(
     "SELECT citizen_id AS citizenId FROM current_office_holders WHERE office_id = 'technology' LIMIT 2"
   ).all<{ citizenId: string }>();
   const rows = result.results ?? [];
   // The office must have exactly one incumbent; ambiguous/empty election
   // transfers fail closed rather than granting privileges to two people.
-  return rows.length === 1 && rows[0].citizenId === citizenId;
+  return rows.length === 1 ? rows[0].citizenId : null;
+}
+export async function isIncumbentTechnologyMinister(citizenId: string): Promise<boolean> {
+  return Boolean(citizenId) && (await currentTechnologyMinisterId()) === citizenId;
 }
