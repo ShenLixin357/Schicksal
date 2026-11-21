@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
+import { Component, lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { GAME_CABINET } from "./game-room-catalogue";
 import "./game-room-embed.css";
 import { LoungeSolitaireDeckFigure } from "./lounge-solitaire";
@@ -13,6 +14,20 @@ import type { EmblemBlade, MiniGameId } from "./minigames/mini-game-types";
 const FireboyWatergirlGame = lazy(() => import("../games/fireboy-watergirl/game-frame").then(m => ({ default: m.FireboyWatergirlFrame })));
 const AquariumGame = lazy(() => import("../games/aquarium/aquarium-game").then(m => ({ default: m.AquariumGame })));
 type StandaloneGameId = "ice-fire" | "aquarium";
+
+/** Failed lazy imports must not crash the authenticated website shell. */
+class EmbeddedGameBoundary extends Component<{ children: ReactNode; onExit: () => void }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    return this.state.failed
+      ? <section className="lounge-embedded-error" role="alert">
+          <p>游戏模块暂时无法打开；你的 Lounge 和登录状态仍然保留。</p>
+          <button type="button" onClick={this.props.onExit}>返回游戏室</button>
+        </section>
+      : this.props.children;
+  }
+}
 
 const COLLECTIBLE_CELLS: Record<string, [number, number]> = {
   potion: [0, 1], merge: [1, 1], sigils: [2, 1],
@@ -58,11 +73,16 @@ export function GameRoom({ onBack, onLaunch, onRankings, emblemBlades }: { emble
   };
   const launch = (id: MiniGameId) => { setCatalogueOpen(false); onLaunch(id); };
   const closeDialog = () => { setConsoleOpen(false); setCatalogueOpen(false); (consoleOpen ? consoleTrigger : catalogueTrigger).current?.focus(); };
-  if (routeGame) return <div className="lounge-embedded-game" data-lounge-embedded-game={routeGame}>
-    <Suspense fallback={<div className="lounge-embedded-loading" role="status">正在打开游戏…</div>}>
-      {routeGame === "ice-fire" ? <FireboyWatergirlGame onBack={() => setRouteGame(null)} /> : <AquariumGame onBack={() => setRouteGame(null)} />}
-    </Suspense>
-  </div>;
+  if (routeGame) return createPortal(
+    <div className="lounge-embedded-game" data-lounge-embedded-game={routeGame}>
+      <EmbeddedGameBoundary onExit={() => setRouteGame(null)}>
+        <Suspense fallback={<div className="lounge-embedded-loading" role="status">正在打开游戏…</div>}>
+          {routeGame === "ice-fire" ? <FireboyWatergirlGame onBack={() => setRouteGame(null)} /> : <AquariumGame onBack={() => setRouteGame(null)} />}
+        </Suspense>
+      </EmbeddedGameBoundary>
+    </div>,
+    document.body,
+  );
   return <section className={`lounge-game-room ${softLight ? "game-room-soft-light" : ""}`} aria-label="温暖明亮的天命游戏室">
     <header className="game-room-toolbar"><button type="button" onClick={onBack}>← 返回 Lounge</button><div><small>THE SUNNY SIDE OF SCHICKSAL</small><h1>八音盒里的游艺室</h1></div><button ref={catalogueTrigger} type="button" onClick={() => setCatalogueOpen(true)}>游戏目录</button><button type="button" onClick={onRankings}>成绩簿</button><button type="button" aria-pressed={softLight} onClick={() => setSoftLight(v=>!v)}>{softLight ? "午后阳光" : "柔和灯光"}</button></header>
     <div className="game-room-stage">
