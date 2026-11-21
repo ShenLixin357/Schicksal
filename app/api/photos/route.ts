@@ -85,6 +85,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   let objectKey = "";
   let storage: PhotoStorage | null = null;
+  let databaseCommitted = false;
   try {
     const uploaderCitizenId = await requireMember(request);
     storage = getPhotoStorage(env);
@@ -159,10 +160,13 @@ export async function POST(request: Request) {
         sizeBytes: bytes.byteLength,
       })
       .returning();
+    databaseCommitted = true;
 
     return Response.json({ photo: publicPhoto(row) }, { status: 201 });
   } catch (error) {
-    if (objectKey) await storage?.delete(objectKey).catch(() => undefined);
+    // Never delete an object once its DB row has committed: a later response
+    // failure must not create a dangling photo reference.
+    if (objectKey && !databaseCommitted) await storage?.delete(objectKey).catch(() => undefined);
     return apiFailure(error instanceof PhotoStorageError ? new ApiError(error.message, error.status) : error, "照片上传失败，请稍后重试。");
   }
 }
