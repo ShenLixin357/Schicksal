@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { after, test } from "node:test";
 import { ApiError, readJson } from "../server/http.ts";
 const DIRECT_TEST_SECRET = "UnitTest-Minister-SpecialCredential-2026";
-const env = { SCHICKSAL_HOSTING: "cloudflare", SCHICKSAL_MINISTRY_DIRECT_PASSWORD: DIRECT_TEST_SECRET };
+const env = { SCHICKSAL_HOSTING: "cloudflare" };
 globalThis.__boundaryEnv = env;
 const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier === "cloudflare:workers")
         return { url: "data:text/javascript,export const env=globalThis.__boundaryEnv", shortCircuit: true }; if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier))
@@ -145,6 +145,9 @@ test("ministry direct-login requires the independent secret, never the incumbent
         const hash=await hashMemberPassword(personal);
         db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
           .run("amberina",hash.hash,hash.salt,Date.now(),"amberina");
+        const secretHash=await hashMemberPassword(DIRECT_TEST_SECRET);
+        db.prepare("INSERT INTO technology_direct_credentials(office_id,password_hash,password_salt,updated_at,updated_by,citizen_id,term_id) VALUES('technology',?,?,?,?,?,?)")
+          .run(secretHash.hash,secretHash.salt,Date.now(),"amberina","amberina","founding-2026");
         const directPath="/api/member-session";
         const direct=(password,citizenId="technology")=>memberSessions.POST(request(directPath,{
             method:"POST",body:{citizenId,accountMode:"technology",password}
@@ -157,6 +160,10 @@ test("ministry direct-login requires the independent secret, never the incumbent
         const result=await response.json();
         assert.equal(result.citizenId,"amberina");
         assert.equal(result.accountMode,"technology");
+        assert.equal(result.authSource,"ministry-direct");
+        const officeCookie=response.headers.get("set-cookie")?.split(";")[0];
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie:officeCookie,body:{target:"citizen"}}))).status,403,"direct ministry password must not access personal identity by switching");
+        assert.equal((await technology.GET(request("/api/technology",{cookie:officeCookie}))).status,200);
         assert.equal((await memberSessions.POST(request(directPath,{
           method:"POST",body:{citizenId:"amberina",accountMode:"citizen",password:personal}
         }))).status,200,"ordinary personal login remains valid");
@@ -211,23 +218,44 @@ test("password updates revoke sessions; new appointments transfer special gate, 
           citizenId:"amberina",password:newPassword,accountMode:"citizen"}}))).status,200);
         assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
           citizenId:"technology",password:newPassword,accountMode:"technology"}}))).status,401);
+        const specialHash=await hashMemberPassword(DIRECT_TEST_SECRET);
+        db.prepare("INSERT INTO technology_direct_credentials(office_id,password_hash,password_salt,updated_at,updated_by,citizen_id,term_id) VALUES('technology',?,?,?,?,?,?)")
+          .run(specialHash.hash,specialHash.salt,Date.now(),"amberina","amberina","founding-2026");
         assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
           citizenId:"technology",password:DIRECT_TEST_SECRET,accountMode:"technology"}}))).status,200);
 
         const before=await offices.GET(request("/api/offices/current",{cookie:session(db,"truth")}));
         assert.deepEqual((await before.json()).offices.find(o=>o.id==="technology").holderIds,["amberina"]);
+        const oldOfficeLogin=await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
+          citizenId:"technology",password:DIRECT_TEST_SECRET,accountMode:"technology"
+        }}));
+        const oldOfficeCookie=oldOfficeLogin.headers.get("set-cookie")?.split(";")[0];
         const former=session(db,"amberina","technology");
         db.prepare("DELETE FROM current_office_holders WHERE office_id='technology'").run();
         db.prepare("INSERT INTO current_office_holders(office_id,citizen_id,term_id) VALUES('technology','truth','election-2027')").run();
         assert.equal((await technology.GET(request("/api/technology",{cookie:former}))).status,403);
+        assert.equal((await technology.GET(request("/api/technology",{cookie:oldOfficeCookie}))).status,401,
+          "office-only login must not downgrade into former incumbent's personal account");
         assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie:former,body:{target:"technology"}}))).status,403);
         const after=await offices.GET(request("/api/offices/current",{cookie:session(db,"truth")}));
         assert.deepEqual((await after.json()).offices.find(o=>o.id==="technology").holderIds,["truth"]);
         const newIncumbent=session(db,"truth");
         assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie:newIncumbent,body:{target:"technology"}}))).status,200);
         assert.equal((await technology.GET(request("/api/technology",{cookie:newIncumbent}))).status,200);
-        const special=await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
+        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
           citizenId:"technology",password:DIRECT_TEST_SECRET,accountMode:"technology"
+        }}))).status,401,"old-term password must never impersonate a successor");
+        const truthPersonal="Truth-Personal-Secret-44";
+        const newHash=await hashMemberPassword(truthPersonal);
+        db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
+          .run("truth",newHash.hash,newHash.salt,Date.now(),"truth");
+        const passState=await ministerPassword.GET(request("/api/technology/direct-password",{cookie:newIncumbent}));
+        assert.equal((await passState.json()).configured,false);
+        assert.equal((await ministerPassword.PUT(request("/api/technology/direct-password",{method:"PUT",cookie:newIncumbent,body:{
+          personalPassword:truthPersonal,newPassword:"NewTermSecret-2027"
+        }}))).status,200);
+        const special=await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
+          citizenId:"technology",password:"NewTermSecret-2027",accountMode:"technology"
         }}));
         assert.equal(special.status,200);
         assert.equal((await special.json()).citizenId,"truth");
@@ -261,6 +289,8 @@ test("incumbent sets a separate hashed direct-login password from minister dashb
         const record=db.prepare("SELECT password_hash AS hash,password_salt AS salt,updated_by AS by FROM technology_direct_credentials WHERE office_id='technology'").get();
         assert.ok(record && record.hash!==direct && record.salt.length===32);
         assert.equal(record.by,"amberina");
+        const bound=db.prepare("SELECT citizen_id AS citizen,term_id AS term FROM technology_direct_credentials WHERE office_id='technology'").get();
+        assert.deepEqual(bound,{citizen:"amberina",term:"founding-2026"});
 
         const directLogin=(pw)=>memberSessions.POST(request("/api/member-session",{
           method:"POST",body:{citizenId:"technology",accountMode:"technology",password:pw}
