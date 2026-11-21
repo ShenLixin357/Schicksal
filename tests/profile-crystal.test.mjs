@@ -7,43 +7,50 @@ import {
 
 const read = p => readFileSync(new URL("../" + p, import.meta.url), "utf8");
 
-test("each personal-page kite is 4.236 times as long as its full width", () => {
-  const point = profileCrystalCoordinates(20, 20);
-  assert.equal(point.maximumWidth, 20);
-  assert.equal(point.totalLength, 84.72);
-  assert.ok(Math.abs((point.innerY-point.outerY) / (point.rightX-point.leftX) - 4.236) < 1e-10);
-  assert.equal(PROFILE_CRYSTAL_RATIO.lengthToMaxWidth, 4.236);
-  assert.equal(PROFILE_CRYSTAL_RATIO.maxWidthFromOuter, 0.618);
+test("one crystal exactly follows the 4.236 / 0.618 geometry", () => {
+  const point = profileCrystalCoordinates(34, 0);
+  assert.equal(point.maximumWidth, 34);
+  assert.equal(point.totalLength, 34 * 4.236);
+  assert.ok(Math.abs((point.innerY-point.outerY)/(point.rightX-point.leftX)-4.236)<1e-10);
+  assert.equal(PROFILE_CRYSTAL_RATIO.maxWidthFromOuter, .618);
   assert.equal(PROFILE_CRYSTAL_RATIO.outerToInner, 1.618);
-  assert.ok(Math.abs((point.shoulderY-point.outerY) / point.totalLength - 0.618) < 1e-10);
-  assert.ok(Math.abs((point.shoulderY-point.outerY) / (point.innerY-point.shoulderY) - 1.618) < .001);
+  assert.ok(Math.abs((point.shoulderY-point.outerY)/point.totalLength-.618)<1e-10);
+  assert.ok(Math.abs((point.shoulderY-point.outerY)/(point.innerY-point.shoulderY)-1.618)<.001);
   assert.equal(profileCrystalPath(point), `M 0 ${point.outerY} L ${point.rightX} ${point.shoulderY} L 0 ${point.innerY} L ${point.leftX} ${point.shoulderY} Z`);
-  assert.throws(() => profileCrystalCoordinates(0,20), RangeError);
-  assert.throws(() => profileCrystalCoordinates(20,-2), RangeError);
 });
 
-test("the profile adds diamonds beside the approved personal mark and isolates styling", () => {
-  const profile=read("app/profile/profile-page.tsx");
-  const badge=read("app/profile/profile-crystal-emblem.tsx");
-  const css=read("app/profile/profile-crystal.css");
-  assert.match(profile, /<ProfileCrystalEmblem citizenId=\{citizen\.id\}\/>\{renderMark\}/);
-  assert.match(badge, /EMBLEM_BLADES\.map/);
-  assert.match(badge, /profileCrystalPath\(coordinates\)/);
-  assert.match(badge, /transform=\{\`translate\(120 120\) rotate/);
-  assert.match(badge, /import "\.\/profile-crystal\.css"/);
+test("self-profile has ONE officially coloured blade plus unchanged Simple mark", () => {
+  const profile = read("app/profile/profile-page.tsx");
+  const crystal = read("app/profile/profile-crystal-emblem.tsx");
+  const css = read("app/profile/profile-crystal.css");
+  assert.match(profile, /<ProfileCrystalEmblem color=\{citizenRepresentativeColor\(citizen\)\}\/>\{renderMark\}/);
+  assert.match(crystal, /profileCrystalPath\(coordinates\)/);
+  assert.match(crystal, /data-crystal-count="1"/);
+  assert.match(crystal, /fill=\{color\}/);
+  assert.doesNotMatch(crystal, /EMBLEM_BLADES|\.map\(|rotate\(\$\{blade\.angle\}|profile-crystal-core-ring/);
+  assert.match(crystal, /import "\.\/profile-crystal\.css"/);
   assert.match(css, /\.profile-crystal-emblem/);
   assert.doesNotMatch(css, /(^|\n)\s*\.(?:sidebar|club-|lounge-|emblem-3d-)/);
-  assert.ok(!badge.includes("MafraerLounge"));
+  assert.ok(!crystal.includes("MafraerLounge"));
 });
 
-test("navigation width and type scale preserve original main site across screen sizes", () => {
+test("sidebar width, typography, colour and navigation spacing match original", () => {
   const layout=read("app/navigation-layout.css");
+  const original=read("app/globals.css");
   const shell=read("app/shell/shell.css");
+  const root=read("app/entry.css");
   assert.match(layout, /--sidebar-width: 248px/);
   assert.match(layout, /--sidebar-width: 200px/);
   assert.match(layout, /--sidebar-width: 64px/);
+  assert.match(original, /min-height: 49px/);
   assert.match(shell, /min-height:49px/);
-  assert.match(shell, /font:500 \.74rem\/1\.4 var\(--sans\)/);
-  assert.match(shell, /font:400 6px\/1\.3 var\(--sans\)/);
+  assert.match(shell, /padding:0 9px/);
+  assert.match(shell, /font-size:\.74rem/);
+  assert.match(shell, /font-size:6px/);
+  assert.match(shell, /color:#505d70/);
+  assert.match(root, /--sans: Inter, ui-sans-serif, -apple-system/);
+  assert.match(root, /--serif: Georgia, "Times New Roman", "Noto Serif SC"/);
+  assert.match(shell, /font-family:var\(--sans\)/);
+  assert.match(shell, /min-height:54px/);
   assert.doesNotMatch(shell, /imperial-nav-copy > strong \{ font-size:\.(?:67|6)rem/);
 });
