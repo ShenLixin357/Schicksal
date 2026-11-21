@@ -290,7 +290,7 @@ test("incumbent sets a separate hashed direct-login password from minister dashb
         assert.ok(record && record.hash!==direct && record.salt.length===32);
         assert.equal(record.by,"amberina");
         const bound=db.prepare("SELECT citizen_id AS citizen,term_id AS term FROM technology_direct_credentials WHERE office_id='technology'").get();
-        assert.deepEqual(bound,{citizen:"amberina",term:"founding-2026"});
+        assert.deepEqual({...bound},{citizen:"amberina",term:"founding-2026"});
 
         const directLogin=(pw)=>memberSessions.POST(request("/api/member-session",{
           method:"POST",body:{citizenId:"technology",accountMode:"technology",password:pw}
