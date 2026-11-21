@@ -48,7 +48,7 @@ test("national archives preserve the original cover, content URLs and author emb
   assert.match(page, /authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} placement="archive-book-cover" \/>}/);
   assert.match(page, /readerAuthorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} placement="archive-reader-author" \/>}/);
   assert.match(page, /const ArchivesSection = lazy\(\(\) => import\("\.\/archives\/archive-section"\)/);
-  assert.match(page, /<FeatureSuspense label="国家档案馆">/);
+  assert.match(page, /<FeatureSuspense label="国家档案馆" onExit=\{\(\) => setSection\("home"\)\}>/);
   assert.doesNotMatch(page, /function ArchivesSection\(/);
 });
 
