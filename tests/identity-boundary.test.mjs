@@ -88,6 +88,19 @@ test("photo permissions: any member may view, only uploader/owner may edit and m
         assert.equal((await photos.DELETE(request("/api/photos?id=photo", { method: "DELETE", cookie: owner }))).status, 200);
     } finally { db.close(); }
 });
+test("photo upload ignores forged uploader ID and permanently preserves uploader attribution", async () => {
+    const db = setup();
+    try {
+        const truth = session(db, "truth");
+        const response = await photos.POST(request("/api/photos", { method: "POST", cookie: truth,
+            body: { dataBase64: "AQ==", originalName: "proof.png", mimeType: "image/png", sizeBytes: 1,
+                    title: "proof", subjects: ["truth"], uploaderCitizenId: "amberina" } }));
+        assert.equal(response.status, 201);
+        const body = await response.json();
+        assert.equal(body.photo.uploaderCitizenId, "truth");
+        assert.equal(db.prepare("SELECT uploader_citizen_id AS id FROM archive_photos WHERE id=?").get(body.photo.id).id,"truth");
+    } finally { db.close(); }
+});
 test("JSON reader bounds actual streamed bytes and rejects malformed roots", async () => {
     const stream = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('{"x":"')); c.enqueue(new Uint8Array(100)); c.close(); } }), r = new Request("https://test.invalid", { method: "POST", body: stream, duplex: "half", headers: { "content-length": "1" } });
     await assert.rejects(readJson(r, 20), e => e instanceof ApiError && e.status === 413);
