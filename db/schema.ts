@@ -71,6 +71,7 @@ export const parliamentItems = sqliteTable(
     recusalRequested: integer("recusal_requested").notNull().default(0),
     stageReason: text("stage_reason").notNull().default(""),
     votingVersion: integer("voting_version"),
+    transitionToken: text("transition_token").notNull().default(""),
     deadline: text("deadline").notNull().default(""),
     createdByCitizenId: text("created_by_citizen_id").notNull(),
     version: integer("version").notNull().default(1),
