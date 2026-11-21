@@ -136,7 +136,7 @@ function Login({ enter, replay }: { enter: (citizen: Citizen, mode:AccountMode) 
                 onContextMenu={event=>{if(isCurrentTechnologyMinister(item.id)){event.preventDefault();setSelectedId(item.id);setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");setError("");}}}
                 onKeyDown={event=>{if(event.shiftKey && event.key==="Enter" && isCurrentTechnologyMinister(item.id)){event.preventDefault();setSelectedId(item.id);setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");}}}
                 onClick={() => { if(held.current){held.current=false;return;}setSelectedId(item.id);setLoginMode("citizen");setError(""); }} className={`${selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`} style={{ "--citizen": citizenRepresentativeColor(item) } as CSSProperties}>
-                <CitizenMark citizen={item} placement="login-react-picker" /><span><strong>{item.username}</strong><small>{item.locked ? "RECORD SEALED" : item.name}</small></span><i />
+                {item.id===selectedId && loginMode==="technology" ? <Emblem compact/> : <CitizenMark citizen={item} placement="login-react-picker" />}<span><strong>{item.id===selectedId && loginMode==="technology"?"科技部部长":item.username}</strong><small>{item.locked ? "RECORD SEALED" : item.name}</small></span><i />
               </button>
             ))}
           </div>
