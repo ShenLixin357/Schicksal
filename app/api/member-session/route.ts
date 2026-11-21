@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if ((rate?.attempts ?? 99) > 20) return Response.json({ error: "尝试次数较多，请一分钟后重试。" }, { status: 429, headers: { "Retry-After": "60" } });
     const authenticated = accountMode === "technology" ?
       await verifyTechnologyPassword(citizenId, password) : await verifyMemberPassword(citizenId, password);
-    if (!authenticated) return Response.json({ error: "密码不正确，或部长账号尚未设置。", }, { status: 401 });
+    if (!authenticated) return Response.json({ error: "密码不正确，或当前公民不担任科技部长。", }, { status: 401 });
     const token = [...crypto.getRandomValues(new Uint8Array(32))].map((value) => value.toString(16).padStart(2, "0")).join("");
     await env.DB.batch([
       env.DB.prepare("DELETE FROM member_sessions WHERE expires_at < ?").bind(now),
