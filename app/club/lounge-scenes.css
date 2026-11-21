@@ -103,11 +103,7 @@
 }
 
 /* Committee Restroom v17 — transformed sigils and reciprocal room magic. */
-/* The existing outer halo/dots indicate the President office, not Amberina or login state.
-   Existing CitizenMark circles remain in place; unrelated art gains no new adornment. */
-.citizen-mark.leader { color: var(--mark); background: radial-gradient(circle,color-mix(in srgb,var(--mark) 20%,transparent),transparent 67%); box-shadow: inset 0 0 17px color-mix(in srgb,var(--mark) 11%,transparent),0 0 18px color-mix(in srgb,var(--mark) 18%,transparent); }
-.citizen-mark.leader::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; background: repeating-conic-gradient(from 0deg,var(--mark) 0 2deg,transparent 2deg 30deg); -webkit-mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); opacity: .62; }
-
+/* Shared citizen leader halo is loaded from identity/office-insignia.css, not this lazy room stylesheet. */
 .club-mystic-mark { position: relative; flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; display: inline-grid; place-items: center; isolation: isolate; }
 .club-mystic-mark::before { content: ""; position: absolute; inset: 4px; border: 1px solid currentColor; border-radius: 50%; opacity: .34; }
 .mystic-ice-moon { color: #b9edff; border: 1px solid rgba(158,225,255,.6); background: radial-gradient(circle at 43% 42%,rgba(118,211,255,.38),rgba(31,55,116,.76) 56%,rgba(11,13,45,.96)); box-shadow: 0 0 0 5px rgba(18,25,62,.28),0 0 25px rgba(108,207,255,.55),inset 0 0 18px rgba(213,246,255,.18); }
