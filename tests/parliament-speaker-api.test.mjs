@@ -196,7 +196,7 @@ test("votes freeze when resolved; tally, official comment and audit commit atomi
     await act(voter, "cast_vote", { choice: "support" });
     await act(owner, "transition_stage", { stage: "resolved", reason: "Votes counted and frozen" });
     const final = sqlite.prepare("SELECT stage,outcome FROM parliament_items WHERE id='speaker-test'").get();
-    assert.deepEqual(final, { stage: "resolved", outcome: "passed" });
+    assert.deepEqual({ ...final }, { stage: "resolved", outcome: "passed" });
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_comments WHERE item_id='speaker-test' AND comment_type='system'").get().n, 1);
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_audit_events WHERE item_id='speaker-test' AND event_type='stage_transition'").get().n, 1);
     await act(voter, "cast_vote", { choice: "oppose" }, 409);
