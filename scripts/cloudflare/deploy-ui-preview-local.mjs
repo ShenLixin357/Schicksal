@@ -48,6 +48,8 @@ writeFileSync(resolve(root,"work/briefing-preview-target.json"),JSON.stringify({
   accountId,previewDatabaseId:preview.uuid,productionDatabaseId:production.uuid,
   previewDatabaseName:preview.name
 },null,2));
+run("npm",["run","test:privacy"]);
+run("npm",["run","test:identity"]);
 run("npm",["run","build"]);
 run("node",["scripts/cloudflare/prepare-ui-preview.mjs","work/briefing-preview-target.json"]);
 const configPath=resolve(root,"work/ui-preview-dist/server/wrangler.json");
