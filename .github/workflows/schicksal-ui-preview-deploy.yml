@@ -1,4 +1,6 @@
 name: Deploy isolated Schicksal UI preview
+# Manual QA release after the repository visibility was changed to public.
+# This workflow targets only the isolated preview Worker and preview D1.
 
 # This workflow NEVER runs on a normal push. A connected coding agent can
 # trigger it only with an explicit [preview-deploy] commit message, after the
@@ -7,6 +9,7 @@ on:
   push:
     branches:
       - "preview/sidebar-lounge-v4-20261120"
+      - "feature/minister-dual-account-switch-20261121"
     paths:
       - ".github/workflows/schicksal-ui-preview-deploy.yml"
       - "scripts/cloudflare/prepare-ui-preview.mjs"
@@ -98,6 +101,26 @@ jobs:
           appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PREVIEW_D1_ID=" + preview[0].uuid + "\n");
           NODE
           fi
+      - name: Provide separate PREVIEW-ONLY R2 for photo review when available
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUCKET_NAME="schicksal-ui-preview-photos"
+          # The Wrangler R2 bucket list command does not support --json.
+          # Probe our exact isolated bucket by name; never enumerate, mutate
+          # or bind any production bucket.
+          if npx wrangler r2 bucket info "$BUCKET_NAME" --json > "$RUNNER_TEMP/schicksal-preview-r2.json" 2>/dev/null; then
+            echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
+            echo "Isolated R2 already available."
+          else
+            if npx wrangler r2 bucket create "$BUCKET_NAME"; then
+              npx wrangler r2 bucket info "$BUCKET_NAME" --json > "$RUNNER_TEMP/schicksal-preview-r2.json"
+              echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
+              echo "Isolated preview photo R2 provisioned."
+            else
+              echo "::warning::Cannot provision isolated R2. Preview image upload remains unavailable; other routes are functional."
+            fi
+          fi
       - name: Prepare and verify preview-only Worker artifact
         shell: bash
         run: |
@@ -113,6 +136,16 @@ jobs:
           }, null, 2));
           NODE
           node scripts/cloudflare/prepare-ui-preview.mjs work/briefing-preview-target.json
+          node --input-type=module - <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const path = "work/ui-preview-dist/server/wrangler.json";
+          const config = JSON.parse(readFileSync(path, "utf8"));
+          // Runtime SHA must identify exactly the acceptance commit.
+          config.vars.SCHICKSAL_PREVIEW_COMMIT = process.env.GITHUB_SHA;
+          if (process.env.SCHICKSAL_PREVIEW_R2_READY === "true") config.r2_buckets = [{ binding: "BUCKET", bucket_name: "schicksal-ui-preview-photos" }];
+          if (!/^[a-f0-9]{40}$/i.test(config.vars.SCHICKSAL_PREVIEW_COMMIT)) throw Error("Invalid preview SHA");
+          writeFileSync(path, JSON.stringify(config,null,2));
+          NODE
           npx wrangler deploy --dry-run --config work/ui-preview-dist/server/wrangler.json
       - name: Apply migrations ONLY to the isolated preview D1
         shell: bash
@@ -157,6 +190,17 @@ jobs:
           node --input-type=module - <<'NODE'
           const root = "https://schicksal-ui-preview.m17686100216.workers.dev";
           const passwords = JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS || "{}");
+          // The first-login UI is a separate server-rendered entry page, not
+          // the authenticated React login. Check its actual deployed HTML.
+          const anonymous = await fetch(root + "/?entry-qa=" + process.env.GITHUB_SHA, {
+            headers:{"Cache-Control":"no-cache"}, cache:"no-store"
+          });
+          const entryHtml = await anonymous.text();
+          if (anonymous.status !== 401 || !entryHtml.includes('id="identity-technology"') ||
+              !entryHtml.includes("05 / 08 CITIZENS · 01 OFFICE") ||
+              !entryHtml.includes("MINISTRY OF TECHNOLOGY · OFFICIAL ENTRY"))
+            throw Error("Deployed anonymous login page lacks the ministry entry (HTTP " + anonymous.status + ")");
+          console.log("REAL anonymous entry page ministry card present.");
           const login = await fetch(root + "/api/member-session", {
             method: "POST", headers: {"Content-Type":"application/json", Origin:root},
             body:JSON.stringify({ citizenId:"amberina", password:passwords.amberina }),
@@ -169,6 +213,45 @@ jobs:
           }
           const cookie = login.headers.get("set-cookie")?.split(";")[0];
           if (!cookie) throw new Error("Preview login did not return a session cookie");
+          const version = await fetch(root + "/api/preview-version", {headers:{Cookie:cookie}, cache:"no-store"});
+          if (!version.ok) throw new Error("Preview version endpoint returned HTTP " + version.status);
+          const v = await version.json();
+          if (v.sourceSha !== process.env.GITHUB_SHA || v.preview !== true) {
+            throw new Error("PREVIEW SHA MISMATCH: expected source commit was not deployed");
+          }
+          console.log("Cumulative PR #9–23 acceptance SHA verified:", v.sourceSha);
+          const ordinaryOfficeGate = await fetch(root + "/api/technology/direct-password", {headers:{Cookie:cookie}});
+          if (ordinaryOfficeGate.status !== 403) throw Error("Ordinary citizen session exposed ministry credential management");
+          const personalDenied = await fetch(root + "/api/member-session", {
+            method:"POST", headers:{"Content-Type":"application/json",Origin:root},
+            body:JSON.stringify({citizenId:"technology",accountMode:"technology",password:passwords.amberina})
+          });
+          if (personalDenied.status !== 401) throw Error("Personal password incorrectly accepted at direct ministry entrance");
+          const switched = await fetch(root + "/api/member-session/switch", {
+            method:"POST", headers:{"Content-Type":"application/json",Origin:root,Cookie:cookie},
+            body:JSON.stringify({target:"technology"})
+          });
+          if (!switched.ok) throw Error("Incumbent direct long-hold API failed");
+          const officeAccess = await fetch(root + "/api/technology",{headers:{Cookie:cookie}});
+          if (!officeAccess.ok) throw Error("Switched incumbent session failed ministry authorization");
+          const officePassword = await fetch(root + "/api/technology/direct-password",{headers:{Cookie:cookie}});
+          if (!officePassword.ok) throw Error("Ministry dashboard cannot access office-only password settings");
+          const credentialState = await officePassword.json();
+          if (typeof credentialState.configured !== "boolean") throw Error("Ministry password status malformed");
+          const switchedBack = await fetch(root + "/api/member-session/switch",{
+            method:"POST",headers:{"Content-Type":"application/json",Origin:root,Cookie:cookie},
+            body:JSON.stringify({target:"citizen"})
+          });
+          if (!switchedBack.ok) throw Error("Incumbent cannot instantly switch back");
+          console.log("Personal->minister->personal switch and protected password settings: OK.");
+          console.log(credentialState.configured
+            ? "Direct office password is configured for the current term."
+            : "Direct office password not yet enrolled; use the minister dashboard to set it privately.");
+          const offices = await fetch(root + "/api/offices/current", {headers:{Cookie:cookie}, cache:"no-store"});
+          if (!offices.ok) throw new Error("Office role registry not available on deployed preview");
+          const officeData = await offices.json();
+          if (!officeData.offices?.some(o => o.id === "technology" && o.holderIds?.includes("amberina")))
+            throw new Error("Current Technology Minister office is missing in preview D1");
           const briefing = await fetch(root + "/api/briefing", {headers:{Cookie:cookie}, cache:"no-store"});
           const payload = await briefing.json();
           if (!briefing.ok) throw new Error("Preview briefing sync failed: HTTP " + briefing.status + ", " + (payload.error || "no message"));
@@ -212,7 +295,11 @@ jobs:
             echo '- Worker name: `schicksal-ui-preview`'
             echo '- Database: `schicksal-ui-preview-db` (separate from production)'
             echo "- Version: $GITHUB_SHA"
-            echo "- Source: PR #9 Sidebar/Lounge preview (production remains unchanged)"
-            echo "- Read the actual workers.dev URL from the Wrangler deployment output above."
+            echo "- Source: cumulative unmerged PR #9–23, with PR #4 foundations integrated by #12; production remains unchanged"
+            echo "- Preview URL: https://schicksal-ui-preview.m17686100216.workers.dev"
+            echo "- Verified deployment SHA: $GITHUB_SHA"
+            echo "- Photo uploads require separately created preview R2; check R2 provisioning step output."
+            echo "- Ministry direct login is set exclusively in the authenticated minister dashboard; no environment secret required."
+            echo "- Accepted UX: personal long-hold toggles directly; minister dashboard replaces profile; dedicated login uses a term-bound D1 hash."
             echo "- Check login, daily news and responsive layout manually before claiming acceptance."
           } >> "$GITHUB_STEP_SUMMARY"

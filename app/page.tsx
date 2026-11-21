@@ -7,13 +7,12 @@ import { fetchBriefingFeed, type BriefingFeed } from "./briefing/briefing-loader
 import { readyForMandatoryBriefing, mayMountSiteAfterBriefing, type MandatoryBriefingPreload } from "./briefing/mandatory-entry";
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { CITIZENS, citizenRepresentativeColor, type Citizen } from "./citizens";
-import { MemberAccessSettings } from "./member-access-settings";
-import { isCurrentPresident, isCurrentTechnologyMinister, currentOfficeLabel } from "./identity/office-registry";
+import { isCurrentPresident, isCurrentTechnologyMinister, currentOfficeLabel, officesForCitizen, type Office } from "./identity/office-registry";
 import { PublicCitizenMark as CitizenMark } from "./identity/public-mark";
 import { ATLAS_VISUAL_APPROVED } from "./shell/navigation";
 import { CompactEmpireEmblem as Emblem } from "./emblem/compact-emblem";
 
-import { atlasOfficesForCitizen, atlasName, atlasCodename } from "./atlas/atlas-data";
+import { atlasName, atlasCodename } from "./atlas/atlas-data";
 
 import { lazy, useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
 
@@ -55,6 +54,8 @@ const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(mod
 const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
 const CommitteeLounge = lazy(() => import("./club/committee-lounge").then(module => ({ default: module.CommitteeLounge })));
 
+type AccountMode = "citizen" | "technology";
+type AuthSource = "personal" | "ministry-direct";
 type Phase = "opening" | "login" | "welcome" | "system";
 type Section = SiteSection;
 
@@ -86,22 +87,36 @@ function Opening({ done }: { done: () => void }) {
   );
 }
 
-function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: () => void }) {
+function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode, authSource: AuthSource) => void; replay: () => void }) {
   const [selectedId, setSelectedId] = useState("amberina");
+  const [loginMode, setLoginMode] = useState<AccountMode>("citizen");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
-  const selected = CITIZENS.find((item) => item.id === selectedId)!;
+  const selected = CITIZENS.find(item => item.id === selectedId)!;
+  const chooseCitizen = (id: string) => {
+    setSelectedId(id); setLoginMode("citizen"); setPassword(""); setError("");
+  };
+  const chooseMinistry = () => {
+    setLoginMode("technology"); setPassword(""); setError("");
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (loggingIn) return;
     setLoggingIn(true); setError("");
     try {
-      const response = await fetch("/api/member-session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ citizenId: selected.id, password }) });
-      const payload = await response.json() as { error?: string };
+      // Only the dedicated official entry is allowed to request the minister
+      // password. The server resolves the active officeholder, not this UI.
+      const citizenId = loginMode === "technology" ? "technology" : selected.id;
+      const response = await fetch("/api/member-session", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ citizenId, password, accountMode: loginMode }) });
+      const payload = await response.json() as { error?: string; citizenId?: string; accountMode?: AccountMode; authSource?: AuthSource };
       if (!response.ok) throw new Error(payload.error || "登录暂时未能完成。");
-      setPassword(""); enter(selected);
+      const current = CITIZENS.find(item => item.id === payload.citizenId && !item.locked);
+      if (!current || payload.accountMode !== loginMode) throw new Error("服务器返回的身份不一致。");
+      setPassword(""); enter(current, payload.accountMode, payload.authSource === "ministry-direct" ? "ministry-direct" : "personal");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "暂时无法连接登录服务。"); }
     finally { setLoggingIn(false); }
   };
@@ -117,18 +132,42 @@ function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: (
           <div className="secure-seal"><span>01</span><small>FIRST SCHICKSAL EMPIRE<br />SECURE INTERNAL GATE</small></div>
         </div>
         <div className="login-panel">
-          <div className="panel-head"><div><span>STEP 01</span><h2>选择身份</h2></div><small>05 / 08 IDENTIFIED</small></div>
+          <div className="panel-head"><div><span>STEP 01</span><h2>选择身份</h2></div><small>05 / 08 CITIZENS · 01 OFFICE</small></div>
           <div className="identity-grid">
-            {CITIZENS.map((item) => (
-              <button type="button" disabled={item.locked} key={item.id} onClick={() => { setSelectedId(item.id); setError(""); }} className={`${selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`} style={{ "--citizen": citizenRepresentativeColor(item) } as CSSProperties}>
-                <CitizenMark citizen={item} placement="login-react-picker" /><span><strong>{item.username}</strong><small>{item.locked ? "RECORD SEALED" : item.name}</small></span><i />
+            {CITIZENS.map(item => (
+              <button type="button" disabled={item.locked} key={item.id}
+                onClick={() => chooseCitizen(item.id)}
+                aria-pressed={loginMode === "citizen" && selectedId === item.id}
+                className={`${loginMode === "citizen" && selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`}
+                style={{ "--citizen": citizenRepresentativeColor(item) } as CSSProperties}>
+                <CitizenMark citizen={item} placement="login-react-picker" />
+                <span><strong>{item.username}</strong><small>{item.locked ? "RECORD SEALED" : item.name}</small></span><i />
               </button>
             ))}
+            <button type="button" key="technology-ministry" onClick={chooseMinistry}
+              aria-pressed={loginMode === "technology"}
+              className={`technology-login-card ${loginMode === "technology" ? "selected" : ""}`} aria-label="科技部部长专用登录">
+              <Emblem compact />
+              <span><strong>科技部部长</strong><small>MINISTRY OF TECHNOLOGY</small></span><i />
+            </button>
           </div>
           <form onSubmit={submit} className="access-form">
-            <div className="panel-head access-head"><div><span>STEP 02 · {selected.username}</span><h2>输入登录密码</h2></div><small>RECOGNISED AS<br />{selected.name}</small></div>
-            <label><span>Password · 密码</span><div><input type={show ? "text" : "password"} value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} placeholder="输入密码" aria-invalid={Boolean(error)} /><button type="button" onClick={() => setShow(!show)}>{show ? "HIDE" : "SHOW"}</button></div></label>
-            <footer><p className={error ? "error" : ""} role="status">{error || `正在以 ${selected.username} 的身份登录`}</p><button className="primary" type="submit" disabled={loggingIn}>{loggingIn ? "正在登录…" : "LOGIN"} <span>→</span></button></footer>
+            <div className="panel-head access-head">
+              <div><span>STEP 02 · {loginMode === "technology" ? "科技部部长" : selected.username}</span>
+                <h2>{loginMode === "technology" ? "部长专用密码" : "输入登录密码"}</h2></div>
+              <small>RECOGNISED AS<br />{loginMode === "technology" ? "OFFICIAL MINISTRY" : selected.name}</small>
+            </div>
+            <label><span>Password · 密码</span><div>
+              <input type={show ? "text" : "password"} value={password}
+                onChange={event => { setPassword(event.target.value); setError(""); }}
+                placeholder={loginMode === "technology" ? "请输入部长专用密码" : "输入密码"}
+                aria-invalid={Boolean(error)} autoComplete="current-password" />
+              <button type="button" onClick={() => setShow(!show)}>{show ? "HIDE" : "SHOW"}</button>
+            </div></label>
+            <footer><p className={error ? "error" : ""} role="status">
+              {error || (loginMode === "technology" ? "部长专用入口不接受个人密码" : `正在以 ${selected.username} 的身份登录`)}
+            </p>
+            <button className="primary" type="submit" disabled={loggingIn}>{loggingIn ? "正在登录…" : "LOGIN"} <span>→</span></button></footer>
           </form>
         </div>
       </section>
@@ -138,8 +177,10 @@ function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: (
 }
 
 type PreloadStatus = "loading" | "ready" | "error";
-function Welcome({ citizen, enter, preloadStatus, retry }: {
+function Welcome({ citizen, accountMode, offices, enter, preloadStatus, retry }: {
   citizen: Citizen;
+  accountMode: AccountMode;
+  offices: readonly Office[] | null;
   enter: () => void;
   preloadStatus: PreloadStatus;
   retry: () => void;
@@ -162,9 +203,9 @@ function Welcome({ citizen, enter, preloadStatus, retry }: {
       <div className="welcome-rings" aria-hidden="true"><i /><i /><i /></div>
       <section>
         <p className="eyebrow">Identity Confirmed · 身份已确认</p>
-        <div className="welcome-mark"><CitizenMark citizen={citizen} placement="welcome-identity" /><i /></div>
-        <small>WELCOME TO SCHICKSAL</small><h1>{citizen.name}</h1>
-        <div className="welcome-meta"><span>{currentOfficeLabel(citizen)}</span><i /><span>CODE NAME · {citizen.codename}</span></div>
+        <div className="welcome-mark">{accountMode==="technology"?<Emblem compact/>:<CitizenMark citizen={citizen} placement="welcome-identity" />}<i /></div>
+        <small>WELCOME TO SCHICKSAL</small><h1>{accountMode==="technology"?"科技部部长":citizen.name}</h1>
+        <div className="welcome-meta"><span>{offices ? currentOfficeLabel(citizen,offices) : "正在核验现任公职"}</span><i /><span>CODE NAME · {citizen.codename}</span></div>
         <p>Your citizen identity has been recognised by the Imperial System.<br />帝国系统已识别你的公民身份。</p>
         <button type="button" onClick={enter} disabled={preloadStatus !== "ready"}>{preloadStatus === "ready" ? "ENTER NOW" : "PREPARING BRIEFING…"} <span>→</span></button>
         {preloadStatus === "loading" && <div className="welcome-preload-status" role="status">正在准备最新政务与简报…</div>}
@@ -173,7 +214,7 @@ function Welcome({ citizen, enter, preloadStatus, retry }: {
           <div className="welcome-preload-actions"><button type="button" onClick={retry}>重新同步简报</button></div>
         </div>}
       </section>
-      <footer>CURRENT OFFICE <strong>{currentOfficeLabel(citizen).toUpperCase()}</strong></footer>
+      <footer>CURRENT OFFICE <strong>{offices ? currentOfficeLabel(citizen,offices).toUpperCase() : "VERIFYING"}</strong></footer>
       <div className="welcome-progress" aria-hidden="true"><i /></div>
     </main>
   );
@@ -213,17 +254,42 @@ function CalendarSection() { return <CalendarPage/>; }
 
 function MarketSection() { return <MarketPage/>; }
 
-function PublicAtlasCitizenProfile({ citizen, onBack }: { citizen: Citizen; onBack: () => void }) {
-  const positions = atlasOfficesForCitizen(citizen.id);
-  return <><button className="atlas-profile-back" type="button" onClick={onBack}>← 返回天命图谱</button><PageHead eyebrow="Public Citizen Profile" title="公民公开档案" copy="这里只展示获准公开的身份与公职资料。"/><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} placement="profile-public-simple"/><span>{atlasCodename(citizen.id)}</span></div><div className="profile-copy"><small>PUBLIC CITIZEN RECORD</small><h2>{atlasName(citizen)}</h2><dl><div><dt>公民代号</dt><dd>{atlasCodename(citizen.id)}</dd></div><div><dt>现任公职</dt><dd>{positions.length ? positions.map(office => office.title).join(" · ") : "暂无现任公职"}</dd></div><div><dt>身份</dt><dd>第一帝国公民</dd></div></dl><p className="atlas-visitor-disclaimer">访客只能查看公开身份；私人消息、账户设置、个人数据及编辑功能不开放。</p></div></article></>;
+function PublicAtlasCitizenProfile({ citizen, onBack, offices }: { citizen: Citizen; onBack: () => void; offices: readonly Office[] | null }) {
+  const positions = offices ? officesForCitizen(citizen.id, offices) : [];
+  return <><button className="atlas-profile-back" type="button" onClick={onBack}>← 返回天命图谱</button><PageHead eyebrow="Public Citizen Profile" title="公民公开档案" copy="这里只展示获准公开的身份与公职资料。"/><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} placement="profile-public-simple"/><span>{atlasCodename(citizen.id)}</span></div><div className="profile-copy"><small>PUBLIC CITIZEN RECORD</small><h2>{atlasName(citizen)}</h2><dl><div><dt>公民代号</dt><dd>{atlasCodename(citizen.id)}</dd></div><div><dt>现任公职</dt><dd>{offices ? positions.length ? positions.map(office => office.title).join(" · ") : "暂无现任公职" : "正在核验现任公职"}</dd></div><div><dt>身份</dt><dd>第一帝国公民</dd></div></dl><p className="atlas-visitor-disclaimer">访客只能查看公开身份；私人消息、账户设置、个人数据及编辑功能不开放。</p></div></article></>;
 }
 
-function ProfileSection({ citizen }: { citizen: Citizen }) { return <SelfProfilePage citizen={citizen} renderMark={<CitizenMark citizen={citizen} placement="profile-personal-simple" />}/>; }
+function ProfileSection({ citizen, offices }: { citizen: Citizen; offices: readonly Office[] | null }) { return <SelfProfilePage citizen={citizen} offices={offices} renderMark={<CitizenMark citizen={citizen} placement="profile-personal-simple" />}/>; }
 
-function System({ citizen, logout, initialBriefing }: {
-  citizen: Citizen; logout: () => void; initialBriefing: BriefingFeed;
+function System({ citizen, accountMode, authSource, offices, onAccountModeChange, logout, initialBriefing }: {
+  citizen: Citizen; accountMode:AccountMode; authSource:AuthSource; offices: readonly Office[] | null; onAccountModeChange:(mode:AccountMode)=>void; logout: () => void; initialBriefing: BriefingFeed;
 }) {
   const [section,setSection] = useState<Section>("home");
+  const isCurrentMinister = Boolean(offices && isCurrentTechnologyMinister(citizen.id, offices));
+  const switchBusy = useRef(false);
+  const [modeSwitchMessage,setModeSwitchMessage] = useState("");
+  const switchAccountImmediately = () => {
+    if (authSource !== "personal" || !(accountMode === "technology" || isCurrentMinister) || switchBusy.current) return;
+    switchBusy.current = true;
+    setModeSwitchMessage("");
+    const target: AccountMode = accountMode === "technology" ? "citizen" : "technology";
+    void fetch("/api/member-session/switch", {
+      method:"POST", cache:"no-store",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({target}),
+    }).then(async response => {
+      const payload = await response.json() as {accountMode?:AccountMode;citizenId?:string;error?:string};
+      if (!response.ok || payload.citizenId !== citizen.id || payload.accountMode !== target)
+        throw Error(payload.error || "身份切换未完成。");
+      onAccountModeChange(target);
+      setViewedCitizenId(citizen.id);
+      setSection("profile");
+    }).catch(error => {
+      setModeSwitchMessage(error instanceof Error ? error.message : "身份切换失败，请检查网络。");
+    }).finally(() => {
+      switchBusy.current = false;
+    });
+  };
   const [portal, setPortal] = useState<LoungePassageDirection | null>(null);
   const portalReturnSection = useRef<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
@@ -347,19 +413,19 @@ function System({ citizen, logout, initialBriefing }: {
     case "honors": content = <HonorsSection/>; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection/>; break;
-    case "photos": content = <FeatureSuspense label="家庭影像馆" onExit={() => setSection("home")}><PhotoArchiveSection citizen={citizen} sharedMark={<Emblem compact />} renderCitizenMark={(subject, placement) => <CitizenMark citizen={subject} placement={placement} />} /></FeatureSuspense>; break;
+    case "photos": content = <FeatureSuspense label="家庭影像馆" onExit={() => setSection("home")}><PhotoArchiveSection citizen={citizen} accountMode={accountMode} sharedMark={<Emblem compact />} renderCitizenMark={(subject, placement) => <CitizenMark citizen={subject} placement={placement} />} /></FeatureSuspense>; break;
     case "archives": content = atlasHandbookOpen ? <FeatureSuspense label="政务手册" onExit={() => setSection("home")}><AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/></FeatureSuspense> : <FeatureSuspense label="国家档案馆" onExit={() => setSection("home")}><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-book-cover" />} readerAuthorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-reader-author" />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
-    case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />
-      {isCurrentTechnologyMinister(citizen.id) && <section className="technology-ministry-entry" aria-label="科技部部长管理入口">
-        <button type="button" onClick={()=>setSection("technology")}>
-          <Emblem compact />
-          <span><strong>科技部部长入口</strong><small>天命共同标志 · 已认证公职管理台</small></span>
-        </button>
-      </section>}
-      {isCurrentTechnologyMinister(citizen.id) && <MemberAccessSettings />}
-    </> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
-    case "technology": content = isCurrentTechnologyMinister(citizen.id)
-      ? <TechnologyMinistryPortal sharedMark={<Emblem compact />} onOpenPhotos={()=>setSection("photos")} onBack={()=>setSection("profile")}/>
+    case "profile": content = viewedCitizen.id === citizen.id
+      ? (accountMode === "technology" && isCurrentMinister
+        ? <TechnologyMinistryPortal sharedMark={<Emblem compact />}
+            onOpenPhotos={() => setSection("photos")} onBack={() => setSection("home")}/>
+        : <ProfileSection citizen={citizen} offices={offices}/>)
+      : <PublicAtlasCitizenProfile citizen={viewedCitizen} offices={offices} onBack={() => setSection("atlas")}/>; break;
+    // Older URLs/internal references resolve to the same profile destination,
+    // not to a separate elevated menu or extra admin entry.
+    case "technology": content = accountMode === "technology" && isCurrentMinister
+      ? <TechnologyMinistryPortal sharedMark={<Emblem compact />}
+          onOpenPhotos={() => setSection("photos")} onBack={() => setSection("home")}/>
       : <HomeSection go={setSection}/>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <FeatureSuspense label="委员会 Lounge" onExit={() => setSection("home")}><CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /></FeatureSuspense> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
@@ -394,9 +460,10 @@ function System({ citizen, logout, initialBriefing }: {
         presence={presence}
         members={CITIZENS}
         selfId={citizen.id}
+        isTechnologyMode={accountMode === "technology" && isCurrentMinister}
         renderMemberMark={memberId => {
           const member = CITIZENS.find(entry => entry.id === memberId);
-          return member ? <CitizenMark citizen={member} placement={member.id === citizen.id ? (clubOpen ? "sidebar-lounge-self" : "sidebar-main-self") : "sidebar-main-other-member"} /> : null;
+          return member && accountMode==="technology" && member.id===citizen.id ? <Emblem compact/> : member ? <CitizenMark citizen={member} placement={member.id === citizen.id ? (clubOpen ? "sidebar-lounge-self" : "sidebar-main-self") : "sidebar-main-other-member"} /> : null;
         }}
         onToggle={toggleSidebar}
         onLogo={() => { if (clubOpen) exitLounge(); else if (CLUB_MEMBER_IDS.has(citizen.id)) enterLounge(); }}
@@ -412,12 +479,14 @@ function System({ citizen, logout, initialBriefing }: {
           document.querySelector(".system-main")?.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onLogout={logout}
+        onSelfLongPress={authSource === "personal" && (accountMode === "technology" || isCurrentMinister) ? switchAccountImmediately : undefined}
       />
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>
         <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
       </section>
       {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
         onSwap={swapPortalRoom} onFinish={() => setPortal(null)}/>}
+      {modeSwitchMessage && <div className="technology-inline-switch-status" role="alert" aria-live="assertive">{modeSwitchMessage}</div>}
 
     </main>
   );
@@ -429,6 +498,9 @@ type SystemBriefing = { feed: BriefingFeed };
 export default function Home() {
   const [phase, setPhase] = useState<Phase>("opening");
   const [citizen, setCitizen] = useState(CITIZENS[0]);
+  const [accountMode,setAccountMode] = useState<AccountMode>("citizen");
+  const [authSource,setAuthSource] = useState<AuthSource>("personal");
+  const [offices,setOffices] = useState<readonly Office[] | null>(null);
   const [preload, setPreload] = useState<PreparedBriefing>({ status: "loading" });
   const [preloadAttempt, setPreloadAttempt] = useState(0);
   const [systemBriefing, setSystemBriefing] = useState<SystemBriefing | null>(null);
@@ -455,19 +527,46 @@ export default function Home() {
     const controller = new AbortController();
     restoreController.current = controller;
     void fetch("/api/member-session", { cache: "no-store", signal: controller.signal })
-      .then(async (response) => response.ok ? await response.json() as { citizenId?: string } : null)
+      .then(async (response) => response.ok ? await response.json() as { citizenId?: string; accountMode?: AccountMode; authSource?: AuthSource } : null)
       .then((session) => {
         if (controller.signal.aborted) return;
         const member = CITIZENS.find((item) => item.id === session?.citizenId && !item.locked);
         if (!member) return;
         restoredCitizen.current = member;
         setCitizen(member);
+        setAccountMode(session?.accountMode==="technology"?"technology":"citizen");
+        setAuthSource(session?.authSource==="ministry-direct"?"ministry-direct":"personal");
         let entryCompleted = false;
         try { entryCompleted = window.sessionStorage.getItem("schicksal:entry-complete") === "1"; window.sessionStorage.removeItem("schicksal:entry-complete"); } catch { /* Retain the normal opening when storage is unavailable. */ }
         setPhase((current) => entryCompleted || current === "login" ? "welcome" : current);
       }).catch(() => undefined);
     return () => controller.abort();
   }, []);
+  // Election-compatible single source: current titles and visible minister
+  // entrance derive from exactly the server roster used for authorization.
+  useEffect(() => {
+    if (phase !== "welcome" && phase !== "system") return;
+    let live = true;
+    const refresh = () => {
+      void fetch("/api/offices/current", { cache: "no-store" }).then(async response => {
+        if (!response.ok) throw new Error("Office roster unavailable");
+        const payload = await response.json() as { offices?: Office[] };
+        if (!Array.isArray(payload.offices)) throw new Error("Invalid office roster");
+        if (live) setOffices(payload.offices);
+      }).catch(() => { if (live) setOffices(null); });
+      void fetch("/api/member-session", { cache: "no-store" }).then(async response => {
+        if (!response.ok) return;
+        const payload = await response.json() as { citizenId?: string; accountMode?: AccountMode; authSource?: AuthSource };
+        if (live && payload.citizenId === citizen.id) {
+          setAccountMode(payload.accountMode === "technology" ? "technology" : "citizen");
+          setAuthSource(payload.authSource === "ministry-direct" ? "ministry-direct" : "personal");
+        }
+      }).catch(() => undefined);
+    };
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => { live = false; window.removeEventListener("focus", refresh); };
+  }, [phase, citizen.id, accountMode]);
   useEffect(() => {
     if (phase !== "welcome") return;
     let active = true;
@@ -501,12 +600,12 @@ export default function Home() {
     setPhase("system");
   }, [citizen.id, preload]);
   if (phase === "opening") return <Opening done={() => setPhase(restoredCitizen.current ? "welcome" : "login")} />;
-  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next) => { restoreController.current?.abort(); setCitizen(next); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
+  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next,mode,source) => { restoreController.current?.abort(); setCitizen(next); setOffices(null); setAccountMode(mode); setAuthSource(source); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
   // A phase transition alone never grants site access. If its live feed
   // is missing, keep the authenticated member on the Welcome gate.
-  if (phase === "welcome" || !systemBriefing) return <Welcome citizen={citizen} enter={enterSystem}
+  if (phase === "welcome" || !systemBriefing) return <Welcome citizen={citizen} accountMode={accountMode} offices={offices} enter={enterSystem}
     preloadStatus={preload.citizenId && preload.citizenId !== citizen.id ? "loading" : preload.status}
     retry={retryPreload} />;
-  return <System citizen={citizen} initialBriefing={systemBriefing.feed}
+  return <System citizen={citizen} accountMode={accountMode} authSource={authSource} offices={offices} onAccountModeChange={setAccountMode} initialBriefing={systemBriefing.feed}
     logout={() => { void logoutMember(); }} />;
 }

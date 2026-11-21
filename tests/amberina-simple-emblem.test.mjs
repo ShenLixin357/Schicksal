@@ -47,7 +47,7 @@ test("explicit original-colour placements preserve the unchanged Simple crop, wi
   assert.match(visuals, /officialMarkAsset: "\/amberina-personal-simple-official\.png"/);
   assert.match(visuals, /webMarkAsset: "\/amberina-personal-simple-gold-eecf58\.png"/);
   assert.match(page,/CitizenMark citizen=\{item\} placement="login-react-picker"/);
-  assert.match(page,/welcome-mark"><CitizenMark citizen=\{citizen\} placement="welcome-identity"/);
+  assert.match(page,/welcome-mark">\{accountMode==="technology"\?<Emblem compact\/>:<CitizenMark citizen=\{citizen\} placement="welcome-identity"/);
   const archive=source("../app/archives/archive-section.tsx");
   assert.match(archive,/className="book-cover-mark" style=\{\{ "--mark": authorMarkColor/);
   assert.match(page,/authorMarkColor=\{CITIZENS\[0\]\.markColor\}/);

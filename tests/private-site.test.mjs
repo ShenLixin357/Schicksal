@@ -66,6 +66,12 @@ async function login(id = "amberina") {
   assert.equal(response.status, 200);
   return response.headers.get("Set-Cookie").split(";")[0];
 }
+async function loginAdmin() {
+  const cookie = await login("amberina");
+  await env.DB.prepare("UPDATE member_sessions SET account_mode='technology', minister_grant_expires_at=? WHERE citizen_id='amberina' AND expires_at > ?")
+    .bind(Date.now()+60000,Date.now()).run();
+  return cookie;
+}
 const resourceManifest = JSON.parse(readFileSync(new URL("../public/games/insaniquarium/resources/manifest.json", import.meta.url), "utf8"));
 const paths = ["/", "/committee-room.png", "/mafraer-ice-bedroom-moonlit-v4.png", "/assets/page.js", "/archives/how-to-build-a-state-lesson-1.md", "/favicon.svg", "/_vinext/image?url=%2Fcommittee-room.png&w=640", "/games/fireboy-watergirl", "/games/ice-fire-import.json", "/games/1-forest-temple/index.html", "/games/1-forest-temple/js/game.js", "/games/1-forest-temple/data/forest/temple.json", "/games/1-forest-temple/assets/images/Beam.png", "/games/insaniquarium/resources/manifest.json", `/games/insaniquarium/resources/${resourceManifest.parts[0].file}`];
 
@@ -117,7 +123,7 @@ test("real member login unlocks resources while all returned content remains pri
       assert.match(response.headers.get("Vary"), /Cookie/);
     }
     const session = await visit("/api/member-session", { cookie });
-    assert.deepEqual(await session.json(), { citizenId: "amberina" });
+    assert.deepEqual(await session.json(), { citizenId: "amberina", accountMode: "citizen", authSource: "personal" });
   } finally { sqlite.close(); }
 });
 
@@ -139,7 +145,7 @@ test("Fireboy, Aquarium and authenticated return must not revoke the same member
       assert.equal(response.headers.get("Set-Cookie"),null,"GET must not replace login cookie");
     }
     const response=await visit("/api/member-session",{ cookie });
-    assert.deepEqual(await response.json(),{ citizenId:"amberina" });
+    assert.deepEqual(await response.json(),{ citizenId:"amberina", accountMode: "citizen", authSource: "personal" });
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM member_sessions").get().n,1);
   } finally { sqlite.close(); }
 });
@@ -182,6 +188,72 @@ test("database failures fail closed and HEAD requests never return protected byt
     assert.doesNotMatch(await response.text(), /internal-database-detail|private-content-sentinel/);
     assert.deepEqual(protectedCalls, []);
   } finally { sqlite.close(); }
+});
+
+test("Cloudflare pre-auth login actually renders a ministry card and submits independent technology mode", async () => {
+  const sqlite=setup();
+  try {
+    const dedicated="TestSpecialOfficePassword2026!";
+    const { hashMemberPassword }=await import("../app/member-passwords.ts");
+    const hashed=await hashMemberPassword(dedicated);
+    sqlite.prepare(`INSERT INTO technology_direct_credentials
+      (office_id,password_hash,password_salt,updated_at,updated_by,citizen_id,term_id)
+      VALUES('technology',?,?,?,?,?,?)`).run(hashed.hash,hashed.salt,Date.now(),"amberina","amberina","founding-2026");
+    const html=await (await visit("/")).text();
+    assert.match(html,/id="identity-technology"[^>]*data-member="technology"/);
+    assert.match(html,/MINISTRY OF TECHNOLOGY · OFFICIAL ENTRY/);
+    assert.match(html,/05 \/ 08 CITIZENS · 01 OFFICE/);
+    assert.doesNotMatch(html,/05 \/ 08 IDENTIFIED/);
+    const script=html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)?.[1];
+    assert.ok(script, "visitor login must contain the real authentication script");
+    let submit, clickMinistry, cookie, destination, posted;
+    const makeButton=(member,label,name)=>({
+      dataset:{member,label,name},classList:{add(){},remove(){}},setAttribute(){},
+      addEventListener(name,listener){if(name==="click"&&member==="technology")clickMinistry=listener;}
+    });
+    const options=[makeButton("amberina","宇宙霸主","Amberina von Schicksal"),
+      makeButton("technology","科技部部长","MINISTRY OF TECHNOLOGY")];
+    const submitButton={disabled:false};
+    const form={addEventListener(name,callback){if(name==="submit")submit=callback;},querySelector(){return submitButton;}};
+    const inert={addEventListener(){}};
+    const values={
+      opening:{hidden:false},login:{hidden:true},skip:inert,replay:inert,
+      "show-password":inert,entry:form,
+      member:{value:"amberina"},password:{value:passwords.amberina},
+      status:{textContent:""},"selected-label":{textContent:""},
+      "selected-name":{textContent:""},"login-password-heading":{textContent:""}
+    };
+    const fakeDocument={
+      querySelectorAll(selector){return selector.startsWith("[data-member]")?options:[];},
+      getElementById(id){return values[id];}
+    };
+    const fakeFetch=async(path,options)=>{
+      posted=JSON.parse(options.body);
+      const response=await visit(path,{method:options.method,body:options.body,headers:options.headers});
+      cookie=response.headers.get("Set-Cookie")?.split(";")[0]??cookie;
+      return response;
+    };
+    new Function("document","fetch","window",script)(fakeDocument,fakeFetch,{
+      matchMedia(){return {matches:true};},sessionStorage:{setItem(){}},
+      location:{replace(path){destination=path;}}
+    });
+    clickMinistry();
+    assert.equal(values.member.value,"technology");
+    assert.equal(values["login-password-heading"].textContent,"部长专用密码");
+    await submit.call(form,{preventDefault(){}});
+    assert.equal(posted.citizenId,"technology");
+    assert.equal(posted.accountMode,"technology");
+    assert.equal(destination,undefined,"personal password must be rejected at ministry gate");
+    assert.equal(submitButton.disabled,false);
+    values.password.value=dedicated;
+    await submit.call(form,{preventDefault(){}});
+    assert.equal(destination,"/");
+    assert.equal(values.password.value,"");
+    assert.ok(cookie);
+    assert.deepEqual(await (await visit("/api/member-session",{cookie})).json(),{
+      citizenId:"amberina",accountMode:"technology",authSource:"ministry-direct"
+    });
+  } finally {sqlite.close();}
 });
 
 test("the actual self-contained login form obtains a session and opens the protected site", async () => {
@@ -241,7 +313,7 @@ test("a signed-in browser receives stylesheet, script and artwork bytes from the
     assert.equal(unchanged.status, 304);
     assert.equal(await unchanged.text(), "");
     assert.deepEqual(protectedCalls, []);
-    assert.deepEqual(await (await visit("/api/member-session", { cookie })).json(), { citizenId: "amberina" });
+    assert.deepEqual(await (await visit("/api/member-session", { cookie })).json(), { citizenId: "amberina", accountMode: "citizen", authSource: "personal" });
     assert.ok(!assetCalls.includes("/api/member-session"));
     assert.equal(await (await visit("/", { cookie })).text(), "private-content-sentinel");
   } finally { sqlite.close(); }
@@ -251,7 +323,7 @@ test("the owner can enable another member with a short Unicode password without 
   const sqlite = setup();
   try {
     env.SCHICKSAL_MEMBER_PASSWORDS = JSON.stringify({ amberina: passwords.amberina });
-    const owner = await login();
+    const owner = await loginAdmin();
     const initial = await (await visit("/api/member-access", { cookie: owner })).json();
     assert.equal(initial.members.find((member) => member.id === "zxy").configured, false);
     const short = "短✓";
@@ -268,7 +340,7 @@ test("the owner can enable another member with a short Unicode password without 
     const entry = await visit("/api/member-session", { method: "POST", body: { citizenId: "zxy", password: short } });
     assert.equal(entry.status, 200);
     const member = entry.headers.get("Set-Cookie").split(";")[0];
-    assert.deepEqual(await (await visit("/api/member-session", { cookie: member })).json(), { citizenId: "zxy" });
+    assert.deepEqual(await (await visit("/api/member-session", { cookie: member })).json(), { citizenId: "zxy", accountMode: "citizen", authSource: "personal" });
     assert.equal((await visit("/", { cookie: member })).status, 200);
     assert.equal((await visit("/api/member-access", { cookie: member })).status, 403);
     assert.equal((await visit("/api/member-access", { method: "POST", cookie: member, body: { citizenId: "amberina", password: "x" } })).status, 403);
@@ -278,7 +350,7 @@ test("the owner can enable another member with a short Unicode password without 
 test("password changes revoke existing sessions and override old deployment secrets", async () => {
   const sqlite = setup();
   try {
-    const owner = await login();
+    const owner = await loginAdmin();
     const oldMember = await login("zxy");
     assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, body: { citizenId: "zxy", password: "1" } })).status, 200);
     assert.equal((await visit("/", { cookie: oldMember })).status, 401);
@@ -297,7 +369,7 @@ test("member password administration rejects forged identities, foreign origins 
   const sqlite = setup();
   try {
     assert.equal((await visit("/api/member-access", { method: "POST", headers: { "x-schicksal-server-member": "amberina" }, body: { citizenId: "zxy", password: "x" } })).status, 401);
-    const owner = await login();
+    const owner = await loginAdmin();
     assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, headers: { origin: "https://unrelated.invalid" }, body: { citizenId: "zxy", password: "x" } })).status, 403);
     for (const body of ["null", "[]", "{", { citizenId: "sealed-6", password: "x" }, { citizenId: "unknown", password: "x" }, { citizenId: "zxy", password: "" }, { citizenId: "zxy", password: "x".repeat(1025) }]) {
       assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, body })).status, 400);

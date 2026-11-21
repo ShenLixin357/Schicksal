@@ -59,7 +59,7 @@ test("presidency is an office, not an account, mark color, or Lounge persona", (
   assert.equal(isCurrentPresident("zxy", next), true);
   const former = CITIZENS.find(c => c.id === "amberina");
   const elected = CITIZENS.find(c => c.id === "zxy");
-  assert.equal(currentOfficeLabel(former, next), "Citizen of the First Empire");
+  assert.equal(currentOfficeLabel(former, next), "Minister of Technology", "leaving presidency does not erase another current office");
   assert.equal(currentOfficeLabel(elected, next), "President of the First Empire");
   assert.equal(citizenRepresentativeColor(former), "#F3ED87");
   assert.equal(citizenRepresentativeColor(elected), "#d95d52");
@@ -75,7 +75,8 @@ test("new modules can import registries without bringing in private scene or dat
   }
   const page = source("app/page.tsx");
   assert.match(page, /isCurrentPresident\(blade\.citizenId\)/);
-  assert.match(page, /currentOfficeLabel\(citizen\)/);
+  assert.match(page, /currentOfficeLabel\(citizen,offices\)/);
+  assert.match(page, /\/api\/offices\/current/);
   assert.match(page, /const SchicksalAtlas = lazy\(\(\) => import\("\.\/atlas\/schicksal-atlas"\)/);
   assert.match(page, /const AtlasGovernmentHandbook = lazy\(\(\) => import\("\.\/atlas\/government-handbook"\)/);
   assert.match(page, /mandatory-briefing-gate/);

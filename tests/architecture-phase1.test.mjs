@@ -30,7 +30,7 @@ test("photo archive still accesses the exact authenticated photo API and uses ex
   assert.match(photos, /sharedMark: ReactNode/);
   assert.doesNotMatch(photos, /<Emblem compact/);
   assert.doesNotMatch(photos, /<CitizenMark citizen/);
-  assert.match(page, /<PhotoArchiveSection citizen=\{citizen\} sharedMark=\{<Emblem compact \/>\}/);
+  assert.match(page, /<PhotoArchiveSection citizen=\{citizen\} accountMode=\{accountMode\} sharedMark=\{<Emblem compact \/>\}/);
   assert.match(page, /const PhotoArchiveSection = lazy\(\(\) => import\("\.\/photos\/photo-archive"\)/);
   assert.doesNotMatch(page, /function PhotoArchiveSection\(/);
 });

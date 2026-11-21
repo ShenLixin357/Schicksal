@@ -1,0 +1,16 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "schicksal-ui-preview",
+  "main": "./fallback-gate.mjs",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "preview_urls": false,
+  "keep_vars": true,
+  "vars": {
+    "SCHICKSAL_HOSTING": "cloudflare",
+    "SUPABASE_STORAGE_BUCKET": "schicksal-preview-unconfigured"
+  }
+}
