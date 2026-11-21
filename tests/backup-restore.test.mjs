@@ -41,6 +41,7 @@ test("real isolated restore preserves photos, music, private notes, native saves
             assert.equal(db.prepare("SELECT revision FROM member_insaniquarium_saves WHERE citizen_id='zxy'").get().revision, 7);
             assert.match(db.prepare("SELECT state_json FROM member_insaniquarium_saves WHERE citizen_id='zxy'").get().state_json, /AAECAw==/);
             assert.equal(db.prepare("SELECT password_hash FROM member_credentials WHERE citizen_id='zxy'").get().password_hash, "hash-sentinel");
+            assert.equal(db.prepare("SELECT password_hash FROM technology_credentials WHERE citizen_id='amberina'").get().password_hash, "minister-hash-sentinel");
             assert.equal(db.prepare("SELECT COUNT(*) AS n FROM member_sessions").get().n, 0);
             assert.equal(db.prepare("SELECT COUNT(*) AS n FROM emerald_music_melodies").get().n, 1);
             assert.equal(db.prepare("SELECT COUNT(*) AS n FROM emerald_music_assets WHERE deleted_at IS NOT NULL").get().n, 1);
