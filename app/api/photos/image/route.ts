@@ -1,4 +1,5 @@
 import { requireMember } from "../../../../server/auth/member.ts";
+import { isCurrentTechnologyMinister } from "../../../identity/office-registry.ts";
 import { ApiError } from "../../../../server/http.ts";
 import { eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
       .from(archivePhotos)
       .where(eq(archivePhotos.id, id))
       .limit(1);
-    if (!row || (row.deletedAt && member !== "amberina")) return new Response("Photo not found", { status: 404 });
+    if (!row || (row.deletedAt && !isCurrentTechnologyMinister(member))) return new Response("Photo not found", { status: 404 });
 
     const object = await storage.get(row.objectKey);
     if (!object) return new Response("Photo bytes not found", { status: 404 });

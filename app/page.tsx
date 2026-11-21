@@ -8,7 +8,7 @@ import { readyForMandatoryBriefing, mayMountSiteAfterBriefing, type MandatoryBri
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { CITIZENS, citizenRepresentativeColor, type Citizen } from "./citizens";
 import { MemberAccessSettings } from "./member-access-settings";
-import { isCurrentPresident, currentOfficeLabel } from "./identity/office-registry";
+import { isCurrentPresident, isCurrentTechnologyMinister, currentOfficeLabel } from "./identity/office-registry";
 import { PublicCitizenMark as CitizenMark } from "./identity/public-mark";
 import { ATLAS_VISUAL_APPROVED } from "./shell/navigation";
 import { CompactEmpireEmblem as Emblem } from "./emblem/compact-emblem";
@@ -43,6 +43,7 @@ import { PageHead } from "./shell/page-head";
 import { HonorsPage, MarketPage } from "./points/points-pages";
 import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
+import { TechnologyMinistryPortal } from "./technology/technology-ministry";
 
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import type { SidebarDestination, SiteSection } from "./shell/navigation";
@@ -348,7 +349,18 @@ function System({ citizen, logout, initialBriefing }: {
     case "market": content = <MarketSection/>; break;
     case "photos": content = <FeatureSuspense label="家庭影像馆" onExit={() => setSection("home")}><PhotoArchiveSection citizen={citizen} sharedMark={<Emblem compact />} renderCitizenMark={(subject, placement) => <CitizenMark citizen={subject} placement={placement} />} /></FeatureSuspense>; break;
     case "archives": content = atlasHandbookOpen ? <FeatureSuspense label="政务手册" onExit={() => setSection("home")}><AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/></FeatureSuspense> : <FeatureSuspense label="国家档案馆" onExit={() => setSection("home")}><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-book-cover" />} readerAuthorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-reader-author" />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
-    case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />{citizen.id === "amberina" && <MemberAccessSettings />}</> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
+    case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />
+      {isCurrentTechnologyMinister(citizen.id) && <section className="technology-ministry-entry" aria-label="科技部部长管理入口">
+        <button type="button" onClick={()=>setSection("technology")}>
+          <Emblem compact />
+          <span><strong>科技部部长入口</strong><small>天命共同标志 · 已认证公职管理台</small></span>
+        </button>
+      </section>}
+      {isCurrentTechnologyMinister(citizen.id) && <MemberAccessSettings />}
+    </> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
+    case "technology": content = isCurrentTechnologyMinister(citizen.id)
+      ? <TechnologyMinistryPortal sharedMark={<Emblem compact />} onOpenPhotos={()=>setSection("photos")} onBack={()=>setSection("profile")}/>
+      : <HomeSection go={setSection}/>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <FeatureSuspense label="委员会 Lounge" onExit={() => setSection("home")}><CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /></FeatureSuspense> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
   }
