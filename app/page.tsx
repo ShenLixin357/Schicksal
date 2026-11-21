@@ -7,12 +7,12 @@ import { fetchBriefingFeed, type BriefingFeed } from "./briefing/briefing-loader
 import { readyForMandatoryBriefing, mayMountSiteAfterBriefing, type MandatoryBriefingPreload } from "./briefing/mandatory-entry";
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { CITIZENS, citizenRepresentativeColor, type Citizen } from "./citizens";
-import { ATLAS_OFFICES, isCurrentPresident, isCurrentTechnologyMinister, currentOfficeLabel, officesForCitizen, type Office } from "./identity/office-registry";
+import { isCurrentPresident, isCurrentTechnologyMinister, currentOfficeLabel, officesForCitizen, type Office } from "./identity/office-registry";
 import { PublicCitizenMark as CitizenMark } from "./identity/public-mark";
 import { ATLAS_VISUAL_APPROVED } from "./shell/navigation";
 import { CompactEmpireEmblem as Emblem } from "./emblem/compact-emblem";
 
-import { atlasOfficesForCitizen, atlasName, atlasCodename } from "./atlas/atlas-data";
+import { atlasName, atlasCodename } from "./atlas/atlas-data";
 
 import { lazy, useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FormEvent, type ReactNode, type SetStateAction } from "react";
 
