@@ -4,14 +4,14 @@
  * Small-screen labels are NOT shrunk below the original type size. */
 .imperial-sidebar .imperial-side-brand {
   display:grid;
-  grid-template-columns:46px minmax(0,1fr) 33px;
-  align-items:start;
-  gap:10px;
-  padding:0 1px 15px;
-  min-height:81px;
+  grid-template-columns:42px minmax(0,1fr);
+  align-items:center;
+  gap:13px;
+  padding:0 9px 20px;
+  min-height:54px;
 }
 .imperial-sidebar .imperial-logo-trigger {
-  appearance:none; border:0; padding:0; margin:0; width:46px; height:46px;
+  appearance:none; border:0; padding:0; margin:0; width:42px; height:42px;
   display:grid; place-items:center; background:transparent; cursor:pointer;
   color:inherit; border-radius:7px;
 }
@@ -23,11 +23,16 @@
 }
 .imperial-side-heading strong { font:400 .9rem var(--serif); letter-spacing:.17em; white-space:nowrap; color:var(--paper); }
 .imperial-side-heading span { font:400 7px/1.5 var(--sans); letter-spacing:.18em; white-space:nowrap; color:#6e7a8c; }
-.imperial-sidebar .imperial-side-utilities { display:flex; flex-direction:column; gap:6px; align-items:center; }
+/* Keep both tools functional without pushing the first nav item lower than
+   the original site: the collapse control was an absolute-positioned tool. */
+.imperial-sidebar .imperial-side-utilities {
+  position:absolute; top:7px; right:0;
+  display:flex; flex-direction:column; gap:2px; align-items:center;
+}
 .imperial-sidebar .sidebar-toggle,
 .imperial-sidebar .imperial-phone {
   position:static; transform:none; display:grid; place-items:center;
-  width:32px; height:32px; border:1px solid transparent;
+  width:27px; height:27px; border:1px solid transparent;
   border-radius:6px; padding:0; background:transparent; color:#5b6875;
   cursor:pointer;
 }
@@ -54,12 +59,14 @@
   color:inherit; font:inherit;
 }
 .imperial-sidebar .imperial-nav-copy > strong {
-  display:block; width:100%; font:500 .74rem/1.4 var(--sans);
-  letter-spacing:.04em; color:inherit; white-space:nowrap;
+  display:block; width:100%; font-family:var(--sans); font-size:.74rem;
+  font-weight:500; line-height:normal; letter-spacing:.04em;
+  color:inherit; white-space:nowrap;
 }
 .imperial-sidebar .imperial-nav-copy > small {
-  display:block; max-width:100%; font:400 6px/1.3 var(--sans);
-  letter-spacing:.14em; color:#9daab9; text-transform:uppercase;
+  display:block; max-width:100%; font-family:var(--sans);
+  font-size:6px; font-weight:400; line-height:normal;
+  letter-spacing:.14em; color:#505d70; text-transform:uppercase;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .imperial-sidebar .imperial-nav-icon {
@@ -74,7 +81,7 @@
 }
 .imperial-nav-submenu { display:grid; gap:2px; padding:4px 0 9px 36px; border-left:1px solid rgba(150,136,114,.18); margin-left:21px; }
 .imperial-nav-submenu button { border:0; background:transparent; padding:9px 8px; text-align:left;
-  border-radius:4px; color:#738095; cursor:pointer; font:500 .74rem/1.45 var(--sans); letter-spacing:.04em; }
+  border-radius:4px; color:#738095; cursor:pointer; font-family:var(--sans); font-size:.74rem; font-weight:500; line-height:normal; letter-spacing:.04em; }
 .imperial-nav-submenu button:hover { color:#3b5367; background:rgba(77,92,108,.07); }
 .imperial-nav-submenu button.active { color:#72532f; background:rgba(182,153,99,.12); }
 .system.sidebar-collapsed .imperial-sidebar .imperial-side-brand {
