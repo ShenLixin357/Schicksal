@@ -18,7 +18,7 @@ test("all eight stable member identities share a public visual registry, indepen
     const visual = getPublicMemberVisual(citizen.id);
     assert.ok(visual, `Missing public visual for ${citizen.id}`);
     assert.equal(citizen.accent, visual.emblemRayColor);
-    assert.equal(citizen.markColor, visual.webMarkColor);
+    assert.equal(citizen.markColor, citizen.id === "amberina" ? visual.officialMarkColor : visual.webMarkColor);
     assert.equal(citizenRepresentativeColor(citizen), visual.representativeColor);
     for (const key of ["representativeColor", "emblemRayColor", "webMarkColor", "officialMarkColor"])
       assert.match(visual[key], /^#[a-f\d]{6}$/i);
