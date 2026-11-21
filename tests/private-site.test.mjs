@@ -66,6 +66,12 @@ async function login(id = "amberina") {
   assert.equal(response.status, 200);
   return response.headers.get("Set-Cookie").split(";")[0];
 }
+async function loginAdmin() {
+  const cookie = await login("amberina");
+  await env.DB.prepare("UPDATE member_sessions SET account_mode='technology', minister_grant_expires_at=? WHERE citizen_id='amberina' AND expires_at > ?")
+    .bind(Date.now()+60000,Date.now()).run();
+  return cookie;
+}
 const resourceManifest = JSON.parse(readFileSync(new URL("../public/games/insaniquarium/resources/manifest.json", import.meta.url), "utf8"));
 const paths = ["/", "/committee-room.png", "/mafraer-ice-bedroom-moonlit-v4.png", "/assets/page.js", "/archives/how-to-build-a-state-lesson-1.md", "/favicon.svg", "/_vinext/image?url=%2Fcommittee-room.png&w=640", "/games/fireboy-watergirl", "/games/ice-fire-import.json", "/games/1-forest-temple/index.html", "/games/1-forest-temple/js/game.js", "/games/1-forest-temple/data/forest/temple.json", "/games/1-forest-temple/assets/images/Beam.png", "/games/insaniquarium/resources/manifest.json", `/games/insaniquarium/resources/${resourceManifest.parts[0].file}`];
 
@@ -241,7 +247,7 @@ test("a signed-in browser receives stylesheet, script and artwork bytes from the
     assert.equal(unchanged.status, 304);
     assert.equal(await unchanged.text(), "");
     assert.deepEqual(protectedCalls, []);
-    assert.deepEqual(await (await visit("/api/member-session", { cookie })).json(), { citizenId: "amberina" });
+    assert.deepEqual(await (await visit("/api/member-session", { cookie })).json(), { citizenId: "amberina", accountMode: "citizen" });
     assert.ok(!assetCalls.includes("/api/member-session"));
     assert.equal(await (await visit("/", { cookie })).text(), "private-content-sentinel");
   } finally { sqlite.close(); }
@@ -251,7 +257,7 @@ test("the owner can enable another member with a short Unicode password without 
   const sqlite = setup();
   try {
     env.SCHICKSAL_MEMBER_PASSWORDS = JSON.stringify({ amberina: passwords.amberina });
-    const owner = await login();
+    const owner = await loginAdmin();
     const initial = await (await visit("/api/member-access", { cookie: owner })).json();
     assert.equal(initial.members.find((member) => member.id === "zxy").configured, false);
     const short = "短✓";
@@ -268,7 +274,7 @@ test("the owner can enable another member with a short Unicode password without 
     const entry = await visit("/api/member-session", { method: "POST", body: { citizenId: "zxy", password: short } });
     assert.equal(entry.status, 200);
     const member = entry.headers.get("Set-Cookie").split(";")[0];
-    assert.deepEqual(await (await visit("/api/member-session", { cookie: member })).json(), { citizenId: "zxy" });
+    assert.deepEqual(await (await visit("/api/member-session", { cookie: member })).json(), { citizenId: "zxy", accountMode: "citizen" });
     assert.equal((await visit("/", { cookie: member })).status, 200);
     assert.equal((await visit("/api/member-access", { cookie: member })).status, 403);
     assert.equal((await visit("/api/member-access", { method: "POST", cookie: member, body: { citizenId: "amberina", password: "x" } })).status, 403);
@@ -278,7 +284,7 @@ test("the owner can enable another member with a short Unicode password without 
 test("password changes revoke existing sessions and override old deployment secrets", async () => {
   const sqlite = setup();
   try {
-    const owner = await login();
+    const owner = await loginAdmin();
     const oldMember = await login("zxy");
     assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, body: { citizenId: "zxy", password: "1" } })).status, 200);
     assert.equal((await visit("/", { cookie: oldMember })).status, 401);
@@ -297,7 +303,7 @@ test("member password administration rejects forged identities, foreign origins 
   const sqlite = setup();
   try {
     assert.equal((await visit("/api/member-access", { method: "POST", headers: { "x-schicksal-server-member": "amberina" }, body: { citizenId: "zxy", password: "x" } })).status, 401);
-    const owner = await login();
+    const owner = await loginAdmin();
     assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, headers: { origin: "https://unrelated.invalid" }, body: { citizenId: "zxy", password: "x" } })).status, 403);
     for (const body of ["null", "[]", "{", { citizenId: "sealed-6", password: "x" }, { citizenId: "unknown", password: "x" }, { citizenId: "zxy", password: "" }, { citizenId: "zxy", password: "x".repeat(1025) }]) {
       assert.equal((await visit("/api/member-access", { method: "POST", cookie: owner, body })).status, 400);
