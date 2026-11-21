@@ -11,7 +11,7 @@ globalThis.__boundaryEnv = env;
 const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier === "cloudflare:workers")
         return { url: "data:text/javascript,export const env=globalThis.__boundaryEnv", shortCircuit: true }; if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier))
         return next(existsSync(new URL(`${specifier}.ts`, context.parentURL)) ? `${specifier}.ts` : `${specifier}/index.ts`, context); return next(specifier, context); } });
-const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts"), technology = await import("../app/api/technology/route.ts"), switcher = await import("../app/api/member-session/switch/route.ts"), offices = await import("../app/api/offices/current/route.ts"), memberSessions = await import("../app/api/member-session/route.ts");
+const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts"), technology = await import("../app/api/technology/route.ts"), ministerPassword = await import("../app/api/technology/direct-password/route.ts"), switcher = await import("../app/api/member-session/switch/route.ts"), offices = await import("../app/api/offices/current/route.ts"), memberSessions = await import("../app/api/member-session/route.ts");
 hooks.deregister();
 after(() => { delete globalThis.__boundaryEnv; });
 function setup() {
@@ -231,6 +231,56 @@ test("password updates revoke sessions; new appointments transfer special gate, 
         }}));
         assert.equal(special.status,200);
         assert.equal((await special.json()).citizenId,"truth");
+    } finally {db.close();}
+});
+
+test("incumbent sets a separate hashed direct-login password from minister dashboard, with personal reauthentication", async () => {
+    const { hashMemberPassword } = await import("../app/member-passwords.ts");
+    const db=setup();
+    try {
+        const personal="CitizenIdentitySecret-2026";
+        const direct="OfficeDirectPass-Aa-2026";
+        const rotated="OfficeDirectPass-Bb-2026";
+        const hash=await hashMemberPassword(personal);
+        db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
+          .run("amberina",hash.hash,hash.salt,Date.now(),"amberina");
+        const cookie=session(db,"amberina","technology");
+        assert.equal((await ministerPassword.GET(request("/api/technology/direct-password",{cookie:session(db,"amberina")}))).status,403);
+        const before=await ministerPassword.GET(request("/api/technology/direct-password",{cookie}));
+        assert.equal(before.status,200);
+        assert.equal((await before.json()).configured,false);
+        const put=(personalPassword,newPassword,origin)=>ministerPassword.PUT(request(
+          "/api/technology/direct-password",{method:"PUT",cookie,origin,body:{personalPassword,newPassword}}));
+        assert.equal((await put("wrong",direct)).status,401);
+        assert.equal((await put(personal,personal)).status,400);
+        assert.equal((await put(personal,"short")).status,400);
+        assert.equal((await put(personal,direct,"https://attacker.invalid")).status,403);
+        const saved=await put(personal,direct);
+        assert.equal(saved.status,200);
+        assert.equal((await saved.json()).configured,true);
+        const record=db.prepare("SELECT password_hash AS hash,password_salt AS salt,updated_by AS by FROM technology_direct_credentials WHERE office_id='technology'").get();
+        assert.ok(record && record.hash!==direct && record.salt.length===32);
+        assert.equal(record.by,"amberina");
+
+        const directLogin=(pw)=>memberSessions.POST(request("/api/member-session",{
+          method:"POST",body:{citizenId:"technology",accountMode:"technology",password:pw}
+        }));
+        assert.equal((await directLogin(DIRECT_TEST_SECRET)).status,401,
+          "configured D1 secret must override any old Worker secret");
+        assert.equal((await directLogin(personal)).status,401);
+        const login=await directLogin(direct);
+        assert.equal(login.status,200);
+        const directCookie=login.headers.get("set-cookie")?.split(";")[0];
+        assert.ok(directCookie);
+        assert.equal(db.prepare("SELECT COUNT(*) AS n FROM member_sessions WHERE auth_source='ministry-direct'").get().n,1);
+        assert.equal((await technology.GET(request("/api/technology",{cookie:directCookie}))).status,200);
+        assert.equal((await put(personal,rotated)).status,200);
+        assert.equal(db.prepare("SELECT COUNT(*) AS n FROM member_sessions WHERE auth_source='ministry-direct'").get().n,0);
+        assert.equal((await technology.GET(request("/api/technology",{cookie:directCookie}))).status,401);
+        assert.equal((await directLogin(direct)).status,401);
+        assert.equal((await directLogin(rotated)).status,200);
+        assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,200,
+          "personal-origin quick-switch session survives rotation of office-only password");
     } finally {db.close();}
 });
 
