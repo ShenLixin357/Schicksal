@@ -266,13 +266,12 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
 }) {
   const [section,setSection] = useState<Section>("home");
   const isCurrentMinister = Boolean(offices && isCurrentTechnologyMinister(citizen.id, offices));
-  const [switchingMode,setSwitchingMode] = useState(false);
   const switchBusy = useRef(false);
   const [modeSwitchMessage,setModeSwitchMessage] = useState("");
   const switchAccountImmediately = () => {
     if (authSource !== "personal" || !(accountMode === "technology" || isCurrentMinister) || switchBusy.current) return;
     switchBusy.current = true;
-    setSwitchingMode(true); setModeSwitchMessage("");
+    setModeSwitchMessage("");
     const target: AccountMode = accountMode === "technology" ? "citizen" : "technology";
     void fetch("/api/member-session/switch", {
       method:"POST", cache:"no-store",
@@ -288,7 +287,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
     }).catch(error => {
       setModeSwitchMessage(error instanceof Error ? error.message : "身份切换失败，请检查网络。");
     }).finally(() => {
-      switchBusy.current = false; setSwitchingMode(false);
+      switchBusy.current = false;
     });
   };
   const [portal, setPortal] = useState<LoungePassageDirection | null>(null);
@@ -487,10 +486,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
       </section>
       {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
         onSwap={swapPortalRoom} onFinish={() => setPortal(null)}/>}
-      {(switchingMode || modeSwitchMessage) && <div className="technology-inline-switch-status"
-        role={modeSwitchMessage ? "alert" : "status"} aria-live="polite">
-        {modeSwitchMessage || "正在切换身份…"}
-      </div>}
+      {modeSwitchMessage && <div className="technology-inline-switch-status" role="alert" aria-live="assertive">{modeSwitchMessage}</div>}
 
     </main>
   );
