@@ -1,48 +1,33 @@
-/* Public self-profile diamond; scoped to profile only, never Lounge art.
-   Approved 8-blade color order comes from EMBLEM_BLADES and the four-point
-   shape from crystal-geometry.ts. No shared/global scene CSS is overridden. */
+/* Standalone personal prism only. Never imports the shared eight-ray palette.
+ * Original profile layout, user-approved Simple mark, fonts and page background
+ * are untouched. Facets are purely specular/translucent, not a new base hue.
+ */
 .profile-crystal-emblem {
   display: block;
   flex: 0 0 auto;
-  width: min(198px, calc(100% - 32px));
+  width: min(100px, calc(100% - 32px));
   height: auto;
-  aspect-ratio: 1;
+  aspect-ratio: 80 / 182;
   overflow: visible;
   filter: drop-shadow(0 5px 7px rgba(59, 79, 86, .10));
-}
-.profile-crystal-emblem .profile-crystal-guide {
-  fill: none;
-  stroke: rgba(152, 166, 163, .20);
-  stroke-width: .6;
-  stroke-dasharray: 1 7;
 }
 .profile-crystal-emblem .profile-crystal-kite {
   stroke-linejoin: round;
 }
 .profile-crystal-emblem .profile-crystal-upper-facet {
-  fill: rgba(255, 255, 255, .36);
+  fill: rgba(255, 255, 255, .28);
   pointer-events: none;
 }
 .profile-crystal-emblem .profile-crystal-inner-facet {
-  fill: rgba(14, 33, 42, .11);
+  fill: rgba(34, 36, 15, .07);
   pointer-events: none;
 }
 .profile-crystal-emblem .profile-crystal-ridge {
   fill: none;
-  stroke: rgba(255, 255, 255, .70);
-  stroke-width: .75;
+  stroke: rgba(255, 255, 255, .60);
+  stroke-width: .5;
   pointer-events: none;
 }
-.profile-crystal-emblem .profile-crystal-core-ring {
-  fill: rgba(255, 255, 255, .84);
-  stroke: rgba(155, 175, 173, .44);
-  stroke-width: .8;
-}
-.profile-crystal-emblem .profile-crystal-core {
-  fill: rgba(222, 241, 239, .80);
-  stroke: rgba(125, 163, 168, .66);
-  stroke-width: .8;
-}
 @media (max-width: 760px) {
-  .profile-crystal-emblem { width: min(176px, calc(100% - 32px)); }
+  .profile-crystal-emblem { width: min(90px, calc(100% - 32px)); }
 }
