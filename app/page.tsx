@@ -7,7 +7,6 @@ import { fetchBriefingFeed, type BriefingFeed } from "./briefing/briefing-loader
 import { readyForMandatoryBriefing, mayMountSiteAfterBriefing, type MandatoryBriefingPreload } from "./briefing/mandatory-entry";
 import { useMemberPresence } from "./briefing/use-member-presence";
 import { CITIZENS, citizenRepresentativeColor, type Citizen } from "./citizens";
-import { MemberAccessSettings } from "./member-access-settings";
 import { isCurrentPresident, isCurrentTechnologyMinister, currentOfficeLabel } from "./identity/office-registry";
 import { PublicCitizenMark as CitizenMark } from "./identity/public-mark";
 import { ATLAS_VISUAL_APPROVED } from "./shell/navigation";
