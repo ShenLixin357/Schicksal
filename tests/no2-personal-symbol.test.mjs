@@ -102,3 +102,15 @@ test("server-side pre-auth entry has the same responsive mark and Garnet Red as 
   assert.match(profile, /Garnet Red \/ 石榴红 · #D7263D/);
   assert.doesNotMatch(profile, /Red Flame/);
 });
+
+test("No.2 full profile portrait stays centered inside its circular badge without altering other marks", () => {
+  const css = source("app/globals.css");
+  const rule = css.match(/\.profile-mark \.citizen-mark\.no2-symbol \.citizen-simple-image \{([^}]*)\}/);
+  assert.ok(rule, "Missing profile-only No.2 centering rule");
+  for (const required of [
+    "position: absolute", "left: 50%", "top: 50%", "width: 90%", "height: 90%",
+    "object-fit: contain", "transform: translate(-50%, -50%)",
+  ]) assert.ok(rule[1].includes(required), "Profile mark missing " + required);
+  assert.doesNotMatch(rule[0], /asset:|filter:|background:|scale\(/,
+    "Centering must not recolour, recreate or stretch the approved original");
+});
