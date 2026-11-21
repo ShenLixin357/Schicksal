@@ -190,6 +190,72 @@ test("database failures fail closed and HEAD requests never return protected byt
   } finally { sqlite.close(); }
 });
 
+test("Cloudflare pre-auth login actually renders a ministry card and submits independent technology mode", async () => {
+  const sqlite=setup();
+  try {
+    const dedicated="TestSpecialOfficePassword2026!";
+    const { hashMemberPassword }=await import("../app/member-passwords.ts");
+    const hashed=await hashMemberPassword(dedicated);
+    sqlite.prepare(`INSERT INTO technology_direct_credentials
+      (office_id,password_hash,password_salt,updated_at,updated_by,citizen_id,term_id)
+      VALUES('technology',?,?,?,?,?,?)`).run(hashed.hash,hashed.salt,Date.now(),"amberina","amberina","founding-2026");
+    const html=await (await visit("/")).text();
+    assert.match(html,/id="identity-technology"[^>]*data-member="technology"/);
+    assert.match(html,/MINISTRY OF TECHNOLOGY · OFFICIAL ENTRY/);
+    assert.match(html,/05 \/ 08 CITIZENS · 01 OFFICE/);
+    assert.doesNotMatch(html,/05 \/ 08 IDENTIFIED/);
+    const script=html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)?.[1];
+    assert.ok(script, "visitor login must contain the real authentication script");
+    let submit, clickMinistry, cookie, destination, posted;
+    const makeButton=(member,label,name)=>({
+      dataset:{member,label,name},classList:{add(){},remove(){}},setAttribute(){},
+      addEventListener(name,listener){if(name==="click"&&member==="technology")clickMinistry=listener;}
+    });
+    const options=[makeButton("amberina","宇宙霸主","Amberina von Schicksal"),
+      makeButton("technology","科技部部长","MINISTRY OF TECHNOLOGY")];
+    const submitButton={disabled:false};
+    const form={addEventListener(name,callback){if(name==="submit")submit=callback;},querySelector(){return submitButton;}};
+    const inert={addEventListener(){}};
+    const values={
+      opening:{hidden:false},login:{hidden:true},skip:inert,replay:inert,
+      "show-password":inert,entry:form,
+      member:{value:"amberina"},password:{value:passwords.amberina},
+      status:{textContent:""},"selected-label":{textContent:""},
+      "selected-name":{textContent:""},"login-password-heading":{textContent:""}
+    };
+    const fakeDocument={
+      querySelectorAll(selector){return selector.startsWith("[data-member]")?options:[];},
+      getElementById(id){return values[id];}
+    };
+    const fakeFetch=async(path,options)=>{
+      posted=JSON.parse(options.body);
+      const response=await visit(path,{method:options.method,body:options.body,headers:options.headers});
+      cookie=response.headers.get("Set-Cookie")?.split(";")[0]??cookie;
+      return response;
+    };
+    new Function("document","fetch","window",script)(fakeDocument,fakeFetch,{
+      matchMedia(){return {matches:true};},sessionStorage:{setItem(){}},
+      location:{replace(path){destination=path;}}
+    });
+    clickMinistry();
+    assert.equal(values.member.value,"technology");
+    assert.equal(values["login-password-heading"].textContent,"部长专用密码");
+    await submit.call(form,{preventDefault(){}});
+    assert.equal(posted.citizenId,"technology");
+    assert.equal(posted.accountMode,"technology");
+    assert.equal(destination,undefined,"personal password must be rejected at ministry gate");
+    assert.equal(submitButton.disabled,false);
+    values.password.value=dedicated;
+    await submit.call(form,{preventDefault(){}});
+    assert.equal(destination,"/");
+    assert.equal(values.password.value,"");
+    assert.ok(cookie);
+    assert.deepEqual(await (await visit("/api/member-session",{cookie})).json(),{
+      citizenId:"amberina",accountMode:"technology",authSource:"ministry-direct"
+    });
+  } finally {sqlite.close();}
+});
+
 test("the actual self-contained login form obtains a session and opens the protected site", async () => {
   const sqlite = setup();
   try {
