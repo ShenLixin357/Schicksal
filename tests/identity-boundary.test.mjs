@@ -10,7 +10,7 @@ globalThis.__boundaryEnv = env;
 const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier === "cloudflare:workers")
         return { url: "data:text/javascript,export const env=globalThis.__boundaryEnv", shortCircuit: true }; if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier))
         return next(existsSync(new URL(`${specifier}.ts`, context.parentURL)) ? `${specifier}.ts` : `${specifier}/index.ts`, context); return next(specifier, context); } });
-const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts");
+const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts"), technology = await import("../app/api/technology/route.ts");
 hooks.deregister();
 after(() => { delete globalThis.__boundaryEnv; });
 function setup() {
@@ -100,6 +100,34 @@ test("photo upload ignores forged uploader ID and permanently preserves uploader
         assert.equal(body.photo.uploaderCitizenId, "truth");
         assert.equal(db.prepare("SELECT uploader_citizen_id AS id FROM archive_photos WHERE id=?").get(body.photo.id).id,"truth");
     } finally { db.close(); }
+});
+test("technology ministry admin is authorized by real minister office and not a fake header", async () => {
+    const db = setup();
+    try {
+        assert.equal((await technology.GET(request("/api/technology"))).status, 401);
+        assert.equal((await technology.GET(request("/api/technology", {cookie:session(db,"truth")}))).status, 403);
+        const response = await technology.GET(request("/api/technology", {cookie:session(db,"amberina")}));
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get("Cache-Control"), "private, no-store");
+        assert.deepEqual(await response.json(), {
+            authorized:true,role:"technology-minister",administrativeScope:"all-site",activeModules:["photo-archive"]
+        });
+    } finally {db.close();}
+});
+test("minister portal displays the shared emblem only, leaving member login unchanged", async () => {
+    const { isCurrentTechnologyMinister, ATLAS_OFFICES } = await import("../app/identity/office-registry.ts");
+    assert.equal(isCurrentTechnologyMinister("amberina"), true);
+    assert.equal(isCurrentTechnologyMinister("truth"), false);
+    const transferred = ATLAS_OFFICES.map(office => office.id==="technology" ? {...office,holderIds:["truth"]} : office);
+    assert.equal(isCurrentTechnologyMinister("truth", transferred), true, "role follows office assignment");
+    assert.equal(isCurrentTechnologyMinister("amberina", transferred), false);
+    const code = readFileSync(new URL("../app/page.tsx",import.meta.url),"utf8");
+    const hub = readFileSync(new URL("../app/technology/technology-ministry.tsx",import.meta.url),"utf8");
+    assert.match(code,/isCurrentTechnologyMinister\(citizen\.id\)/);
+    assert.match(code,/科技部部长入口/);
+    assert.match(code,/<Emblem compact\s*\/>/);
+    assert.match(hub,/sharedMark/);
+    assert.doesNotMatch(hub,/PublicCitizenMark|CitizenMark/);
 });
 test("JSON reader bounds actual streamed bytes and rejects malformed roots", async () => {
     const stream = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('{"x":"')); c.enqueue(new Uint8Array(100)); c.close(); } }), r = new Request("https://test.invalid", { method: "POST", body: stream, duplex: "half", headers: { "content-length": "1" } });
