@@ -16,7 +16,7 @@ const ARCHIVE_BOOK_CHAPTERS: ArchiveChapter[] = [
   { id: "lesson-2-b", lesson: "LESSON 2 · 第二课下", title: "如果家人犯了错，国家应该怎样让他回来？", source: "/archives/how-to-build-a-state-lesson-2-b.md", version: "v1.0", note: "政治权利暂停、恢复与共同体身份" },
 ];
 
-export function ArchivesSection({ authorMark, authorMarkColor }: { authorMark: ReactNode; authorMarkColor: string }) {
+export function ArchivesSection({ authorMark, readerAuthorMark, authorMarkColor }: { authorMark: ReactNode; readerAuthorMark: ReactNode; authorMarkColor: string }) {
   const [bookOpen, setBookOpen] = useState(false);
   const [chapterIndex, setChapterIndex] = useState(0);
   const [chapterText, setChapterText] = useState("");
@@ -70,7 +70,7 @@ export function ArchivesSection({ authorMark, authorMarkColor }: { authorMark: R
       <header className="reader-topbar"><div><span>《如何从零建立一个国家》</span><i>{chapter.lesson}</i></div><button type="button" onClick={() => setBookOpen(false)}>合上书 ×</button></header>
       <div className="archive-book-spread">
         <aside className="reader-verso">
-          <div className="reader-author-mark" style={{ "--mark": authorMarkColor } as CSSProperties}>{authorMark}</div>
+          <div className="reader-author-mark" style={{ "--mark": authorMarkColor } as CSSProperties}>{readerAuthorMark}</div>
           <small>SCHICKSAL FIRST EMPIRE<br />NATIONAL ARCHIVES</small>
           <h2>{chapter.title}</h2>
           <p>{chapter.note}</p>
