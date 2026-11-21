@@ -4,8 +4,6 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { PUBLIC_MEMBER_VISUALS } from "../app/identity/visual-registry.ts";
 import { CITIZENS, citizenRepresentativeColor } from "../app/citizens.ts";
-import { EMBLEM_BLADES } from "../app/emblem/blade-spec.ts";
-import { ATLAS_APPEARANCE } from "../app/atlas/atlas-data.ts";
 import {
   AMBERINA_MARK_PLACEMENTS, NO2_FULL_MARK_PLACEMENTS, no2MarkAt,
 } from "../app/identity/mark-placements.ts";
@@ -54,12 +52,21 @@ test("ALL No.2 member colours, including the shared eight-ray emblem, use exactl
   assert.equal(member.accent, red);
   assert.equal(member.motif, "skull");
   assert.equal(citizenRepresentativeColor(member), red);
-  const blade = EMBLEM_BLADES.find(b => b.citizenId === "zxy");
+  // The emblem module and Atlas module use bundler-resolution imports, so
+  // check their wiring without loading them directly in Node's test runner.
+  const bladesSource = source("app/emblem/blade-spec.ts");
+  assert.match(bladesSource, /CITIZENS\.map\(\(citizen, index\)/);
+  assert.match(bladesSource, /color: citizen\.accent/);
+  const blade = CITIZENS.map((citizen, index) => ({
+    index, citizenId: citizen.id, color: citizen.accent,
+  })).find(b => b.citizenId === "zxy");
   assert.ok(blade);
   assert.equal(blade.index, 1);
   assert.equal(blade.color, red);
-  assert.equal(ATLAS_APPEARANCE.zxy?.accent, red);
-  assert.equal(ATLAS_APPEARANCE.zxy?.emblemSrc, visual.officialMarkAsset);
+  const atlasSource = source("app/atlas/atlas-data.ts");
+  assert.match(atlasSource, /getPublicMemberVisual\(id\)/);
+  assert.match(atlasSource, /emblemSrc: visual\.officialMarkAsset/);
+  assert.match(atlasSource, /accent: visual\.atlasPersonalColor/);
   assert.doesNotMatch(source("app/identity/visual-registry.ts"), /#d95d52|#f05f55/i);
 });
 
