@@ -306,3 +306,21 @@ test("member password administration rejects forged identities, foreign origins 
   } finally { sqlite.close(); }
 });
 
+
+
+test("a failed server-side session revocation cannot report success or redirect a still-authenticated account", async () => {
+  const sqlite = setup();
+  try {
+    const cookie = await login("amberina");
+    const original = env.DB.prepare;
+    env.DB.prepare = function (sql) {
+      if (/^DELETE FROM member_sessions WHERE token_hash/.test(sql)) throw Error("isolated simulated D1 outage");
+      return original.call(this, sql);
+    };
+    const result = await visit("/api/member-session", {method:"DELETE", cookie});
+    assert.equal(result.status, 503);
+    assert.equal(result.headers.get("Set-Cookie"), null);
+    env.DB.prepare = original;
+    assert.equal((await visit("/", {cookie})).status, 200, "server token remains valid until revocation succeeds");
+  } finally { sqlite.close(); }
+});
