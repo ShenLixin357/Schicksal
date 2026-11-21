@@ -53,8 +53,9 @@ test("no implicit mark display default or unapproved mark calls remain", () => {
 test("unbundled login entry uses approved original public Simple, not old inline strong asset", () => {
   const entry=read("app/entry-screen.ts");
   assert.match(entry,/amberinaMarkAt\("login-entry-picker"\)/);
-  assert.match(entry,/loginMark\.asset/);
-  assert.doesNotMatch(entry,/amberina-login-mark\.png\?inline/);
+  assert.match(entry,/loginMark\.color/);
+  assert.match(entry,/assets\/amberina-login-mark-official\.png\?inline/);
+  assert.doesNotMatch(entry,/assets\/amberina-login-mark\.png\?inline/);
 });
 
 test("three photo, four parliament and two messaging contexts retain explicit slots", () => {
