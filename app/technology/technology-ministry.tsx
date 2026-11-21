@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { PageHead } from "../shell/page-head";
 import { MemberAccessSettings } from "../member-access-settings";
+import { TechnologyDirectPasswordSettings } from "./direct-password-settings";
 import "./technology-ministry.css";
 
 /** The ministry uses the approved shared imperial mark, never a personal mark.
@@ -37,6 +38,7 @@ export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onBack }: {
           <p>家庭影像馆的上传、照片编辑、回收与恢复仍按现有接口执行；完整隐私、历史审计及当事人权利规则尚待确认。</p>
           <button type="button" onClick={onOpenPhotos}>进入家庭影像馆管理 <span aria-hidden="true">→</span></button>
           <MemberAccessSettings />
+          <TechnologyDirectPasswordSettings />
         </section>}
     <button type="button" className="technology-ministry-back" onClick={onBack}>← 返回首页</button>
   </section>;
