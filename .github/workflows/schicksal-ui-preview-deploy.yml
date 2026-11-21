@@ -34,7 +34,6 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
       SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
-      SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD: ${{ secrets.SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -182,21 +181,6 @@ jobs:
         run: |
           set -euo pipefail
           printf "%s" "$SCHICKSAL_PREVIEW_PASSWORDS" | npx wrangler secret put SCHICKSAL_MEMBER_PASSWORDS --config work/ui-preview-dist/server/wrangler.json
-      - name: Configure minister-only direct login secret on PREVIEW Worker
-        shell: bash
-        run: |
-          set -euo pipefail
-          CONFIG=work/ui-preview-dist/server/wrangler.json
-          if [ -z "${SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD:-}" ]; then
-            echo "Minister direct-login password can be enrolled privately in the Technology Ministry dashboard; no GitHub secret is required."
-          else
-            if [ "${#SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD}" -lt 12 ]; then
-              echo "::error::The independent ministry password secret is too short."
-              exit 1
-            fi
-            printf "%s" "$SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD" | npx wrangler secret put SCHICKSAL_MINISTRY_DIRECT_PASSWORD --config "$CONFIG"
-            echo "Configured preview-only ministry direct-login secret (value never printed)."
-          fi
       - name: Authenticated preview briefing smoke check (no tokens printed)
         shell: bash
         run: |
@@ -247,22 +231,9 @@ jobs:
           });
           if (!switchedBack.ok) throw Error("Incumbent cannot instantly switch back");
           console.log("Personal->minister->personal switch and protected password settings: OK.");
-          if (process.env.SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD && !credentialState.configured) {
-            const ministerEntry = await fetch(root + "/api/member-session", {
-              method:"POST", headers:{"Content-Type":"application/json",Origin:root},
-              body:JSON.stringify({citizenId:"technology",accountMode:"technology",
-                password:process.env.SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD})
-            });
-            if (!ministerEntry.ok) throw Error("Minister-only direct login failed: HTTP "+ministerEntry.status);
-            const auth = await ministerEntry.json();
-            if (auth.citizenId !== "amberina" || auth.accountMode !== "technology")
-              throw Error("Direct ministry login returned the wrong officeholder or account mode");
-            const ministerCookie = ministerEntry.headers.get("set-cookie")?.split(";")[0];
-            const admin = await fetch(root+"/api/technology",{headers:{Cookie:ministerCookie}});
-            if (!admin.ok) throw Error("Direct ministry login cannot access authenticated ministry console");
-            await fetch(root+"/api/member-session",{method:"DELETE",headers:{Cookie:ministerCookie,Origin:root}});
-            console.log("Dedicated ministry password and admin role: verified; no password printed.");
-          }
+          console.log(credentialState.configured
+            ? "Direct office password is configured for the current term."
+            : "Direct office password not yet enrolled; use the minister dashboard to set it privately.");
           const offices = await fetch(root + "/api/offices/current", {headers:{Cookie:cookie}, cache:"no-store"});
           if (!offices.ok) throw new Error("Office role registry not available on deployed preview");
           const officeData = await offices.json();
@@ -315,6 +286,6 @@ jobs:
             echo "- Preview URL: https://schicksal-ui-preview.m17686100216.workers.dev"
             echo "- Verified deployment SHA: $GITHUB_SHA"
             echo "- Photo uploads require separately created preview R2; check R2 provisioning step output."
-            echo "- Ministry direct login can be configured directly from the authenticated minister dashboard; GitHub bootstrap secret is optional."
+            echo "- Ministry direct login is set exclusively in the authenticated minister dashboard; no environment secret required."
             echo "- Check login, daily news and responsive layout manually before claiming acceptance."
           } >> "$GITHUB_STEP_SUMMARY"
