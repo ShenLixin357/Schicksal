@@ -37,12 +37,14 @@ export async function DELETE(request: Request) {
     const token = cookieToken(request);
     if (token) {
       const tokenHash = await digest(token);
+      // Never claim a successful logout when the server token could still be valid.
       await env.DB.prepare("DELETE FROM member_sessions WHERE token_hash = ?").bind(tokenHash).run();
-      // Presence is per session, not per account: other active devices remain online.
+      // Presence is per session; a best-effort cleanup never masks session revocation.
       try { await env.DB.prepare("DELETE FROM member_presence WHERE session_hash = ?").bind(tokenHash).run(); }
-      catch { /* Earlier deployments may not have the optional presence table. */ }
+      catch { /* Optional legacy presence table. */ }
     }
+    return Response.json({ ok: true }, { headers: { "Set-Cookie": sessionCookie(request, "", 0), "Cache-Control": "no-store" } });
+  } catch {
+    return Response.json({ error: "注销未完成，请检查网络后重试。" }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
-  catch { /* Always clear the browser cookie even if storage is unavailable. */ }
-  return Response.json({ ok: true }, { headers: { "Set-Cookie": sessionCookie(request, "", 0), "Cache-Control": "no-store" } });
 }

@@ -60,18 +60,46 @@ test("real session overrides creator claims and retains committee restrictions",
         db.close();
     }
 });
-test("API checks mutation origin and preserves all-members photo deletion policy", async () => {
+test("photo permissions: any member may view, only uploader/owner may edit and move to trash; owner restores", async () => {
     const db = setup();
     try {
-        const cookie = session(db, "kaito");
-        assert.equal((await photos.DELETE(request("/api/photos?id=photo", { method: "DELETE", cookie, origin: "https://elsewhere.invalid" }))).status, 403);
+        const kaito = session(db, "kaito"), truth = session(db, "truth"), owner = session(db, "amberina");
         db.prepare("INSERT INTO archive_photos(id,object_key,original_name,title,subjects_json,subject_key,uploader_citizen_id,mime_type,size_bytes) VALUES('photo','family-archive/p.png','p.png','test','[]','empire','truth','image/png',1)").run();
-        assert.equal((await photos.DELETE(request("/api/photos?id=photo", { method: "DELETE", cookie }))).status, 200);
-        assert.equal(db.prepare("SELECT COUNT(*) AS n FROM archive_photos").get().n, 0);
-    }
-    finally {
-        db.close();
-    }
+        await env.BUCKET.put("family-archive/p.png", new Uint8Array([1]), "image/png", "p.png");
+        assert.equal((await photos.DELETE(request("/api/photos?id=photo", { method: "DELETE", cookie: kaito, origin: "https://elsewhere.invalid" }))).status, 403);
+        assert.equal((await photos.DELETE(request("/api/photos?id=photo", { method: "DELETE", cookie: kaito }))).status, 403);
+        assert.equal((await photos.PATCH(request("/api/photos?id=photo", { method: "PATCH", cookie: kaito, body: { title: "偷改" } }))).status, 403);
+        assert.equal((await photos.GET(request("/api/photos", { cookie: kaito }))).status, 200);
+        assert.equal((await photos.GET(request("/api/photos?trash=1", { cookie: kaito }))).status, 403);
+        const edited = await photos.PATCH(request("/api/photos?id=photo", { method: "PATCH", cookie: truth, body: { title: "共同记忆", subjects: ["truth"] } }));
+        assert.equal(edited.status, 200);
+        assert.equal((await edited.json()).photo.uploaderCitizenId, "truth");
+        assert.equal(db.prepare("SELECT title FROM archive_photos WHERE id='photo'").get().title, "共同记忆");
+        assert.equal((await photos.DELETE(request("/api/photos?id=photo", { method: "DELETE", cookie: truth }))).status, 200);
+        assert.equal(db.prepare("SELECT COUNT(*) AS n FROM archive_photos").get().n, 1, "trash preserves metadata and storage");
+        assert.ok(db.prepare("SELECT deleted_at FROM archive_photos WHERE id='photo'").get().deleted_at);
+        assert.equal((await (await photos.GET(request("/api/photos", { cookie: kaito }))).json()).photos?.length, 0);
+        assert.equal((await image.GET(request("/api/photos/image?id=photo", { cookie: truth }))).status, 404);
+        assert.equal((await photos.PUT(request("/api/photos?id=photo", { method: "PUT", cookie: truth }))).status, 403);
+        assert.equal((await (await photos.GET(request("/api/photos?trash=1", { cookie: owner }))).json()).photos.length, 1);
+        assert.equal((await photos.PUT(request("/api/photos?id=photo", { method: "PUT", cookie: owner }))).status, 200);
+        assert.equal(db.prepare("SELECT deleted_at FROM archive_photos WHERE id='photo'").get().deleted_at, null);
+        assert.equal((await (await photos.GET(request("/api/photos", { cookie: kaito }))).json()).photos.length, 1);
+        assert.equal((await photos.DELETE(request("/api/photos?id=photo", { method: "DELETE", cookie: owner }))).status, 200);
+    } finally { db.close(); }
+});
+test("photo upload ignores forged uploader ID and permanently preserves uploader attribution", async () => {
+    const db = setup();
+    try {
+        const truth = session(db, "truth");
+        const response = await photos.POST(request("/api/photos", { method: "POST", cookie: truth,
+            body: { dataBase64: "AQ==", originalName: "proof.png", mimeType: "image/png", sizeBytes: 1,
+                    title: "proof", subjects: ["truth"], uploaderCitizenId: "amberina" } }));
+        assert.equal(response.status, 201);
+        const body = await response.json();
+        assert.equal(body.photo.uploaderCitizenId, "truth");
+        assert.equal(db.prepare("SELECT uploader_citizen_id AS id FROM archive_photos WHERE id=?").get(body.photo.id).id,"truth");
+    } finally { db.close(); }
 });
 test("JSON reader bounds actual streamed bytes and rejects malformed roots", async () => {
     const stream = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('{"x":"')); c.enqueue(new Uint8Array(100)); c.close(); } }), r = new Request("https://test.invalid", { method: "POST", body: stream, duplex: "half", headers: { "content-length": "1" } });
