@@ -21,6 +21,6 @@
 .technology-ministry-entry small { color:#756d5f; font-size:.68rem; }
 @media(max-width:760px) { .technology-ministry-banner { padding:18px; gap:15px; align-items:flex-start; } .technology-ministry-emblem { width:58px;height:58px; } .technology-ministry-emblem .emblem { width:48px;height:48px; } .technology-ministry-banner h2 { font-size:1.3rem; } }
 
-/* Minimal auxiliary mode selector in existing login form. */
-.technology-login-mode-button{display:inline-block;margin:4px 0 12px;padding:6px 0;border:0;background:transparent;color:#80673c;text-align:left;font-size:.73rem;cursor:pointer}
-.technology-login-mode-button:focus-visible{outline:2px solid #856b38;outline-offset:3px}
+
+/* A hold silently changes session mode; errors surface as inline status only. */
+.technology-inline-switch-status { position:fixed; right:18px; bottom:20px; z-index:950; max-width:min(350px,calc(100vw - 36px)); padding:9px 13px; background:rgba(255,250,235,.96); border:1px solid #b59a65; box-shadow:0 8px 22px rgba(28,33,43,.13); font:.76rem var(--sans); color:#69512d; pointer-events:none; }
