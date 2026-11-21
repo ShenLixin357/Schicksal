@@ -168,8 +168,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   filter: none;
 }
 
-/* The approved Amberina mark is inlined into the CSP-nonced stylesheet on
-   the public login screen, preserving the private static-asset boundary. */
+/* The original Amberina Simple asset is selected by the public-entry
+   placement registry and loaded without a private React bundle. */
 .citizen-mark.personal-simple .citizen-simple-image {
   background-position: center;
   background-repeat: no-repeat;
