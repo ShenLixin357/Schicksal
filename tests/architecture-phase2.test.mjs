@@ -22,10 +22,10 @@ test("parliament view has its own existing wire types and keeps all official mar
   assert.match(panel, /export function PersistentParliamentSection/);
   assert.match(panel, /fetch\("\/api\/parliament"/);
   assert.match(panel, /SpeakerManagement/);
-  assert.match(panel, /renderOfficialMark\(electedSpeaker\)/);
-  assert.match(panel, /renderOfficialMark\(citizenFor\(request\.citizenId\)!\)/);
+  assert.match(panel, /renderOfficialMark\(electedSpeaker, "parliament-speaker-election"\)/);
+  assert.match(panel, /renderOfficialMark\(citizenFor\(request\.citizenId\)!, "parliament-comment-request"\)/);
   assert.ok((panel.match(/renderOfficialMark\(/g)||[]).length >= 8);
-  assert.match(page, /renderOfficialMark=\{member => <CitizenMark citizen=\{member\} display="official" \/>\}/);
+  assert.match(page, /renderOfficialMark=\{\(member, placement\) => <CitizenMark citizen=\{member\} placement=\{placement\} \/> \}/);
   for (const type of ["ParliamentStage","ParliamentItem","ParliamentVote","ParliamentSession","ParliamentBoard"])
     assert.match(types,new RegExp("export type "+type+"\\b"));
   assert.doesNotMatch(panel, /from "\.\.\/api\//);
