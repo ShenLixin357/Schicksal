@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { cookieToken, digest } from "./member-session-core";
 import { matchesMemberPassword } from "./member-passwords";
-import { isCurrentTechnologyMinister } from "./identity/office-registry.ts";
+import { isIncumbentTechnologyMinister } from "../server/auth/offices.ts";
 export { cookieToken, digest, MEMBER_SESSION_SECONDS, sameOrigin, sessionCookie } from "./member-session-core";
 const MEMBER_IDS = new Set(["amberina", "zxy", "truth", "kaito", "harry"]);
 const LEGACY_SITE_PASSWORD = "";
@@ -21,18 +21,18 @@ export async function currentSession(request: Request): Promise<{
   if (!row || !MEMBER_IDS.has(row.citizenId)) return null;
   const ministerGrantExpiresAt = Number(row.ministerGrantExpiresAt) || 0;
   const accountMode: AccountMode = row.accountMode === "technology"
-    && ministerGrantExpiresAt > now && isCurrentTechnologyMinister(row.citizenId)
+    && ministerGrantExpiresAt > now && await isIncumbentTechnologyMinister(row.citizenId)
     ? "technology" : "citizen";
   return { citizenId: row.citizenId, accountMode, ministerGrantExpiresAt };
 }
 export async function currentMember(request: Request): Promise<string | null> {
   return (await currentSession(request))?.citizenId ?? null;
 }
+/** Same password as the incumbent's personal account. No duplicate secret
+ * is stored: updating member_credentials instantly changes minister login.
+ */
 export async function verifyTechnologyPassword(citizenId: string, password: string): Promise<boolean> {
-  if (!isCurrentTechnologyMinister(citizenId) || !password || password.length > 1024) return false;
-  const stored = await env.DB.prepare("SELECT password_hash AS hash, password_salt AS salt FROM technology_credentials WHERE citizen_id = ?")
-    .bind(citizenId).first<{ hash: string; salt: string }>();
-  return Boolean(stored) && matchesMemberPassword(password, stored!.salt, stored!.hash);
+  return await isIncumbentTechnologyMinister(citizenId) && await verifyMemberPassword(citizenId, password);
 }
 
 export async function verifyMemberPassword(citizenId: string, password: string) {
