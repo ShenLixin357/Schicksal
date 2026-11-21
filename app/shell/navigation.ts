@@ -21,7 +21,8 @@ export const PRIMARY_NAV: readonly PrimaryNavItem[] = [
 
 export const COLLECTION_NAV: readonly SubNavItem[] = [
   { id: "library", label: "魔法图书馆" },
-  { id: "atlas", label: "天命图谱" },
+  // Atlas artwork has NOT passed owner review. Do not expose a navigation
+  // entry until separately approved; preserve implementation for private art review.
   { id: "photos", label: "家庭影像馆" },
   { id: "archives", label: "国家档案馆" },
 ];
