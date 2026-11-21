@@ -141,7 +141,10 @@ export function VaseExperience({ room, citizenId, memberName, onRoomChange }: Pr
   function pointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (event.button !== 0 || locked.current) return;
     gesture.current = { x: event.clientX, y: event.clientY, consumed: false };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    // Safari may reject pointer capture during portal / scene transitions.
+    // Keep ordinary clicks and long-press history functional in that case.
+    try { event.currentTarget.setPointerCapture(event.pointerId); }
+    catch { /* A normal pointerup/click still completes the interaction. */ }
     cancelPress();
     pressTimer.current = setTimeout(() => { if (gesture.current) gesture.current.consumed = true; showHistory(); }, 600);
   }

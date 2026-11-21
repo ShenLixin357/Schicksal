@@ -85,6 +85,7 @@ The single self-profile crystal is separate from Simple: length/width
 It is a single, standalone prism in the official citizen representative
 colour, NOT the shared eight-ray emblem.
 
-**Atlas art status:** not approved. Keep navigation and visual route hidden
-until a separate owner art review. Its original-colour marker decision in
+**Atlas art status:** not approved. Show a text-only navigation entry and
+an inert "美术设计中 · 暂未开放" placeholder only. Keep the actual illustrated Atlas
+route hidden until a separate owner art review. Its original-colour marker decision in
 row 11 is NOT permission to publish Atlas art.

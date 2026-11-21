@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./identity/office-insignia.css";
 import "./club/lounge-core.css";
 import "./parliament/parliament-workspace.css";
 import "./archives/archive-reader.css";

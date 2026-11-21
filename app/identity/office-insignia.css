@@ -1,0 +1,7 @@
+/* Shared public-office decoration. Extracted byte-for-byte from the
+ * former global Lounge stylesheet after its lazy-loading split accidentally
+ * removed the elected President's outer dots from public pages.
+ * This class follows isCurrentPresident(), never a specific citizen or colour.
+ */
+.citizen-mark.leader { color: var(--mark); background: radial-gradient(circle,color-mix(in srgb,var(--mark) 20%,transparent),transparent 67%); box-shadow: inset 0 0 17px color-mix(in srgb,var(--mark) 11%,transparent),0 0 18px color-mix(in srgb,var(--mark) 18%,transparent); }
+.citizen-mark.leader::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; background: repeating-conic-gradient(from 0deg,var(--mark) 0 2deg,transparent 2deg 30deg); -webkit-mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); mask: radial-gradient(circle,transparent 0 66%,#000 68% 75%,transparent 77%); opacity: .62; }

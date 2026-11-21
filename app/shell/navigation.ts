@@ -23,8 +23,8 @@ export const PRIMARY_NAV: readonly PrimaryNavItem[] = [
 
 export const COLLECTION_NAV: readonly SubNavItem[] = [
   { id: "library", label: "魔法图书馆" },
-  // No public Atlas link until the owner explicitly approves its artwork.
-  ...(ATLAS_VISUAL_APPROVED ? [{ id: "atlas" as const, label: "天命图谱" }] : []),
+  // Visible navigation placeholder is approved; the unfinished Atlas ART is not.
+  { id: "atlas", label: "天命图谱" },
   { id: "photos", label: "家庭影像馆" },
   { id: "archives", label: "国家档案馆" },
 ];

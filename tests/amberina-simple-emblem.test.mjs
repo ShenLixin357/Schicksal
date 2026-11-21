@@ -54,9 +54,11 @@ test("explicit original-colour placements preserve the unchanged Simple crop, wi
   assert.match(archive,/className="reader-author-mark" style=\{\{ "--mark": authorMarkColor/);
   assert.match(page,/authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} placement="archive-book-cover" \/>\}/);
   assert.match(entry,/\.citizen-mark::before \{[^\n]*var\(--mark\)/);
-  // This office-only outline was migrated with the original scene CSS.
-  const loungeStyles=source("../app/club/lounge-scenes.css");
-  assert.match(loungeStyles,/\.citizen-mark\.leader::after \{[^\n]*var\(--mark\)/);
+  // President dots must be globally available, even before Lounge is loaded.
+  const officeStyles=source("../app/identity/office-insignia.css");
+  assert.match(officeStyles,/\.citizen-mark\.leader::after \{[^\n]*var\(--mark\)/);
+  assert.match(layout,/import "\.\/identity\/office-insignia\.css";/);
+  assert.match(source("../app/club/lounge-scenes.css"),/\.citizen-mark\.leader::after/);
   assert.match(entry,/\.citizen-mark\.personal-simple\.leader \{\s*background: transparent;\s*box-shadow: none;/);
   assert.doesNotMatch(page,/citizen-mark-mist/);
   assert.doesNotMatch(layout,/amberina-personal-fog|oat-sage-theme/);

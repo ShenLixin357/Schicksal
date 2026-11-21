@@ -78,12 +78,13 @@ test("three photo, four parliament and two messaging contexts retain explicit sl
     assert.match(messenger,new RegExp('"'+slot+'"'));
 });
 
-test("unapproved Atlas visuals stay hidden from navigation and actual route", () => {
+test("Atlas label is a safe placeholder, never an art-approval signal", () => {
   const nav=read("app/shell/navigation.ts");
   const page=read("app/page.tsx");
   assert.match(nav,/ATLAS_VISUAL_APPROVED = false/);
-  assert.match(nav,/ATLAS_VISUAL_APPROVED \? \[\{ id: "atlas"/);
+  assert.match(nav,/\{ id: "atlas", label: "天命图谱" \}/);
   assert.match(page,/ATLAS_VISUAL_APPROVED \? <FeatureSuspense/);
-  assert.match(page,/天命图谱美术尚未通过验收/);
+  assert.match(page,/<ShellPlaceholder kind="atlas" \/>/);
+  assert.match(read("app/shell/placeholder.tsx"),/美术设计中 · 暂未开放/);
   assert.match(read("app/atlas/atlas-data.ts"),/emblemSrc: visual\.officialMarkAsset/);
 });

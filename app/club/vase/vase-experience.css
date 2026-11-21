@@ -1,5 +1,35 @@
 .vase-anchor { display: none; }
-.vase-experience-hotspot { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+/* The room art places the vase at x=63.4%, bottom y=59%, width=12.8%.
+ * The old hotspot was only 48x48 around y=54%, missing much of the actual
+ * bouquet. The click target now covers precisely the vase artwork's box.
+ * Portal rendering keeps it outside the non-interactive layered table.
+ * No image, scene transform, flower or animation has been changed.
+ */
+.club-room-stage > .club-hotspot.vase-experience-hotspot {
+  position: absolute;
+  z-index: 19;
+  left: 63.4%;
+  top: 59%;
+  width: 12.8%;
+  height: auto;
+  aspect-ratio: 1;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.vase-experience-hotspot {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .vase-experience-hotspot:focus-visible { outline: 1px solid #eac994; outline-offset: 5px; }
 .vase-experience-layer { position: absolute; z-index: 70; inset: 0; isolation: isolate; color: #f0e4d2; }
 .vase-pane-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #0e071827; cursor: default; }

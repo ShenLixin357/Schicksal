@@ -18,16 +18,18 @@ test("six main destinations plus self-profile use approved pictograms and preser
     ["profile", "个人页", "Profile", "profile"],
   ]);
 });
-test("collection hides the unapproved Atlas design but preserves library, photo and archive entries", () => {
+test("collection shows an Atlas placeholder but retains the unapproved-art release gate", () => {
   const nav = read("app/shell/navigation.ts");
-  for (const id of ["library", "photos", "archives"]) assert.match(nav, new RegExp('id: "' + id + '"'));
+  for (const id of ["library", "atlas", "photos", "archives"]) assert.match(nav, new RegExp('id: "' + id + '"'));
   assert.match(nav, /ATLAS_VISUAL_APPROVED = false/);
   const placeholder = read("app/shell/placeholder.tsx");
   assert.match(placeholder, /魔法图书馆/);
   assert.match(placeholder, /帝国通讯/);
   assert.match(placeholder, /即将开放/);
+  assert.match(placeholder, /美术设计中 · 暂未开放/);
   assert.doesNotMatch(placeholder, /fetch\(|iframe|<Image|onClick=/);
   const page = read("app/page.tsx");
+  assert.match(page, /<ShellPlaceholder kind="atlas" \/>/);
   assert.match(page, /case "messenger": content = <ShellPlaceholder/);
   assert.match(page, /case "library": content = <ShellPlaceholder/);
   assert.doesNotMatch(page, /<Messenger selfId=/);
