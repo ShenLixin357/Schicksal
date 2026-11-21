@@ -44,8 +44,11 @@ export const archivePhotos = sqliteTable(
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    deletedAt: text("deleted_at"),
+    deletedByCitizenId: text("deleted_by_citizen_id"),
   },
   (table) => [
+    index("archive_photos_deleted_at_idx").on(table.deletedAt),
     index("archive_photos_subject_key_idx").on(table.subjectKey),
     index("archive_photos_created_at_idx").on(table.createdAt),
   ],
