@@ -11,7 +11,7 @@ const games = [
   {slug:"6-fairy-tales",title:"童话"},
 ] as const;
 
-export function FireboyWatergirlFrame() {
+export function FireboyWatergirlFrame({ onBack }: { onBack?: () => void } = {}) {
   const [chosen,setChosen]=useState<string|null>(null);
   const [showHelp,setShowHelp]=useState(false);
   const [fromGameRoom,setFromGameRoom]=useState(false);
@@ -21,7 +21,7 @@ export function FireboyWatergirlFrame() {
   const source=chosen?`/games/${chosen}/index.html`:null;
   return <main style={{minHeight:"100svh",background:"#091525",color:"#f5f3e9",fontFamily:"system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
     <header style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:12,padding:"10px 18px",background:"#142a3f",borderBottom:"1px solid #63869b"}}>
-      <a href={fromGameRoom?"/?lounge=game-room":"/"} style={{color:"#c5eaf4",textDecoration:"none",fontSize:14}}>← {fromGameRoom?"返回游戏室":"返回天命"}</a>
+      {onBack ? <button type="button" onClick={onBack} style={{color:"#c5eaf4",background:"transparent",border:0,cursor:"pointer",fontSize:14}}>← 返回游戏室</button> : <a href={fromGameRoom?"/?lounge=game-room":"/"} style={{color:"#c5eaf4",textDecoration:"none",fontSize:14}}>← {fromGameRoom?"返回游戏室":"返回天命"}</a>}
       <strong style={{marginRight:"auto"}}>🔥❄️ 森林冰火人 · 天命游戏厅</strong>
       {chosen&&<button type="button" onClick={()=>setChosen(null)} style={{padding:"8px 12px",borderRadius:8,cursor:"pointer"}}>选择其他神庙</button>}
       <button type="button" onClick={()=>setShowHelp(v=>!v)} style={{padding:"8px 12px",borderRadius:8,cursor:"pointer"}}>帮助 / 打不开？</button>
