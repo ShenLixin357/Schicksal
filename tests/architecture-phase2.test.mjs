@@ -25,7 +25,7 @@ test("parliament view has its own existing wire types and keeps all official mar
   assert.match(panel, /renderOfficialMark\(electedSpeaker, "parliament-speaker-election"\)/);
   assert.match(panel, /renderOfficialMark\(citizenFor\(request\.citizenId\)!, "parliament-comment-request"\)/);
   assert.ok((panel.match(/renderOfficialMark\(/g)||[]).length >= 8);
-  assert.match(page, /renderOfficialMark=\{\(member, placement\) => <CitizenMark citizen=\{member\} placement=\{placement\} \/> \}/);
+  assert.match(page, /renderOfficialMark=\{\(member, placement\) => <CitizenMark citizen=\{member\} placement=\{placement\} \/>}/);
   for (const type of ["ParliamentStage","ParliamentItem","ParliamentVote","ParliamentSession","ParliamentBoard"])
     assert.match(types,new RegExp("export type "+type+"\\b"));
   assert.doesNotMatch(panel, /from "\.\.\/api\//);
