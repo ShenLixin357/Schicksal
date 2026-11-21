@@ -23,7 +23,7 @@ test("Chryser aquarium uses the same in-app callback instead of a root navigatio
   assert.match(room,/import \{ EmbeddedArcade \} from "\.\/embedded-arcade"/);
   assert.match(room,/const \[aquariumOpen, setAquariumOpen\] = useState\(false\)/);
   assert.match(room,/if \(aquariumOpen\) return <EmbeddedArcade game="aquarium" onClose=\{\(\) => setAquariumOpen\(false\)\}/);
-  assert.match(room,/className="chryser-aquarium" onClick=\{\(\) => setAquariumOpen\(true\)\}/);
+  assert.match(room,/className="chryser-aquarium"[^>]*onClick=\{\(\) => setAquariumOpen\(true\)\}/);
   assert.doesNotMatch(room,/<a className="chryser-aquarium" href="\/games\/aquarium"/);
 });
 
