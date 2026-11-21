@@ -30,6 +30,8 @@ export const currentOfficeHolders = sqliteTable("current_office_holders", {
 
 export const technologyDirectCredentials = sqliteTable("technology_direct_credentials", {
   officeId: text("office_id").primaryKey(),
+  citizenId: text("citizen_id").notNull().default(""),
+  termId: text("term_id").notNull().default(""),
   passwordHash: text("password_hash").notNull(),
   passwordSalt: text("password_salt").notNull(),
   updatedAt: integer("updated_at").notNull(),
