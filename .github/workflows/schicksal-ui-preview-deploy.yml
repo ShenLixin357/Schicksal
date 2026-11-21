@@ -188,7 +188,7 @@ jobs:
           set -euo pipefail
           CONFIG=work/ui-preview-dist/server/wrangler.json
           if [ -z "${SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD:-}" ]; then
-            echo "::warning::Preview ministry-direct password is not configured. Citizen->minister long hold works, but direct ministry login is deliberately disabled."
+            echo "Minister direct-login password can be enrolled privately in the Technology Ministry dashboard; no GitHub secret is required."
           else
             if [ "${#SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD}" -lt 12 ]; then
               echo "::error::The independent ministry password secret is too short."
@@ -223,7 +223,31 @@ jobs:
             throw new Error("PREVIEW SHA MISMATCH: expected source commit was not deployed");
           }
           console.log("Cumulative PR #9–23 acceptance SHA verified:", v.sourceSha);
-          if (process.env.SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD) {
+          const ordinaryOfficeGate = await fetch(root + "/api/technology/direct-password", {headers:{Cookie:cookie}});
+          if (ordinaryOfficeGate.status !== 403) throw Error("Ordinary citizen session exposed ministry credential management");
+          const personalDenied = await fetch(root + "/api/member-session", {
+            method:"POST", headers:{"Content-Type":"application/json",Origin:root},
+            body:JSON.stringify({citizenId:"technology",accountMode:"technology",password:passwords.amberina})
+          });
+          if (personalDenied.status !== 401) throw Error("Personal password incorrectly accepted at direct ministry entrance");
+          const switched = await fetch(root + "/api/member-session/switch", {
+            method:"POST", headers:{"Content-Type":"application/json",Origin:root,Cookie:cookie},
+            body:JSON.stringify({target:"technology"})
+          });
+          if (!switched.ok) throw Error("Incumbent direct long-hold API failed");
+          const officeAccess = await fetch(root + "/api/technology",{headers:{Cookie:cookie}});
+          if (!officeAccess.ok) throw Error("Switched incumbent session failed ministry authorization");
+          const officePassword = await fetch(root + "/api/technology/direct-password",{headers:{Cookie:cookie}});
+          if (!officePassword.ok) throw Error("Ministry dashboard cannot access office-only password settings");
+          const credentialState = await officePassword.json();
+          if (typeof credentialState.configured !== "boolean") throw Error("Ministry password status malformed");
+          const switchedBack = await fetch(root + "/api/member-session/switch",{
+            method:"POST",headers:{"Content-Type":"application/json",Origin:root,Cookie:cookie},
+            body:JSON.stringify({target:"citizen"})
+          });
+          if (!switchedBack.ok) throw Error("Incumbent cannot instantly switch back");
+          console.log("Personal->minister->personal switch and protected password settings: OK.");
+          if (process.env.SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD && !credentialState.configured) {
             const ministerEntry = await fetch(root + "/api/member-session", {
               method:"POST", headers:{"Content-Type":"application/json",Origin:root},
               body:JSON.stringify({citizenId:"technology",accountMode:"technology",
@@ -291,6 +315,6 @@ jobs:
             echo "- Preview URL: https://schicksal-ui-preview.m17686100216.workers.dev"
             echo "- Verified deployment SHA: $GITHUB_SHA"
             echo "- Photo uploads require separately created preview R2; check R2 provisioning step output."
-            echo "- Ministry direct login requires GitHub environment secret SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD."
+            echo "- Ministry direct login can be configured directly from the authenticated minister dashboard; GitHub bootstrap secret is optional."
             echo "- Check login, daily news and responsive layout manually before claiming acceptance."
           } >> "$GITHUB_STEP_SUMMARY"
