@@ -10,7 +10,7 @@ import { NavigationIcon } from "./navigation-icons";
 import { SidebarMenuGroup, SidebarNavCopy } from "./sidebar-menu-group";
 
 export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnterLounge, sharedMark,
-  presence, members, selfId, renderMemberMark, onToggle, onLogo, onNavigate, onLogout, onSelfLongPress }: {
+  presence, members, selfId, renderMemberMark, isTechnologyMode, onToggle, onLogo, onNavigate, onLogout, onSelfLongPress }: {
   activeSection: string;
   collapsed: boolean;
   loungeOpen: boolean;
@@ -20,12 +20,17 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
   members: readonly Citizen[];
   selfId: string;
   renderMemberMark: (memberId: string) => ReactNode;
+  isTechnologyMode?: boolean;
   onToggle: () => void;
   onLogo: () => void;
   onNavigate: (id: SidebarDestination) => void;
   onLogout: () => void;
   onSelfLongPress?: () => void;
 }) {
+  const navigationItems = isTechnologyMode
+    ? PRIMARY_NAV.map(item => item.id === "profile"
+      ? { ...item, label: "科技部管理台", en: "TECHNOLOGY MINISTRY" } : item)
+    : PRIMARY_NAV;
   return <aside className="sidebar imperial-sidebar" id="imperial-sidebar">
     <div className="side-brand imperial-side-brand">
       <button className="imperial-logo-trigger" type="button" onClick={onLogo}
@@ -50,7 +55,7 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
       </div>
     </div>
     <nav className="imperial-main-nav" id="imperial-navigation" aria-label="帝国主导航">
-      {PRIMARY_NAV.map(item => item.id === "collection" || item.id === "honors"
+      {navigationItems.map(item => item.id === "collection" || item.id === "honors"
         ? <SidebarMenuGroup key={item.id} item={item}
           menuId={item.id === "collection" ? "collection" : "points"}
           items={item.id === "collection" ? COLLECTION_NAV : POINTS_NAV}
