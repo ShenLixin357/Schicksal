@@ -1,4 +1,4 @@
-> **CURRENT RULES (2026-11-19):** See [Amberina identity colour policy](amberina-identity-color-policy.md). This document contains older historical experiments; the active emblem display is **#EECF58 on approved beige contexts**, official **#F3ED87 in parliament / non-beige contexts**, and official **#F3ED87 for all ordinary identity-colour UI**. New emblem/name placement requires asking the user first.
+> **CURRENT RULES (2026-11-21):** See the authoritative [Amberina identity colour policy](amberina-identity-color-policy.md) and `app/identity/mark-placements.ts`. The owner re-reviewed 22 locations: **all original Simple #F3ED87 except the logged-in Amberina's own ordinary-site sidebar avatar (#EECF58)**. Every other old beige/web auto-strong treatment below is historical only, NOT active. New locations require asking the owner first.
 
 # Amberina von Schicksal — official Simple web identity
 

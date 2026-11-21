@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useEffect, useState, type CSSProperties, type ReactNode, type Dispatch, type SetStateAction, type DragEvent, type FormEvent } from "react";
 import { CITIZENS, citizenRepresentativeColor, type Citizen } from "../citizens";
 import { PageHead } from "../shell/page-head";
+import type { PublicMarkPlacement } from "../identity/mark-placements";
+type PhotoMarkPlacement = Extract<PublicMarkPlacement, "photos-filter-subject" | "photos-upload-subject" | "photos-card-subject">;
 
 /** The photo archive owns its own network operations and view state.
  * Identity marks and the imperial emblem arrive from the shell as approved
@@ -27,18 +29,18 @@ type ArchivePhoto = {
 
 const PHOTO_SUBJECTS = [{ id: "empire", username: "天命全体照", name: "Schicksal Group", accent: "#d6ad56", markColor: "#d6ad56", motif: "empire", office: "Group Archive", codename: "天命" }, ...CITIZENS] as Citizen[];
 
-function PhotoSubjectMark({ subject, sharedMark, renderCitizenMark }: {
-  subject: Citizen; sharedMark: ReactNode; renderCitizenMark: (subject: Citizen) => ReactNode;
+function PhotoSubjectMark({ subject, sharedMark, renderCitizenMark, placement }: {
+  subject: Citizen; sharedMark: ReactNode; placement: PhotoMarkPlacement; renderCitizenMark: (subject: Citizen, placement: PhotoMarkPlacement) => ReactNode;
 }) {
   if (subject.id === "empire") return <span className="archive-emblem" aria-hidden="true">{sharedMark}</span>;
-  return <>{renderCitizenMark(subject)}</>;
+  return <>{renderCitizenMark(subject, placement)}</>;
 }
 
 export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: {
-  citizen: Citizen; sharedMark: ReactNode; renderCitizenMark: (subject: Citizen) => ReactNode;
+  citizen: Citizen; sharedMark: ReactNode; renderCitizenMark: (subject: Citizen, placement: PhotoMarkPlacement) => ReactNode;
 }) {
-  const renderSubjectMark = (subject: Citizen) =>
-    <PhotoSubjectMark subject={subject} sharedMark={sharedMark} renderCitizenMark={renderCitizenMark}/>;
+  const renderSubjectMark = (subject: Citizen, placement: PhotoMarkPlacement) =>
+    <PhotoSubjectMark subject={subject} sharedMark={sharedMark} placement={placement} renderCitizenMark={renderCitizenMark}/>;
   const [photos, setPhotos] = useState<ArchivePhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSubjects, setFilterSubjects] = useState<string[]>([]);
@@ -162,7 +164,7 @@ export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: 
     <section className="photo-filters" aria-labelledby="photo-filter-title">
       <header><div><p className="eyebrow">Exact Combination</p><h2 id="photo-filter-title">标志筛选</h2></div><button type="button" onClick={() => setFilterSubjects([])} disabled={!filterSubjects.length}>查看全部 · CLEAR</button></header>
       <div className="mark-filter-row" role="group" aria-label="按人物标志筛选照片">
-        {PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={filterSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={filterSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setFilterSubjects)} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}>{renderSubjectMark(subject)}<span><strong>{subject.username}</strong><small>{subject.id === "empire" ? "全体合照" : subject.locked ? "身份待补" : "精确人物标签"}</small></span></button>)}
+        {PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={filterSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={filterSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setFilterSubjects)} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}>{renderSubjectMark(subject, "photos-filter-subject")}<span><strong>{subject.username}</strong><small>{subject.id === "empire" ? "全体合照" : subject.locked ? "身份待补" : "精确人物标签"}</small></span></button>)}
       </div>
       <p>当前分类：<strong>{filterLabel}</strong><span>{filterSubjects.length ? "只显示人物组合完全一致的照片" : "显示影像馆中的全部照片"}</span></p>
     </section>
@@ -182,7 +184,7 @@ export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: 
             <label className="archive-field"><span>年份 / 时期</span><input value={era} onChange={(event) => setEra(event.target.value)} maxLength={80} placeholder="例如：六人时期" /></label>
           </div>
           <label className="archive-field"><span>照片说明</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={800} rows={3} placeholder="这张照片发生了什么？由谁提供？" /></label>
-          <fieldset className="upload-subjects"><legend>照片中恰好有哪些人 *</legend><p>若是当时全体成员的合照，请只选“天命全体照”。</p><div>{PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={uploadSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={uploadSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setUploadSubjects)} title={subject.username} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}>{renderSubjectMark(subject)}<span>{subject.id === "empire" ? "天命" : subject.username}</span></button>)}</div></fieldset>
+          <fieldset className="upload-subjects"><legend>照片中恰好有哪些人 *</legend><p>若是当时全体成员的合照，请只选“天命全体照”。</p><div>{PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={uploadSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={uploadSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setUploadSubjects)} title={subject.username} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}>{renderSubjectMark(subject, "photos-upload-subject")}<span>{subject.id === "empire" ? "天命" : subject.username}</span></button>)}</div></fieldset>
           <button className="primary archive-submit" type="submit" disabled={uploading}>{uploading ? "ARCHIVING…" : "收入影像馆"}<span>→</span></button>
           <p className="upload-status" role="status">{status || "上传后会自动切换到对应的标志分类。"}</p>
         </form>
@@ -191,7 +193,7 @@ export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: 
         <header><div><p className="eyebrow">Selected Collection</p><h2>{filterLabel}</h2></div><span>{visiblePhotos.length} / {photos.length} PHOTOS</span></header>
         {loading ? <div className="gallery-empty loading"><i /><h3>正在打开影像馆</h3><p>读取已保存的照片与分类信息…</p></div> : visiblePhotos.length === 0 ? <div className="gallery-empty"><span>S</span><h3>{photos.length ? "这个精确组合还没有照片" : "影像馆正在等待第一张照片"}</h3><p>{photos.length ? "可以更换上方标志组合，或上传一张属于这个组合的照片。" : "从左侧上传一张共同记忆，并为它选择人物标志。"}</p></div> : <div className="photo-grid">{visiblePhotos.map((photo) => <article className="photo-card" key={photo.id}>
           <figure><Image src={photo.imageUrl} alt={photo.title} fill sizes="(max-width: 760px) 100vw, (max-width: 1100px) 50vw, 32vw" /><figcaption>{photo.capturedAt || photo.era || "日期待补"}</figcaption></figure>
-          <div className="photo-card-copy"><div className="photo-card-marks">{photo.subjects.map((id) => { const subject = subjectFor(id); return subject ? <span key={id} title={subject.username}>{renderSubjectMark(subject)}</span> : null; })}</div><h3>{photo.title}</h3>{photo.description ? <p>{photo.description}</p> : <p className="muted">尚未填写照片说明。</p>}<footer><span>{photo.era || "时期待补"}</span><span>UPLOADED BY {subjectFor(photo.uploaderCitizenId)?.username ?? "CITIZEN"}</span></footer></div>
+          <div className="photo-card-copy"><div className="photo-card-marks">{photo.subjects.map((id) => { const subject = subjectFor(id); return subject ? <span key={id} title={subject.username}>{renderSubjectMark(subject, "photos-card-subject")}</span> : null; })}</div><h3>{photo.title}</h3>{photo.description ? <p>{photo.description}</p> : <p className="muted">尚未填写照片说明。</p>}<footer><span>{photo.era || "时期待补"}</span><span>UPLOADED BY {subjectFor(photo.uploaderCitizenId)?.username ?? "CITIZEN"}</span></footer></div>
         </article>)}</div>}
       </section>
     </div>

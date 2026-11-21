@@ -26,13 +26,11 @@ scores, parliament insignia, or official colours.
   不加深用官方原色 #F3ED87；加深用 #EECF58。" Do not decide from background,
   code defaults, visual aesthetics, or previous approval for a different
   context. Do not make up a third intermediate colour.
-- Current *already-approved* display exceptions: on existing beige/light
-  standard website surfaces use `#EECF58` for her Simple emblem + its
-  own circle/leader decorations; on the parliament (including all seat,
-  candidate, commenter and Speaker insignia) and other non-beige/dark
-  surfaces use the exact **original `#F3ED87`** art and matching rings.
-  A dark Committee Lounge sidebar likewise uses the official original.
-  Other members' original colours are unaffected.
+- **OWNER'S REVISED 2026-11-21 APPROVAL OVERRIDES ALL EARLIER BEIGE/WEB DEFAULTS:** The user reviewed 22 places individually. ALL use original `#F3ED87` Simple artwork except **04 — the logged-in Amberina's own avatar in the ordinary MAIN sidebar**, where the original two-tone strong version `#EECF58` is allowed. That same avatar in the dark Lounge sidebar is original, NOT strong.
+- The source of truth for this per-location decision is `app/identity/mark-placements.ts`; every `PublicCitizenMark` call must supply an approved `placement`. Adding a new placement is blocked until the user specifically approves its original/strong treatment. Do not use `web` as an implicit synonym for strong, do not infer from beige backgrounds, and do not silently inherit another location's approval.
+- The first public login HTML screen is independently rendered by `app/entry-screen.ts` and MUST use the official `/amberina-personal-simple-official.png`; the old bundled strong login PNG is history only. `Citizen.markColor` is now the official representative colour. Authenticated React views use explicit placements.
+- The owner requested **one single 4.236:1 / 61.8%-shoulder personal crystal** in the citizen self-profile, coloured with the citizen's official representative colour, alongside the original Simple mark — NEVER the shared eight-ray emblem.
+- The **Schicksal Atlas art is not approved**, regardless of asset filenames containing "approved". Keep its public nav entry and visual route gated off pending explicit art approval; preserve source/art for further private revision.
 - Preserve Simple master source art, two-tone structure, original Alpha,
   orientation and official PNG. Never AI-redraw, recolour or overwrite the
   two master `.procreate` files. FullSimple-Parhelia is used **only after

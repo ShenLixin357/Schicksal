@@ -26,7 +26,7 @@ test("photo archive still accesses the exact authenticated photo API and uses ex
   assert.match(photos, /method: "POST"/);
   assert.match(photos, /12 \* 1024 \* 1024/);
   assert.match(photos, /subjectKey === activeFilterKey/);
-  assert.match(photos, /renderCitizenMark: \(subject: Citizen\) => ReactNode/);
+  assert.match(photos, /renderCitizenMark: \(subject: Citizen, placement: PhotoMarkPlacement\) => ReactNode/);
   assert.match(photos, /sharedMark: ReactNode/);
   assert.doesNotMatch(photos, /<Emblem compact/);
   assert.doesNotMatch(photos, /<CitizenMark citizen/);
@@ -45,7 +45,8 @@ test("national archives preserve the original cover, content URLs and author emb
   assert.match(archive, /how-to-build-a-state-lesson-2-b\.md/);
   assert.match(archive, /archiveMarkdownToHtml\(chapterText\)/);
   assert.match(archive, /authorMarkColor/);
-  assert.match(page, /authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} \/>\}/);
+  assert.match(page, /authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} placement="archive-book-cover" \/>}/);
+  assert.match(page, /readerAuthorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} placement="archive-reader-author" \/>}/);
   assert.match(page, /const ArchivesSection = lazy\(\(\) => import\("\.\/archives\/archive-section"\)/);
   assert.match(page, /<FeatureSuspense label="国家档案馆">/);
   assert.doesNotMatch(page, /function ArchivesSection\(/);
