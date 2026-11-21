@@ -269,7 +269,7 @@ function System({ citizen, accountMode, offices, onAccountModeChange, logout, in
   const switchBusy = useRef(false);
   const [modeSwitchMessage,setModeSwitchMessage] = useState("");
   const switchAccountImmediately = () => {
-    if (!isCurrentMinister || switchBusy.current) return;
+    if (!(accountMode === "technology" || isCurrentMinister) || switchBusy.current) return;
     switchBusy.current = true;
     setSwitchingMode(true); setModeSwitchMessage("");
     const target: AccountMode = accountMode === "technology" ? "citizen" : "technology";
@@ -478,7 +478,7 @@ function System({ citizen, accountMode, offices, onAccountModeChange, logout, in
           document.querySelector(".system-main")?.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onLogout={logout}
-        onSelfLongPress={isCurrentMinister?switchAccountImmediately:undefined}
+        onSelfLongPress={accountMode === "technology" || isCurrentMinister ? switchAccountImmediately : undefined}
       />
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>
         <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
