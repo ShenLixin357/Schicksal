@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
 import { currentMember, sameOrigin, sessionCookie } from "../../member-session";
+import { requireTechnologyMinister } from "../../../server/auth/member.ts";
 import { hashMemberPassword } from "../../member-passwords";
 import { CITIZENS } from "../../citizens";
-import { isCurrentTechnologyMinister } from "../../identity/office-registry.ts";
 
 const headers = { "Cache-Control": "private, no-store" };
 const settings = env as unknown as { SCHICKSAL_HOSTING?: string; SCHICKSAL_MEMBER_PASSWORDS?: string };
@@ -11,7 +11,7 @@ const reply = (data: object, status = 200) => Response.json(data, { status, head
 export async function GET(request: Request) {
   if (settings.SCHICKSAL_HOSTING !== "cloudflare") return reply({ error: "此部署未启用成员设置。" }, 404);
   try {
-    if (!isCurrentTechnologyMinister(await currentMember(request) ?? "")) return reply({ error: "仅科技部部长可以管理成员登录。" }, 403);
+    await requireTechnologyMinister(request);
     const saved = await env.DB.prepare("SELECT citizen_id AS citizenId, updated_at AS updatedAt FROM member_credentials").all<{ citizenId: string; updatedAt: number }>();
     let configured: Record<string, unknown> = {};
     try { configured = JSON.parse(settings.SCHICKSAL_MEMBER_PASSWORDS || "{}"); } catch { /* Database credentials can still be managed. */ }
@@ -26,8 +26,7 @@ export async function POST(request: Request) {
   if (settings.SCHICKSAL_HOSTING !== "cloudflare") return reply({ error: "此部署未启用成员设置。" }, 404);
   if (!sameOrigin(request)) return reply({ error: "请从本站修改成员密码。" }, 403);
   try {
-    const adminMember = await currentMember(request);
-    if (!isCurrentTechnologyMinister(adminMember ?? "")) return reply({ error: "仅科技部部长可以管理成员登录。" }, 403);
+    const adminMember = await requireTechnologyMinister(request);
     const text = await request.text();
     if (text.length > 8192) return reply({ error: "提交内容过长。" }, 400);
     let value: { citizenId?: unknown; password?: unknown };
