@@ -1,15 +1,15 @@
 import { env } from "cloudflare:workers";
-import { cookieToken, currentMember, digest, MEMBER_SESSION_SECONDS, sameOrigin, sessionCookie, verifyMemberPassword } from "../../member-session";
+import { cookieToken, currentSession, digest, MEMBER_SESSION_SECONDS, MINISTRY_GRANT_MS, sameOrigin, sessionCookie, verifyMemberPassword, verifyTechnologyPassword } from "../../member-session";
 import { readJson, ApiError } from "../../../server/http.ts";
 
 export async function GET(request: Request) {
-  try { return Response.json({ citizenId: await currentMember(request) }, { headers: { "Cache-Control": "no-store" } }); }
+  try { const session = await currentSession(request); return Response.json({ citizenId: session?.citizenId ?? null, accountMode: session?.accountMode ?? "citizen" }, { headers: { "Cache-Control": "no-store" } }); }
   catch { return Response.json({ error: "登录服务暂时未能回应。" }, { status: 503 }); }
 }
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "请从本站登录。" }, { status: 403 });
   try {
-    let payload: { citizenId?: unknown; password?: unknown };
+    let payload: { citizenId?: unknown; password?: unknown; accountMode?: unknown };
     try { payload = await readJson(request, 4096); }
     catch (error) {
       if (error instanceof ApiError) return Response.json({
@@ -18,17 +18,21 @@ export async function POST(request: Request) {
       throw error;
     }
     const citizenId = typeof payload.citizenId === "string" ? payload.citizenId : "", password = typeof payload.password === "string" ? payload.password : "";
+    const accountMode = payload.accountMode === "technology" ? "technology" : "citizen";
+    if (payload.accountMode !== undefined && payload.accountMode !== accountMode) return Response.json({ error: "未知登录身份。" }, { status: 400 });
     const now = Date.now(), windowKey = await digest(`${request.headers.get("CF-Connecting-IP") || "local"}:${Math.floor(now / 60000)}`);
     const rate = await env.DB.prepare("INSERT INTO member_login_windows (window_key, attempts, expires_at) VALUES (?, 1, ?) ON CONFLICT(window_key) DO UPDATE SET attempts=attempts+1 RETURNING attempts").bind(windowKey, now + 120000).first<{ attempts: number }>();
     if ((rate?.attempts ?? 99) > 20) return Response.json({ error: "尝试次数较多，请一分钟后重试。" }, { status: 429, headers: { "Retry-After": "60" } });
-    if (!await verifyMemberPassword(citizenId, password)) return Response.json({ error: "密码不正确，请重新输入。" }, { status: 401 });
+    const authenticated = accountMode === "technology" ?
+      await verifyTechnologyPassword(citizenId, password) : await verifyMemberPassword(citizenId, password);
+    if (!authenticated) return Response.json({ error: "密码不正确，或部长账号尚未设置。", }, { status: 401 });
     const token = [...crypto.getRandomValues(new Uint8Array(32))].map((value) => value.toString(16).padStart(2, "0")).join("");
     await env.DB.batch([
       env.DB.prepare("DELETE FROM member_sessions WHERE expires_at < ?").bind(now),
       env.DB.prepare("DELETE FROM member_login_windows WHERE expires_at < ?").bind(now),
-      env.DB.prepare("INSERT INTO member_sessions (token_hash, citizen_id, expires_at) VALUES (?, ?, ?)").bind(await digest(token), citizenId, now + MEMBER_SESSION_SECONDS * 1000),
+      env.DB.prepare("INSERT INTO member_sessions (token_hash, citizen_id, expires_at, account_mode, minister_grant_expires_at) VALUES (?, ?, ?, ?, ?)").bind(await digest(token), citizenId, now + MEMBER_SESSION_SECONDS * 1000, accountMode, accountMode === "technology" ? now + MINISTRY_GRANT_MS : 0),
     ]);
-    return Response.json({ citizenId }, { headers: { "Set-Cookie": sessionCookie(request, token), "Cache-Control": "no-store" } });
+    return Response.json({ citizenId, accountMode }, { headers: { "Set-Cookie": sessionCookie(request, token), "Cache-Control": "no-store" } });
   } catch { return Response.json({ error: "暂时无法完成登录，请稍后重试。" }, { status: 503 }); }
 }
 export async function DELETE(request: Request) {
