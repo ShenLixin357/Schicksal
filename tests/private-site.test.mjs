@@ -145,7 +145,7 @@ test("Fireboy, Aquarium and authenticated return must not revoke the same member
       assert.equal(response.headers.get("Set-Cookie"),null,"GET must not replace login cookie");
     }
     const response=await visit("/api/member-session",{ cookie });
-    assert.deepEqual(await response.json(),{ citizenId:"amberina" });
+    assert.deepEqual(await response.json(),{ citizenId:"amberina", accountMode:"citizen" });
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM member_sessions").get().n,1);
   } finally { sqlite.close(); }
 });
