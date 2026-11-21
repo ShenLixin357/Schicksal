@@ -64,6 +64,10 @@
     {
       "name": "0015_photo_recycle_bin.sql",
       "sha256": "a2f3fb839d153adc95393fa4184fc8692a205179325cb508ccc9eb69b16eebab"
+    },
+    {
+      "name": "0016_parliament_transition_token.sql",
+      "sha256": "8221d3fbcc3264b881422d8f3f03d9dad2756b8c3d14cf575102ea723f12bb48"
     }
   ]
 }
