@@ -8,14 +8,15 @@
 - Exact person-combination filtering, individual citizen symbols and a distinct imperial group-photo label remain part of the product.
 - Original photo bytes and historical attribution are preserved; a deletion action should ordinarily be recoverable.
 - Uploaders, pictured subjects, original providers, photographers and moderators are distinct relationships. A person pictured is not automatically the uploader.
-- Subject privacy, correction and withdrawal must be designed into the archive; editing history must not disappear.
+- **Confirmed**: a pictured subject may immediately hide a photo involving them; an administrator reviews afterwards. Hidden status must be enforced by the server on lists, previews and original-file endpoints, and recorded in permanent history. The administrative decision on re-publication without the subject's consent is **not yet approved**.
+- Subject correction and withdrawal must be designed into the archive; editing history must not disappear.
 - The **Technology Minister** has full website administrative authority. The ministry entry uses the **approved eight-ray imperial shared emblem**, never the officeholder's personal mark.
 - The admin role belongs to the office held by an authenticated citizen; it is not a new account or a ninth citizen. Office changes must transfer authorization.
 - Administrative actions must be auditable; an emblem or a hidden navigation control is not authentication.
 
-## Open design choices — do not silently pick defaults
+## Confirmed privacy right and open design choices — do not silently pick defaults
 
-1. Can a pictured member immediately hide a photo or submit a pending correction/withdrawal? How should conflicts between people pictured be mediated?
+1. **CONFIRMED (2026-11-21):** A pictured member can immediately hide a photo involving them, before administrator review. The hide must apply to protected image access, not just remove a UI card; the original file and history remain intact. **OPEN:** May an administrator ever republish over the subject's objection? How to handle multiple subjects or missing/incorrect subject tags?
 2. Which metadata may uploaders edit unilaterally, and what requires review? Audit retention and version rules are undecided.
 3. Should a historical `empire` group-photo label additionally index actual people pictured at the time, and how are historical rosters recorded?
 4. What publication states are needed (draft, under review, published to members, restricted, hidden, trashed), and can future elders see/upload only approved subsets?
