@@ -18,7 +18,6 @@ async function fixture() {
  INSERT INTO emerald_music_melodies(id,creator_id,client_id,notes_json,tempo,message,created_at) VALUES('melody','truth','client','[{"pitch":"C3","beats":1}]',80,'留言','2026-11-14');
  INSERT INTO member_insaniquarium_saves(citizen_id,state_json,revision,updated_at) VALUES('zxy','{"version":1,"files":{"users.dat":"AAECAw=="}}',7,'2026-11-14');
  INSERT INTO member_credentials VALUES('zxy','hash-sentinel','salt-sentinel',1,'amberina');
- INSERT INTO technology_credentials VALUES('amberina','minister-hash-sentinel','minister-salt-sentinel',1,'amberina');
  INSERT INTO member_sessions(token_hash,citizen_id,expires_at) VALUES('old-session','zxy',9999999999999);
  INSERT INTO member_login_windows VALUES('window',2,9999999999999);
  `;
@@ -32,7 +31,6 @@ test("real isolated restore preserves photos, music, private notes, native saves
         assert.ok(manifest.objects.some(o => o.objectKey.endsWith(".mp3")));
         assert.equal(manifest.counts.member_sessions, 0);
         assert.equal(manifest.counts.member_credentials, 1);
-        assert.equal(manifest.counts.technology_credentials, 1);
         const target = join(f.directory, "restore");
         await restoreLocal(f.input.output, target);
         const db = new DatabaseSync(join(target, "database.sqlite"));
@@ -41,8 +39,8 @@ test("real isolated restore preserves photos, music, private notes, native saves
             assert.equal(db.prepare("SELECT revision FROM member_insaniquarium_saves WHERE citizen_id='zxy'").get().revision, 7);
             assert.match(db.prepare("SELECT state_json FROM member_insaniquarium_saves WHERE citizen_id='zxy'").get().state_json, /AAECAw==/);
             assert.equal(db.prepare("SELECT password_hash FROM member_credentials WHERE citizen_id='zxy'").get().password_hash, "hash-sentinel");
-            assert.equal(db.prepare("SELECT password_hash FROM technology_credentials WHERE citizen_id='amberina'").get().password_hash, "minister-hash-sentinel");
             assert.equal(db.prepare("SELECT COUNT(*) AS n FROM member_sessions").get().n, 0);
+            assert.equal(db.prepare("SELECT citizen_id FROM current_office_holders WHERE office_id='technology'").get().citizen_id, "amberina");
             assert.equal(db.prepare("SELECT COUNT(*) AS n FROM emerald_music_melodies").get().n, 1);
             assert.equal(db.prepare("SELECT COUNT(*) AS n FROM emerald_music_assets WHERE deleted_at IS NOT NULL").get().n, 1);
         }
