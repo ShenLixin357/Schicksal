@@ -17,13 +17,15 @@ export const memberSessions = sqliteTable("member_sessions", {
   ministerGrantExpiresAt: integer("minister_grant_expires_at").notNull().default(0),
 }, (table) => [index("member_sessions_expiry_idx").on(table.expiresAt)]);
 
-export const technologyCredentials = sqliteTable("technology_credentials", {
-  citizenId: text("citizen_id").primaryKey(),
-  passwordHash: text("password_hash").notNull(),
-  passwordSalt: text("password_salt").notNull(),
-  updatedAt: integer("updated_at").notNull(),
-  updatedBy: text("updated_by").notNull(),
-});
+export const currentOfficeHolders = sqliteTable("current_office_holders", {
+  officeId: text("office_id").notNull(),
+  citizenId: text("citizen_id").notNull(),
+  termId: text("term_id").notNull().default("founding-2026"),
+  updatedAt: integer("updated_at").notNull().default(0),
+}, (table) => [
+  primaryKey({columns:[table.officeId,table.citizenId]}),
+  index("current_office_holders_citizen_idx").on(table.citizenId),
+]);
 
 export const memberLoginWindows = sqliteTable("member_login_windows", {
   windowKey: text("window_key").primaryKey(),
