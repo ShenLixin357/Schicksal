@@ -10,7 +10,7 @@ globalThis.__boundaryEnv = env;
 const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier === "cloudflare:workers")
         return { url: "data:text/javascript,export const env=globalThis.__boundaryEnv", shortCircuit: true }; if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier))
         return next(existsSync(new URL(`${specifier}.ts`, context.parentURL)) ? `${specifier}.ts` : `${specifier}/index.ts`, context); return next(specifier, context); } });
-const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts"), technology = await import("../app/api/technology/route.ts"), switcher = await import("../app/api/member-session/switch/route.ts"), ministerCredentials = await import("../app/api/technology/credentials/route.ts");
+const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts"), technology = await import("../app/api/technology/route.ts"), switcher = await import("../app/api/member-session/switch/route.ts"), offices = await import("../app/api/offices/current/route.ts"), memberSessions = await import("../app/api/member-session/route.ts");
 hooks.deregister();
 after(() => { delete globalThis.__boundaryEnv; });
 function setup() {
@@ -131,54 +131,68 @@ test("minister portal retains the shared emblem, with separate account mode", as
     assert.match(hub,/sharedMark/);
     assert.doesNotMatch(hub,/PublicCitizenMark|CitizenMark/);
 });
-test("minister role switching requires separately verified password and supports short-lived reentry", async () => {
-    const {hashMemberPassword}=await import("../app/member-passwords.ts");
-    const db=setup();
+test("minister role switching uses the incumbent's actual personal password and a short grant", async () => {
+    const { hashMemberPassword } = await import("../app/member-passwords.ts");
+    const db = setup();
     try {
-        const cookie=session(db,"amberina");
-        const pass="MinisterOnlyStrongSecret42!";
-        const hash=await hashMemberPassword(pass);
-        db.prepare("INSERT INTO technology_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
-            .run("amberina",hash.hash,hash.salt,Date.now(),"amberina");
+        const pass = "OnePersonalPassword-42";
+        const hashed = await hashMemberPassword(pass);
+        db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
+          .run("amberina",hashed.hash,hashed.salt,Date.now(),"amberina");
+        const cookie = session(db,"amberina");
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,403);
-        const fail=await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology"}}));
-        assert.equal(fail.status,401);
-        const forged=await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,origin:"https://wrong.invalid",body:{target:"technology",password:pass}}));
-        assert.equal(forged.status,403);
-        const ok=await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology",password:pass}}));
-        assert.equal(ok.status,200);
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology"}}))).status,401);
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology",password:"wrong"}}))).status,401);
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,origin:"https://wrong.invalid",body:{target:"technology",password:pass}}))).status,403);
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology",password:pass}}))).status,200);
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,200);
         assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"citizen"}}))).status,200);
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,403);
         assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology"}}))).status,200);
         db.prepare("UPDATE member_sessions SET minister_grant_expires_at=0 WHERE citizen_id='amberina'").run();
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,403);
+        assert.equal(db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='technology_credentials'").get().n,0);
     } finally {db.close();}
 });
-test("separate minister password enrollment needs reverified personal password and never elevates ordinary session", async () => {
+
+test("password update and future election transfer use the same source for authority and office titles", async () => {
     const { hashMemberPassword } = await import("../app/member-passwords.ts");
     const db=setup();
     try {
-        const personalSecret="PersonalOnlySecret";
-        const personalHash=await hashMemberPassword(personalSecret);
+        const oldPassword="CurrentCitizenPassword42";
+        const newPassword="UpdatedCitizenPassword43";
+        const first=await hashMemberPassword(oldPassword);
         db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
-          .run("amberina",personalHash.hash,personalHash.salt,Date.now(),"amberina");
+          .run("amberina",first.hash,first.salt,Date.now(),"amberina");
         const cookie=session(db,"amberina");
-        const read=await ministerCredentials.GET(request("/api/technology/credentials",{cookie}));
-        assert.equal(read.status,200);
-        assert.equal((await read.json()).configured,false);
-        const attack=await ministerCredentials.PUT(request("/api/technology/credentials",{method:"PUT",cookie,
-          body:{personalPassword:"wrong",ministryPassword:"SecretForMinistry-99"}}));
-        assert.equal(attack.status,401);
-        const success=await ministerCredentials.PUT(request("/api/technology/credentials",{method:"PUT",cookie,
-          body:{personalPassword:personalSecret,ministryPassword:"SecretForMinistry-99"}}));
-        assert.equal(success.status,200);
-        assert.equal(db.prepare("SELECT COUNT(*) AS n FROM technology_credentials").get().n,1);
-        assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,403);
-        const switchResponse=await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,
-          body:{target:"technology",password:"SecretForMinistry-99"}}));
-        assert.equal(switchResponse.status,200);
-        assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,200);
+        const next=await hashMemberPassword(newPassword);
+        db.prepare("UPDATE member_credentials SET password_hash=?,password_salt=?,updated_at=? WHERE citizen_id='amberina'")
+          .run(next.hash,next.salt,Date.now());
+        // The real member-access endpoint also invalidates every existing
+        // member_sessions row when it changes a personal password.
+        db.prepare("DELETE FROM member_sessions WHERE citizen_id='amberina'").run();
+        assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,401);
+        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{citizenId:"amberina",password:oldPassword,accountMode:"technology"}}))).status,401);
+        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{citizenId:"amberina",password:newPassword,accountMode:"technology"}}))).status,200);
+
+        const before=await offices.GET(request("/api/offices/current",{cookie:session(db,"truth")}));
+        assert.equal(before.status,200);
+        assert.deepEqual((await before.json()).offices.find(o=>o.id==="technology").holderIds,["amberina"]);
+
+        const incumbent=session(db,"amberina","technology");
+        // Simulates the future election processor's one-transaction update.
+        db.prepare("DELETE FROM current_office_holders WHERE office_id='technology'").run();
+        db.prepare("INSERT INTO current_office_holders(office_id,citizen_id,term_id) VALUES('technology','truth','election-2027')").run();
+        assert.equal((await technology.GET(request("/api/technology",{cookie:incumbent}))).status,403);
+        const after=await offices.GET(request("/api/offices/current",{cookie:session(db,"truth")}));
+        assert.deepEqual((await after.json()).offices.find(o=>o.id==="technology").holderIds,["truth"]);
+        const truthPersonal="TruthCitizenPassword44";
+        const h=await hashMemberPassword(truthPersonal);
+        db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
+          .run("truth",h.hash,h.salt,Date.now(),"truth");
+        const newIncumbent=session(db,"truth");
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie:newIncumbent,body:{target:"technology",password:truthPersonal}}))).status,200);
+        assert.equal((await technology.GET(request("/api/technology",{cookie:newIncumbent}))).status,200);
     } finally {db.close();}
 });
 test("JSON reader bounds actual streamed bytes and rejects malformed roots", async () => {
