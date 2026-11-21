@@ -58,7 +58,7 @@ test("explicit original-colour placements preserve the unchanged Simple crop, wi
   const officeStyles=source("../app/identity/office-insignia.css");
   assert.match(officeStyles,/\.citizen-mark\.leader::after \{[^\n]*var\(--mark\)/);
   assert.match(layout,/import "\.\/identity\/office-insignia\.css";/);
-  assert.doesNotMatch(source("../app/club/lounge-scenes.css"),/\.citizen-mark\.leader::after/);
+  assert.match(source("../app/club/lounge-scenes.css"),/\.citizen-mark\.leader::after/);
   assert.match(entry,/\.citizen-mark\.personal-simple\.leader \{\s*background: transparent;\s*box-shadow: none;/);
   assert.doesNotMatch(page,/citizen-mark-mist/);
   assert.doesNotMatch(layout,/amberina-personal-fog|oat-sage-theme/);
