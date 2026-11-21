@@ -28,6 +28,10 @@ export const ATLAS_OFFICES: Office[] = [
 export function officeHolders(officeId: string, snapshot: readonly Office[] = ATLAS_OFFICES): readonly string[] {
   return snapshot.find(office => office.id === officeId)?.holderIds ?? [];
 }
+/** Site administration follows the confirmed Technology Minister office, not an individual's name. */
+export function isCurrentTechnologyMinister(citizenId: string, snapshot: readonly Office[] = ATLAS_OFFICES): boolean {
+  return Boolean(citizenId) && officeHolders("technology", snapshot).includes(citizenId);
+}
 export function isCurrentPresident(citizenId: string, snapshot: readonly Office[] = ATLAS_OFFICES): boolean {
   return officeHolders("president", snapshot).includes(citizenId);
 }
