@@ -188,6 +188,17 @@ jobs:
           node --input-type=module - <<'NODE'
           const root = "https://schicksal-ui-preview.m17686100216.workers.dev";
           const passwords = JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS || "{}");
+          // The first-login UI is a separate server-rendered entry page, not
+          // the authenticated React login. Check its actual deployed HTML.
+          const anonymous = await fetch(root + "/?entry-qa=" + process.env.GITHUB_SHA, {
+            headers:{"Cache-Control":"no-cache"}, cache:"no-store"
+          });
+          const entryHtml = await anonymous.text();
+          if (anonymous.status !== 401 || !entryHtml.includes('id="identity-technology"') ||
+              !entryHtml.includes("05 / 08 CITIZENS · 01 OFFICE") ||
+              !entryHtml.includes("MINISTRY OF TECHNOLOGY · OFFICIAL ENTRY"))
+            throw Error("Deployed anonymous login page lacks the ministry entry (HTTP " + anonymous.status + ")");
+          console.log("REAL anonymous entry page ministry card present.");
           const login = await fetch(root + "/api/member-session", {
             method: "POST", headers: {"Content-Type":"application/json", Origin:root},
             body:JSON.stringify({ citizenId:"amberina", password:passwords.amberina }),
