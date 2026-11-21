@@ -1,4 +1,4 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { ensureParliamentSchema } from "../../../db/parliament-schema";
@@ -475,11 +475,19 @@ export async function POST(request: Request) {
       const [existing] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
       if (!existing) return Response.json({ error: "找不到这项议案。" }, { status: 404 });
       if (existing.stage !== "voting" || !existing.votingVersion || existing.votingVersion !== existing.version) return Response.json({ error: "投票尚未开放，或表决文本版本已失效。" }, { status: 409 });
-      await env.DB.prepare(`INSERT INTO parliament_votes (id, item_id, citizen_id, choice, document_version, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(item_id, citizen_id) DO UPDATE SET choice = excluded.choice, document_version = excluded.document_version, updated_at = excluded.updated_at`)
-        .bind(`${itemId}:${citizenId}`, itemId, citizenId, choice, existing.votingVersion, now, now).run();
-      await db.update(parliamentItems).set({ updatedAt: now }).where(eq(parliamentItems.id, itemId));
+      // Vote and stage check happen in one SQL statement. No late vote can land.
+      const voted = await env.DB.prepare(`INSERT INTO parliament_votes
+        (id, item_id, citizen_id, choice, document_version, created_at, updated_at)
+        SELECT ?, i.id, ?, ?, i.voting_version, ?, ?
+        FROM parliament_items i
+        WHERE i.id = ? AND i.stage = 'voting' AND i.voting_version IS NOT NULL
+          AND i.voting_version = i.version
+        ON CONFLICT(item_id, citizen_id) DO UPDATE SET
+          choice = excluded.choice, document_version = excluded.document_version,
+          updated_at = excluded.updated_at`)
+        .bind(`${itemId}:${citizenId}`, citizenId, choice, now, now, itemId).run();
+      if (!voted.meta.changes) return Response.json({ error: "表决已结束，请刷新当前议案。" }, { status: 409 });
+      await db.update(parliamentItems).set({ updatedAt: now }).where(and(eq(parliamentItems.id, itemId), eq(parliamentItems.stage, "voting")));
     } else if (action === "transition_stage") {
       if (!isStageManager(request, citizenId)) return Response.json({ error: "只有宇宙霸主账号可以切换议事阶段。" }, { status: 403 });
       const nextStage = cleanText(payload.stage, 30);
@@ -498,21 +506,46 @@ export async function POST(request: Request) {
         }
       }
       if (nextStage === "resolved" && existing.stage !== "voting") return Response.json({ error: "只有正在表决的议案可以直接结案。" }, { status: 409 });
-      let outcome = nextStage === "resolved" ? existing.outcome : "pending";
-      if (nextStage === "resolved") {
-        const requestedOutcome = cleanText(payload.outcome, 40);
-        if (OUTCOMES.has(requestedOutcome) && requestedOutcome !== "pending") outcome = requestedOutcome;
-        else {
-          const votes = await db.select().from(parliamentVotes).where(eq(parliamentVotes.itemId, itemId));
-          const eligibleVotes = votes.filter((vote) => vote.documentVersion === existing.votingVersion);
-          const support = eligibleVotes.filter((vote) => vote.choice === "support").length;
-          const oppose = eligibleVotes.filter((vote) => vote.choice === "oppose").length;
-          outcome = support > oppose ? "passed" : oppose > support ? "rejected" : "leader_decision_required";
-        }
-      }
-      await db.update(parliamentItems).set({ stage: nextStage, outcome, stageReason: reason, votingVersion: nextStage === "voting" ? existing.version : existing.votingVersion, updatedAt: now }).where(eq(parliamentItems.id, itemId));
-      await db.insert(parliamentComments).values({ id: crypto.randomUUID(), itemId, citizenId, commentType: "system", body: `议事阶段由“${existing.stage}”切换为“${nextStage}”：${reason}`, createdAt: now });
-      await audit(itemId, citizenId, "stage_transition", `议事阶段由“${existing.stage}”切换为“${nextStage}”。`, { from: existing.stage, to: nextStage, reason, outcome, frozenVersion: nextStage === "voting" ? existing.version : existing.votingVersion }, now);
+      // D1 batch executes atomically. Tally comes from the frozen vote set at
+      // the UPDATE statement, then the comment and audit share that transaction.
+      const requested = cleanText(payload.outcome, 40);
+      const explicitOutcome = nextStage === "resolved" && OUTCOMES.has(requested) && requested !== "pending" ? requested : "";
+      const transitionToken = crypto.randomUUID();
+      const previousStage = existing.stage;
+      const outcomeExpression = `CASE
+        WHEN ? <> 'resolved' THEN 'pending'
+        WHEN ? <> '' THEN ?
+        ELSE (SELECT CASE
+          WHEN SUM(CASE WHEN v.choice='support' THEN 1 ELSE 0 END) >
+               SUM(CASE WHEN v.choice='oppose' THEN 1 ELSE 0 END) THEN 'passed'
+          WHEN SUM(CASE WHEN v.choice='oppose' THEN 1 ELSE 0 END) >
+               SUM(CASE WHEN v.choice='support' THEN 1 ELSE 0 END) THEN 'rejected'
+          ELSE 'leader_decision_required' END
+          FROM parliament_votes v
+          WHERE v.item_id = parliament_items.id AND v.document_version = parliament_items.voting_version)
+      END`;
+      const transitions = await env.DB.batch([
+        env.DB.prepare(`UPDATE parliament_items SET
+          stage = ?, outcome = ${outcomeExpression}, stage_reason = ?,
+          voting_version = CASE WHEN ? = 'voting' THEN version ELSE voting_version END,
+          transition_token = ?, updated_at = ?
+          WHERE id = ? AND stage = ? AND version = ?`)
+          .bind(nextStage, nextStage, explicitOutcome, explicitOutcome, reason, nextStage,
+                transitionToken, now, itemId, existing.stage, existing.version),
+        env.DB.prepare(`INSERT INTO parliament_comments
+          (id, item_id, citizen_id, comment_type, body, created_at)
+          SELECT ?, id, ?, 'system', ?, ? FROM parliament_items
+          WHERE id = ? AND transition_token = ?`)
+          .bind(crypto.randomUUID(), citizenId, `议事阶段由“${previousStage}”切换为“${nextStage}”：${reason}`, now, itemId, transitionToken),
+        env.DB.prepare(`INSERT INTO parliament_audit_events
+          (id, item_id, actor_citizen_id, event_type, description, metadata_json, created_at)
+          SELECT ?, id, ?, 'stage_transition', ?,
+            json_object('from', ?, 'to', ?, 'reason', ?, 'outcome', outcome, 'frozenVersion', voting_version),
+            ? FROM parliament_items WHERE id = ? AND transition_token = ?`)
+          .bind(crypto.randomUUID(), citizenId, `议事阶段由“${previousStage}”切换为“${nextStage}”。`,
+                previousStage, nextStage, reason, now, itemId, transitionToken),
+      ]);
+      if (!transitions[0]?.meta?.changes) return Response.json({ error: "议事阶段已被其他操作改变，请刷新后重试。" }, { status: 409 });
     } else {
       return Response.json({ error: "未知的议会操作。" }, { status: 400 });
     }
