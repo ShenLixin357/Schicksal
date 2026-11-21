@@ -13,10 +13,16 @@ const response = (data:object,status=200) => Response.json(data,{status,headers}
  */
 export async function GET(request: Request) {
   try {
-    await requireTechnologyMinister(request);
+    const incumbent=await requireTechnologyMinister(request);
     const record=await env.DB.prepare(
-      "SELECT updated_at AS updatedAt FROM technology_direct_credentials WHERE office_id='technology'"
-    ).first<{updatedAt:number}>();
+      `SELECT cred.updated_at AS updatedAt
+       FROM technology_direct_credentials cred
+       JOIN current_office_holders holder
+         ON holder.office_id=cred.office_id
+         AND holder.citizen_id=cred.citizen_id
+         AND holder.term_id=cred.term_id
+       WHERE holder.office_id='technology' AND holder.citizen_id=?`
+    ).bind(incumbent).first<{updatedAt:number}>();
     return response({configured:Boolean(record),updatedAt:record?.updatedAt??null});
   } catch(error) {
     return response({error:error instanceof ApiError?error.message:"无法读取部长专用密码状态。"},
@@ -39,13 +45,14 @@ export async function PUT(request: Request) {
     const hash=await hashMemberPassword(special),now=Date.now();
     const updates=await env.DB.batch([
       env.DB.prepare(`INSERT INTO technology_direct_credentials
-        (office_id,password_hash,password_salt,updated_at,updated_by)
-        SELECT 'technology',?,?,?,? FROM current_office_holders
+        (office_id,password_hash,password_salt,updated_at,updated_by,citizen_id,term_id)
+        SELECT 'technology',?,?,?,?,citizen_id,term_id FROM current_office_holders
         WHERE office_id='technology' AND citizen_id=?
           AND (SELECT COUNT(*) FROM current_office_holders WHERE office_id='technology')=1
         ON CONFLICT(office_id) DO UPDATE SET
           password_hash=excluded.password_hash,password_salt=excluded.password_salt,
-          updated_at=excluded.updated_at,updated_by=excluded.updated_by`)
+          updated_at=excluded.updated_at,updated_by=excluded.updated_by,
+          citizen_id=excluded.citizen_id,term_id=excluded.term_id`)
         .bind(hash.hash,hash.salt,now,incumbent,incumbent),
       env.DB.prepare("DELETE FROM member_sessions WHERE auth_source='ministry-direct'"),
     ]);
