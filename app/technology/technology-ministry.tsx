@@ -6,7 +6,7 @@ import { MemberAccessSettings } from "../member-access-settings";
 import "./technology-ministry.css";
 
 /** The ministry uses the approved shared imperial mark, never a personal mark.
- * It does not create a ninth citizen or another password identity.
+ * It does not create a ninth citizen; it has a separately authenticated minister identity.
  */
 export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onBack }: {
   sharedMark: ReactNode;
