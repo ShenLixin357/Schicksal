@@ -428,9 +428,14 @@ export default function Home() {
     restoreController.current?.abort();
     restoredCitizen.current = null;
     logoutPending.current = true;
-    try { await fetch("/api/member-session", { method: "DELETE" }); }
-    catch { /* The local view can still return to the login form offline. */ }
-    finally { logoutPending.current = false; window.location.replace("/"); }
+    try {
+      const response = await fetch("/api/member-session", { method: "DELETE" });
+      if (!response.ok) throw new Error("Server has not revoked the session");
+      window.location.replace("/");
+    } catch {
+      // Keep the current authenticated view: a local redirect cannot revoke a server token.
+      window.alert("退出登录未完成，请检查网络后重试。");
+    } finally { logoutPending.current = false; }
   };
   useEffect(() => {
     // Even diagnostic or preview routes must pass member authentication and
