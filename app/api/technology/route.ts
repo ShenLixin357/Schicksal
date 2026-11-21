@@ -1,5 +1,5 @@
-import { requireMember } from "../../../server/auth/member.ts";
-import { isCurrentTechnologyMinister } from "../../identity/office-registry.ts";
+import { ApiError } from "../../../server/http.ts";
+import { requireTechnologyMinister } from "../../../server/auth/member.ts";
 
 const headers = { "Cache-Control": "private, no-store" };
 /** Ministry access is authorized by the authenticated member's current office,
@@ -7,17 +7,14 @@ const headers = { "Cache-Control": "private, no-store" };
  */
 export async function GET(request: Request) {
   try {
-    const member = await requireMember(request);
-    if (!isCurrentTechnologyMinister(member)) {
-      return Response.json({ error: "仅现任科技部部长可以访问管理台。" }, { status: 403, headers });
-    }
+    await requireTechnologyMinister(request);
     return Response.json({
       authorized: true, role: "technology-minister", administrativeScope: "all-site",
       // Existing routes may still have narrower checks; do not misrepresent
       // planned management functions as working actions.
       activeModules: ["photo-archive"],
     }, { headers });
-  } catch {
-    return Response.json({ error: "请先以有效公民身份登录。" }, { status: 401, headers });
+  } catch (error) {
+    return Response.json({ error: error instanceof ApiError ? error.message : "部长身份校验失败。" }, { status: error instanceof ApiError ? error.status : 503, headers });
   }
 }
