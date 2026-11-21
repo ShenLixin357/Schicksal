@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - "preview/sidebar-lounge-v4-20261120"
+      - "feature/minister-dual-account-switch-20261121"
     paths:
       - ".github/workflows/schicksal-ui-preview-deploy.yml"
       - "scripts/cloudflare/prepare-ui-preview.mjs"
@@ -98,6 +99,32 @@ jobs:
           appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PREVIEW_D1_ID=" + preview[0].uuid + "\n");
           NODE
           fi
+      - name: Provide separate PREVIEW-ONLY R2 for photo review when available
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUCKET_NAME="schicksal-ui-preview-photos"
+          if ! npx wrangler r2 bucket list --json > "$RUNNER_TEMP/schicksal-preview-r2.json" 2>/dev/null; then
+            echo "::warning::R2 unavailable: preview photo upload will remain disabled; all other pages can be tested."
+          else
+            if node --input-type=module - "$RUNNER_TEMP/schicksal-preview-r2.json" <<'NODE'
+          import { readFileSync } from "node:fs";
+          const body = JSON.parse(readFileSync(process.argv[2], "utf8"));
+          const buckets = Array.isArray(body) ? body : (body.buckets ?? body.result ?? []);
+          if (!Array.isArray(buckets)) throw Error("Unexpected R2 inventory");
+          const existing=buckets.some(item=>item.name==="schicksal-ui-preview-photos");
+          process.exit(existing?0:1);
+          NODE
+            then
+              echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
+            else
+              if npx wrangler r2 bucket create "$BUCKET_NAME"; then
+                echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
+              else
+                echo "::warning::Could not provision an isolated R2 bucket. Photo upload is unavailable in this preview."
+              fi
+            fi
+          fi
       - name: Prepare and verify preview-only Worker artifact
         shell: bash
         run: |
@@ -113,6 +140,16 @@ jobs:
           }, null, 2));
           NODE
           node scripts/cloudflare/prepare-ui-preview.mjs work/briefing-preview-target.json
+          node --input-type=module - <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const path = "work/ui-preview-dist/server/wrangler.json";
+          const config = JSON.parse(readFileSync(path, "utf8"));
+          // Runtime SHA must identify exactly the acceptance commit.
+          config.vars.SCHICKSAL_PREVIEW_COMMIT = process.env.GITHUB_SHA;
+          if (process.env.SCHICKSAL_PREVIEW_R2_READY === "true") config.r2_buckets = [{ binding: "BUCKET", bucket_name: "schicksal-ui-preview-photos" }];
+          if (!/^[a-f0-9]{40}$/i.test(config.vars.SCHICKSAL_PREVIEW_COMMIT)) throw Error("Invalid preview SHA");
+          writeFileSync(path, JSON.stringify(config,null,2));
+          NODE
           npx wrangler deploy --dry-run --config work/ui-preview-dist/server/wrangler.json
       - name: Apply migrations ONLY to the isolated preview D1
         shell: bash
@@ -169,6 +206,18 @@ jobs:
           }
           const cookie = login.headers.get("set-cookie")?.split(";")[0];
           if (!cookie) throw new Error("Preview login did not return a session cookie");
+          const version = await fetch(root + "/api/preview-version", {headers:{Cookie:cookie}, cache:"no-store"});
+          if (!version.ok) throw new Error("Preview version endpoint returned HTTP " + version.status);
+          const v = await version.json();
+          if (v.sourceSha !== process.env.GITHUB_SHA || v.preview !== true) {
+            throw new Error("PREVIEW SHA MISMATCH: expected source commit was not deployed");
+          }
+          console.log("Cumulative PR #9–23 acceptance SHA verified:", v.sourceSha);
+          const offices = await fetch(root + "/api/offices/current", {headers:{Cookie:cookie}, cache:"no-store"});
+          if (!offices.ok) throw new Error("Office role registry not available on deployed preview");
+          const officeData = await offices.json();
+          if (!officeData.offices?.some(o => o.id === "technology" && o.holderIds?.includes("amberina")))
+            throw new Error("Current Technology Minister office is missing in preview D1");
           const briefing = await fetch(root + "/api/briefing", {headers:{Cookie:cookie}, cache:"no-store"});
           const payload = await briefing.json();
           if (!briefing.ok) throw new Error("Preview briefing sync failed: HTTP " + briefing.status + ", " + (payload.error || "no message"));
@@ -212,7 +261,9 @@ jobs:
             echo '- Worker name: `schicksal-ui-preview`'
             echo '- Database: `schicksal-ui-preview-db` (separate from production)'
             echo "- Version: $GITHUB_SHA"
-            echo "- Source: PR #9 Sidebar/Lounge preview (production remains unchanged)"
-            echo "- Read the actual workers.dev URL from the Wrangler deployment output above."
+            echo "- Source: cumulative unmerged PR #9–23, with PR #4 foundations integrated by #12; production remains unchanged"
+            echo "- Preview URL: https://schicksal-ui-preview.m17686100216.workers.dev"
+            echo "- Verified deployment SHA: $GITHUB_SHA"
+            echo "- Photo uploads require separately created preview R2; check R2 provisioning step output."
             echo "- Check login, daily news and responsive layout manually before claiming acceptance."
           } >> "$GITHUB_STEP_SUMMARY"
