@@ -10,7 +10,7 @@ globalThis.__boundaryEnv = env;
 const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier === "cloudflare:workers")
         return { url: "data:text/javascript,export const env=globalThis.__boundaryEnv", shortCircuit: true }; if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier))
         return next(existsSync(new URL(`${specifier}.ts`, context.parentURL)) ? `${specifier}.ts` : `${specifier}/index.ts`, context); return next(specifier, context); } });
-const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts"), technology = await import("../app/api/technology/route.ts");
+const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts"), technology = await import("../app/api/technology/route.ts"), switcher = await import("../app/api/member-session/switch/route.ts");
 hooks.deregister();
 after(() => { delete globalThis.__boundaryEnv; });
 function setup() {
@@ -133,7 +133,6 @@ test("minister portal retains the shared emblem, with separate account mode", as
 });
 test("minister role switching requires separately verified password and supports short-lived reentry", async () => {
     const {hashMemberPassword}=await import("../app/member-passwords.ts");
-    const switcher=await import("../app/api/member-session/switch/route.ts");
     const db=setup();
     try {
         const cookie=session(db,"amberina");
