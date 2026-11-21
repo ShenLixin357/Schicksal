@@ -43,7 +43,6 @@ import { HonorsPage, MarketPage } from "./points/points-pages";
 import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
 import { TechnologyMinistryPortal } from "./technology/technology-ministry";
-import { AccountModeSwitcher } from "./technology/account-switcher";
 
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import type { SidebarDestination, SiteSection } from "./shell/navigation";
@@ -266,7 +265,31 @@ function System({ citizen, accountMode, offices, onAccountModeChange, logout, in
 }) {
   const [section,setSection] = useState<Section>("home");
   const isCurrentMinister = Boolean(offices && isCurrentTechnologyMinister(citizen.id, offices));
-  const [switcherOpen,setSwitcherOpen] = useState(false);
+  const [switchingMode,setSwitchingMode] = useState(false);
+  const switchBusy = useRef(false);
+  const [modeSwitchMessage,setModeSwitchMessage] = useState("");
+  const switchAccountImmediately = () => {
+    if (!isCurrentMinister || switchBusy.current) return;
+    switchBusy.current = true;
+    setSwitchingMode(true); setModeSwitchMessage("");
+    const target: AccountMode = accountMode === "technology" ? "citizen" : "technology";
+    void fetch("/api/member-session/switch", {
+      method:"POST", cache:"no-store",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({target}),
+    }).then(async response => {
+      const payload = await response.json() as {accountMode?:AccountMode;citizenId?:string;error?:string};
+      if (!response.ok || payload.citizenId !== citizen.id || payload.accountMode !== target)
+        throw Error(payload.error || "身份切换未完成。");
+      onAccountModeChange(target);
+      setViewedCitizenId(citizen.id);
+      setSection("profile");
+    }).catch(error => {
+      setModeSwitchMessage(error instanceof Error ? error.message : "身份切换失败，请检查网络。");
+    }).finally(() => {
+      switchBusy.current = false; setSwitchingMode(false);
+    });
+  };
   const [portal, setPortal] = useState<LoungePassageDirection | null>(null);
   const portalReturnSection = useRef<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
@@ -392,16 +415,17 @@ function System({ citizen, accountMode, offices, onAccountModeChange, logout, in
     case "market": content = <MarketSection/>; break;
     case "photos": content = <FeatureSuspense label="家庭影像馆" onExit={() => setSection("home")}><PhotoArchiveSection citizen={citizen} accountMode={accountMode} sharedMark={<Emblem compact />} renderCitizenMark={(subject, placement) => <CitizenMark citizen={subject} placement={placement} />} /></FeatureSuspense>; break;
     case "archives": content = atlasHandbookOpen ? <FeatureSuspense label="政务手册" onExit={() => setSection("home")}><AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/></FeatureSuspense> : <FeatureSuspense label="国家档案馆" onExit={() => setSection("home")}><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-book-cover" />} readerAuthorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-reader-author" />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
-    case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} offices={offices} />
-      {isCurrentMinister && <section className="technology-ministry-entry" aria-label="科技部部长管理入口">
-        <button type="button" onClick={()=>accountMode==="technology"?setSection("technology"):setSwitcherOpen(true)}>
-          <Emblem compact />
-          <span><strong>科技部部长入口</strong><small>{accountMode==="technology"?"已验证 · 进入管理台":"长按侧边栏本人标志也可切换"}</small></span>
-        </button>
-      </section>}
-    </> : <PublicAtlasCitizenProfile citizen={viewedCitizen} offices={offices} onBack={()=>setSection("atlas")}/>; break;
-    case "technology": content = accountMode==="technology" && isCurrentMinister
-      ? <TechnologyMinistryPortal sharedMark={<Emblem compact />} onOpenPhotos={()=>setSection("photos")} onBack={()=>setSection("profile")}/>
+    case "profile": content = viewedCitizen.id === citizen.id
+      ? (accountMode === "technology" && isCurrentMinister
+        ? <TechnologyMinistryPortal sharedMark={<Emblem compact />}
+            onOpenPhotos={() => setSection("photos")} onBack={() => setSection("home")}/>
+        : <ProfileSection citizen={citizen} offices={offices}/>)
+      : <PublicAtlasCitizenProfile citizen={viewedCitizen} offices={offices} onBack={() => setSection("atlas")}/>; break;
+    // Older URLs/internal references resolve to the same profile destination,
+    // not to a separate elevated menu or extra admin entry.
+    case "technology": content = accountMode === "technology" && isCurrentMinister
+      ? <TechnologyMinistryPortal sharedMark={<Emblem compact />}
+          onOpenPhotos={() => setSection("photos")} onBack={() => setSection("home")}/>
       : <HomeSection go={setSection}/>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <FeatureSuspense label="委员会 Lounge" onExit={() => setSection("home")}><CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /></FeatureSuspense> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
@@ -454,15 +478,17 @@ function System({ citizen, accountMode, offices, onAccountModeChange, logout, in
           document.querySelector(".system-main")?.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onLogout={logout}
-        onSelfLongPress={isCurrentMinister?()=>setSwitcherOpen(true):undefined}
+        onSelfLongPress={isCurrentMinister?switchAccountImmediately:undefined}
       />
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>
         <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
       </section>
       {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
         onSwap={swapPortalRoom} onFinish={() => setPortal(null)}/>}
-      {switcherOpen && <AccountModeSwitcher mode={accountMode} onClose={()=>setSwitcherOpen(false)}
-        onChanged={next=>{onAccountModeChange(next);setSwitcherOpen(false);setSection(next==="technology"?"technology":"home");}}/>}
+      {(switchingMode || modeSwitchMessage) && <div className="technology-inline-switch-status"
+        role={modeSwitchMessage ? "alert" : "status"} aria-live="polite">
+        {modeSwitchMessage || "正在切换身份…"}
+      </div>}
 
     </main>
   );
