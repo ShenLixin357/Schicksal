@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { amberinaMarkAt, type PublicMarkPlacement } from "./mark-placements";
+import { amberinaMarkAt, no2MarkAt, type PublicMarkPlacement } from "./mark-placements";
 import type { CSSProperties, ReactNode } from "react";
 import type { Citizen } from "../citizens";
 import { isCurrentPresident } from "./office-registry";
@@ -19,10 +19,11 @@ export function PublicCitizenMark({ citizen, placement }: { citizen: Citizen; pl
   // representative colour and shared emblem palette are separate from this.
   const visual = getPublicMemberVisual(citizen.id);
   const amberina = citizen.id === "amberina" ? amberinaMarkAt(placement) : null;
-  const markColor = amberina?.color ?? visual?.officialMarkColor ?? citizen.markColor;
-  const markAsset = amberina?.asset ?? visual?.officialMarkAsset;
+  const no2 = citizen.id === "zxy" ? no2MarkAt(placement) : null;
+  const markColor = amberina?.color ?? no2?.color ?? visual?.officialMarkColor ?? citizen.markColor;
+  const markAsset = amberina?.asset ?? no2?.asset ?? visual?.officialMarkAsset;
   if (markAsset) {
-    return <span className={`citizen-mark personal-simple${leaderClass}`} style={{ "--mark": markColor } as CSSProperties} aria-hidden="true">
+    return <span className={`citizen-mark personal-simple${no2 ? " no2-symbol" : ""}${leaderClass}`} style={{ "--mark": markColor } as CSSProperties} aria-hidden="true">
       <Image src={markAsset} alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
     </span>;
   }

@@ -53,3 +53,31 @@ export function amberinaMarkAt(placement: PublicMarkPlacement) {
     ? { color: visual.webMarkColor, asset: visual.webMarkAsset }
     : { color: visual.officialMarkColor, asset: visual.officialMarkAsset };
 }
+
+/**
+ * No.2's approved red-skull artwork has two unmodified PNG originals:
+ * an intricate full illustration and a thin-line responsive mark.
+ * Every small public-context icon uses the responsive form. Only large
+ * personal and Atlas displays use the detailed original.
+ * Colour is ALWAYS the canonical #D7263D, unlike Amberina's placement
+ * dependent strong-gold design.
+ */
+export const NO2_FULL_MARK_PLACEMENTS: readonly PublicMarkPlacement[] = [
+  "profile-personal-simple",
+  "profile-public-simple",
+  "atlas-personal-detail",
+] as const;
+const NO2_FULL_PLACEMENT_SET = new Set<PublicMarkPlacement>(NO2_FULL_MARK_PLACEMENTS);
+
+export function no2MarkAt(placement: PublicMarkPlacement) {
+  if (!Object.prototype.hasOwnProperty.call(AMBERINA_MARK_PLACEMENTS, placement)) {
+    throw new Error("Unapproved No.2 personal mark placement: " + placement);
+  }
+  const visual = PUBLIC_MEMBER_VISUALS.zxy;
+  return {
+    color: visual.officialMarkColor,
+    asset: NO2_FULL_PLACEMENT_SET.has(placement)
+      ? visual.officialMarkAsset
+      : visual.webMarkAsset,
+  };
+}

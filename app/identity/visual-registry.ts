@@ -32,8 +32,13 @@ export const PUBLIC_MEMBER_VISUALS = {
     atlasPersonalColor: "#F3ED87",
   },
   zxy: {
-    representativeColor: "#d95d52", emblemRayColor: "#d95d52",
-    webMarkColor: "#f05f55", officialMarkColor: "#f05f55",
+    representativeColor: "#D7263D",
+    emblemRayColor: "#D7263D",
+    webMarkColor: "#D7263D",
+    officialMarkColor: "#D7263D",
+    webMarkAsset: "/no2-personal-responsive-garnet.png",
+    officialMarkAsset: "/no2-personal-full-garnet.png",
+    atlasPersonalColor: "#D7263D",
   },
   truth: {
     representativeColor: "#eecf58", emblemRayColor: "#eecf58",

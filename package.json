@@ -51,7 +51,7 @@
     "test:isolation": "node --test tests/architecture-phase-d.test.mjs",
     "test:game-room-return": "node --experimental-transform-types --test tests/game-room-return.test.mjs",
     "test:lounge-api": "node --experimental-transform-types --test tests/lounge-api.test.mjs",
-    "test:identity-architecture": "node --experimental-transform-types --test tests/identity-architecture.test.mjs",
+    "test:identity-architecture": "node --experimental-transform-types --test tests/identity-architecture.test.mjs tests/no2-personal-symbol.test.mjs",
     "test:asset-audit": "node --test tests/public-assets-budget.test.mjs",
     "test:profile-crystal": "node --experimental-transform-types --test tests/profile-crystal.test.mjs",
     "test:performance": "node --test tests/performance-boundaries.test.mjs",
