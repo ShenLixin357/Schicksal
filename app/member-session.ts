@@ -7,23 +7,28 @@ const MEMBER_IDS = new Set(["amberina", "zxy", "truth", "kaito", "harry"]);
 const LEGACY_SITE_PASSWORD = "";
 
 export type AccountMode = "citizen" | "technology";
+export type AuthSource = "personal" | "ministry-direct";
 export const MINISTRY_GRANT_MS = 20 * 60 * 1000;
 export async function currentSession(request: Request): Promise<{
-  citizenId: string; accountMode: AccountMode; ministerGrantExpiresAt: number;
+  citizenId: string; accountMode: AccountMode; ministerGrantExpiresAt: number; authSource: AuthSource;
 } | null> {
   const token = cookieToken(request); if (!token) return null;
   const now = Date.now();
   const row = await env.DB.prepare(`SELECT citizen_id AS citizenId, account_mode AS accountMode,
-    minister_grant_expires_at AS ministerGrantExpiresAt
+    minister_grant_expires_at AS ministerGrantExpiresAt, auth_source AS authSource
     FROM member_sessions WHERE token_hash = ? AND expires_at > ?`)
     .bind(await digest(token), now)
-    .first<{ citizenId: string; accountMode: string; ministerGrantExpiresAt: number }>();
+    .first<{ citizenId: string; accountMode: string; ministerGrantExpiresAt: number; authSource: string }>();
   if (!row || !MEMBER_IDS.has(row.citizenId)) return null;
   const ministerGrantExpiresAt = Number(row.ministerGrantExpiresAt) || 0;
-  const accountMode: AccountMode = row.accountMode === "technology"
-    && ministerGrantExpiresAt > now && await isIncumbentTechnologyMinister(row.citizenId)
-    ? "technology" : "citizen";
-  return { citizenId: row.citizenId, accountMode, ministerGrantExpiresAt };
+  const permitted = row.accountMode === "technology" && ministerGrantExpiresAt > now
+    && await isIncumbentTechnologyMinister(row.citizenId);
+  const authSource: AuthSource = row.authSource === "ministry-direct" ? "ministry-direct" : "personal";
+  // Office-only login never silently becomes a personal citizen session
+  // on timeout or after a ministerial succession.
+  if(authSource === "ministry-direct" && !permitted) return null;
+  const accountMode: AccountMode = permitted ? "technology" : "citizen";
+  return { citizenId:row.citizenId, accountMode, ministerGrantExpiresAt, authSource };
 }
 export async function currentMember(request: Request): Promise<string | null> {
   return (await currentSession(request))?.citizenId ?? null;
@@ -39,17 +44,14 @@ export async function verifyTechnologyPassword(citizenId: string, password: stri
   // even if someone accidentally configures the two secrets identically.
   if (await verifyMemberPassword(citizenId, password)) return false;
   const stored = await env.DB.prepare(
-    "SELECT password_hash AS hash,password_salt AS salt FROM technology_direct_credentials WHERE office_id='technology'"
-  ).first<{hash:string;salt:string}>();
-  if (stored) return matchesMemberPassword(password,stored.salt,stored.hash);
-  // Optional first-setup fallback for a deployment without a configured hash.
-  // A subsequent in-console password setup overrides this Worker secret.
-  const secret = (env as unknown as { SCHICKSAL_MINISTRY_DIRECT_PASSWORD?: string }).SCHICKSAL_MINISTRY_DIRECT_PASSWORD;
-  if (!secret || secret.length < 12) return false;
-  const [a,b] = await Promise.all([digest(password), digest(secret)]);
-  let difference = 0;
-  for(let i=0;i<a.length;i++) difference |= a.charCodeAt(i)^b.charCodeAt(i);
-  return difference === 0;
+    "SELECT password_hash AS hash,password_salt AS salt,citizen_id AS citizenId,term_id AS termId FROM technology_direct_credentials WHERE office_id='technology'"
+  ).first<{hash:string;salt:string;citizenId:string;termId:string}>();
+  if(!stored) return false;
+  const appointment=await env.DB.prepare(
+    "SELECT term_id AS termId FROM current_office_holders WHERE office_id='technology' AND citizen_id=?"
+  ).bind(citizenId).first<{termId:string}>();
+  if(!appointment || stored.citizenId !== citizenId || stored.termId !== appointment.termId) return false;
+  return matchesMemberPassword(password,stored.salt,stored.hash);
 }
 
 export async function verifyMemberPassword(citizenId: string, password: string) {
