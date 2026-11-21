@@ -116,7 +116,8 @@ test("member badges use simple clicks; the top phone reaches the correspondence 
   assert.match(badge, /onClick=\{\(\) => clickSelf\(member.id\)\}/);
   assert.match(badge, /setPanelOpen\(false\); onMember\(memberId\);/);
   assert.match(badge, /onSelfLongPress/);
-  assert.doesNotMatch(badge, /suppressClick|onOpenIndex|onPointerDown|600\)/);
+  assert.doesNotMatch(badge, /suppressClick|onOpenIndex|600\)/);
+  assert.match(badge, /onPointerDown/);
   assert.match(sidebar, /className="imperial-phone"/);
   assert.match(sidebar, /onClick=\{\(\) => onNavigate\("messenger"\)\}/);
   assert.match(page, /case "messenger": content = <ShellPlaceholder/);
