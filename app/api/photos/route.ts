@@ -234,7 +234,7 @@ export async function PUT(request: Request) {
     const storage = getPhotoStorage(env);
     const object = await storage.get(row.objectKey);
     if (!object) return Response.json({ error: "原图缺失，请先从备份恢复文件。" }, { status: 409 });
-    await object.body?.cancel?.();
+    if (object.body instanceof ReadableStream) await object.body.cancel();
     const [updated] = await getDb().update(archivePhotos)
       .set({ deletedAt: null, deletedByCitizenId: null })
       .where(and(eq(archivePhotos.id, id), isNotNull(archivePhotos.deletedAt))).returning();
