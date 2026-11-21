@@ -157,7 +157,7 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
       <button className="chryser-object chryser-decanter" type="button" onClick={() => activate("decanter")} aria-label="开启圆桌上的草木酒壶，释放魔法香雾"><span>轻触草木酒壶</span></button>
       <button className="chryser-object chryser-window" type="button" onClick={() => activate("window")} aria-pressed={memory.rain} aria-label="触碰拱窗，在夜雨与星空之间切换"><span>{memory.rain ? "让雨停下" : "唤来夜雨"}</span></button>
       <button className="chryser-object chryser-armchair" type="button" onClick={() => activate("chair")} aria-pressed={seated} aria-label={seated ? "离开翡翠扶手椅" : "坐进翡翠扶手椅"}><span>{seated ? "离开扶手椅" : "坐进丝绒里"}</span></button>
-      <button type="button" className="chryser-aquarium" onClick={() => setAquariumOpen(true)} aria-label="进入透明大鱼缸，打开怪怪水族馆" title="怪怪水族馆 · Insaniquarium Deluxe">
+      <button type="button" className="chryser-aquarium" style={{ cursor: "pointer", padding: 0, font: "inherit" }} onClick={() => setAquariumOpen(true)} aria-label="进入透明大鱼缸，打开怪怪水族馆" title="怪怪水族馆 · Insaniquarium Deluxe">
         <span className="chryser-aquarium-water" aria-hidden="true"><i /><i /><i /><b /><b /><b /></span>
         <span className="chryser-aquarium-caption">怪怪水族馆 <small>INSANIQUARIUM DELUXE</small></span>
       </button>
