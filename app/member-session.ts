@@ -28,11 +28,19 @@ export async function currentSession(request: Request): Promise<{
 export async function currentMember(request: Request): Promise<string | null> {
   return (await currentSession(request))?.citizenId ?? null;
 }
-/** Same password as the incumbent's personal account. No duplicate secret
- * is stored: updating member_credentials instantly changes minister login.
+/** Direct minister login uses an independent *server secret* and never
+ * accepts any personal account password. Do not commit or expose that secret.
+ * A currently logged-in officeholder switches modes by session authorization
+ * instead, so no password is requested for a long hold.
  */
 export async function verifyTechnologyPassword(citizenId: string, password: string): Promise<boolean> {
-  return await isIncumbentTechnologyMinister(citizenId) && await verifyMemberPassword(citizenId, password);
+  if (!await isIncumbentTechnologyMinister(citizenId) || !password || password.length > 1024) return false;
+  const secret = (env as unknown as { SCHICKSAL_MINISTRY_DIRECT_PASSWORD?: string }).SCHICKSAL_MINISTRY_DIRECT_PASSWORD;
+  if (!secret || secret.length < 12) return false;
+  const [a,b] = await Promise.all([digest(password), digest(secret)]);
+  let difference = 0;
+  for(let i=0;i<a.length;i++) difference |= a.charCodeAt(i)^b.charCodeAt(i);
+  return difference === 0;
 }
 
 export async function verifyMemberPassword(citizenId: string, password: string) {
