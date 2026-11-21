@@ -44,6 +44,7 @@ import { HonorsPage, MarketPage } from "./points/points-pages";
 import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
 import { TechnologyMinistryPortal } from "./technology/technology-ministry";
+import { AccountModeSwitcher } from "./technology/account-switcher";
 
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import type { SidebarDestination, SiteSection } from "./shell/navigation";
@@ -55,6 +56,7 @@ const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(mod
 const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
 const CommitteeLounge = lazy(() => import("./club/committee-lounge").then(module => ({ default: module.CommitteeLounge })));
 
+type AccountMode = "citizen" | "technology";
 type Phase = "opening" | "login" | "welcome" | "system";
 type Section = SiteSection;
 
@@ -86,22 +88,32 @@ function Opening({ done }: { done: () => void }) {
   );
 }
 
-function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: () => void }) {
+function Login({ enter, replay }: { enter: (citizen: Citizen, mode:AccountMode) => void; replay: () => void }) {
   const [selectedId, setSelectedId] = useState("amberina");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
+  const [loginMode,setLoginMode] = useState<AccountMode>("citizen");
+  const held = useRef(false);
+  const holdTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopHold = () => { if(holdTimeout.current!==null)clearTimeout(holdTimeout.current);holdTimeout.current=null; };
+  const beginHold = (item:Citizen) => {
+    stopHold();held.current=false;
+    if(isCurrentTechnologyMinister(item.id)) holdTimeout.current=setTimeout(()=>{
+      held.current=true;setSelectedId(item.id);setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");setError("");
+    },650);
+  };
   const selected = CITIZENS.find((item) => item.id === selectedId)!;
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (loggingIn) return;
     setLoggingIn(true); setError("");
     try {
-      const response = await fetch("/api/member-session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ citizenId: selected.id, password }) });
+      const response = await fetch("/api/member-session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ citizenId: selected.id, password, accountMode: loginMode }) });
       const payload = await response.json() as { error?: string };
       if (!response.ok) throw new Error(payload.error || "登录暂时未能完成。");
-      setPassword(""); enter(selected);
+      setPassword(""); enter(selected,loginMode);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "暂时无法连接登录服务。"); }
     finally { setLoggingIn(false); }
   };
@@ -120,15 +132,22 @@ function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: (
           <div className="panel-head"><div><span>STEP 01</span><h2>选择身份</h2></div><small>05 / 08 IDENTIFIED</small></div>
           <div className="identity-grid">
             {CITIZENS.map((item) => (
-              <button type="button" disabled={item.locked} key={item.id} onClick={() => { setSelectedId(item.id); setError(""); }} className={`${selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`} style={{ "--citizen": citizenRepresentativeColor(item) } as CSSProperties}>
+              <button type="button" disabled={item.locked} key={item.id}
+                onPointerDown={()=>beginHold(item)} onPointerUp={stopHold} onPointerLeave={stopHold} onPointerCancel={stopHold}
+                onContextMenu={event=>{if(isCurrentTechnologyMinister(item.id)){event.preventDefault();setSelectedId(item.id);setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");setError("");}}}
+                onKeyDown={event=>{if(event.shiftKey && event.key==="Enter" && isCurrentTechnologyMinister(item.id)){event.preventDefault();setSelectedId(item.id);setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");}}}
+                onClick={() => { if(held.current){held.current=false;return;}setSelectedId(item.id);setLoginMode("citizen");setError(""); }} className={`${selectedId === item.id ? "selected" : ""} ${item.locked ? "locked" : ""}`} style={{ "--citizen": citizenRepresentativeColor(item) } as CSSProperties}>
                 <CitizenMark citizen={item} placement="login-react-picker" /><span><strong>{item.username}</strong><small>{item.locked ? "RECORD SEALED" : item.name}</small></span><i />
               </button>
             ))}
           </div>
           <form onSubmit={submit} className="access-form">
-            <div className="panel-head access-head"><div><span>STEP 02 · {selected.username}</span><h2>输入登录密码</h2></div><small>RECOGNISED AS<br />{selected.name}</small></div>
+            <div className="panel-head access-head"><div><span>STEP 02 · {loginMode==="technology"?"科技部部长":selected.username}</span><h2>{loginMode==="technology"?"部长独立密码":"输入登录密码"}</h2></div><small>RECOGNISED AS<br />{loginMode==="technology"?"MINISTRY OF TECHNOLOGY":selected.name}</small></div>
+            {isCurrentTechnologyMinister(selected.id) && <button type="button" className="technology-login-mode-button" onClick={()=>{setLoginMode(value=>value==="citizen"?"technology":"citizen");setPassword("");setError("");}}>
+              {loginMode==="citizen"?"长按身份卡，或点此切换部长账号":"当前：部长账号 · 切回个人登录"}
+            </button>}
             <label><span>Password · 密码</span><div><input type={show ? "text" : "password"} value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} placeholder="输入密码" aria-invalid={Boolean(error)} /><button type="button" onClick={() => setShow(!show)}>{show ? "HIDE" : "SHOW"}</button></div></label>
-            <footer><p className={error ? "error" : ""} role="status">{error || `正在以 ${selected.username} 的身份登录`}</p><button className="primary" type="submit" disabled={loggingIn}>{loggingIn ? "正在登录…" : "LOGIN"} <span>→</span></button></footer>
+            <footer><p className={error ? "error" : ""} role="status">{error || `正在以 ${loginMode==="technology"?"科技部部长":selected.username} 的身份登录`}</p><button className="primary" type="submit" disabled={loggingIn}>{loggingIn ? "正在登录…" : "LOGIN"} <span>→</span></button></footer>
           </form>
         </div>
       </section>
@@ -138,8 +157,9 @@ function Login({ enter, replay }: { enter: (citizen: Citizen) => void; replay: (
 }
 
 type PreloadStatus = "loading" | "ready" | "error";
-function Welcome({ citizen, enter, preloadStatus, retry }: {
+function Welcome({ citizen, accountMode, enter, preloadStatus, retry }: {
   citizen: Citizen;
+  accountMode: AccountMode;
   enter: () => void;
   preloadStatus: PreloadStatus;
   retry: () => void;
@@ -162,8 +182,8 @@ function Welcome({ citizen, enter, preloadStatus, retry }: {
       <div className="welcome-rings" aria-hidden="true"><i /><i /><i /></div>
       <section>
         <p className="eyebrow">Identity Confirmed · 身份已确认</p>
-        <div className="welcome-mark"><CitizenMark citizen={citizen} placement="welcome-identity" /><i /></div>
-        <small>WELCOME TO SCHICKSAL</small><h1>{citizen.name}</h1>
+        <div className="welcome-mark">{accountMode==="technology"?<Emblem compact/>:<CitizenMark citizen={citizen} placement="welcome-identity" />}<i /></div>
+        <small>WELCOME TO SCHICKSAL</small><h1>{accountMode==="technology"?"科技部部长":citizen.name}</h1>
         <div className="welcome-meta"><span>{currentOfficeLabel(citizen)}</span><i /><span>CODE NAME · {citizen.codename}</span></div>
         <p>Your citizen identity has been recognised by the Imperial System.<br />帝国系统已识别你的公民身份。</p>
         <button type="button" onClick={enter} disabled={preloadStatus !== "ready"}>{preloadStatus === "ready" ? "ENTER NOW" : "PREPARING BRIEFING…"} <span>→</span></button>
@@ -220,10 +240,11 @@ function PublicAtlasCitizenProfile({ citizen, onBack }: { citizen: Citizen; onBa
 
 function ProfileSection({ citizen }: { citizen: Citizen }) { return <SelfProfilePage citizen={citizen} renderMark={<CitizenMark citizen={citizen} placement="profile-personal-simple" />}/>; }
 
-function System({ citizen, logout, initialBriefing }: {
-  citizen: Citizen; logout: () => void; initialBriefing: BriefingFeed;
+function System({ citizen, accountMode, onAccountModeChange, logout, initialBriefing }: {
+  citizen: Citizen; accountMode:AccountMode; onAccountModeChange:(mode:AccountMode)=>void; logout: () => void; initialBriefing: BriefingFeed;
 }) {
   const [section,setSection] = useState<Section>("home");
+  const [switcherOpen,setSwitcherOpen] = useState(false);
   const [portal, setPortal] = useState<LoungePassageDirection | null>(null);
   const portalReturnSection = useRef<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
@@ -351,14 +372,13 @@ function System({ citizen, logout, initialBriefing }: {
     case "archives": content = atlasHandbookOpen ? <FeatureSuspense label="政务手册" onExit={() => setSection("home")}><AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/></FeatureSuspense> : <FeatureSuspense label="国家档案馆" onExit={() => setSection("home")}><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-book-cover" />} readerAuthorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-reader-author" />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
     case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />
       {isCurrentTechnologyMinister(citizen.id) && <section className="technology-ministry-entry" aria-label="科技部部长管理入口">
-        <button type="button" onClick={()=>setSection("technology")}>
+        <button type="button" onClick={()=>accountMode==="technology"?setSection("technology"):setSwitcherOpen(true)}>
           <Emblem compact />
-          <span><strong>科技部部长入口</strong><small>天命共同标志 · 已认证公职管理台</small></span>
+          <span><strong>科技部部长入口</strong><small>{accountMode==="technology"?"已验证 · 进入管理台":"长按侧边栏本人标志也可切换"}</small></span>
         </button>
       </section>}
-      {isCurrentTechnologyMinister(citizen.id) && <MemberAccessSettings />}
     </> : <PublicAtlasCitizenProfile citizen={viewedCitizen} onBack={()=>setSection("atlas")}/>; break;
-    case "technology": content = isCurrentTechnologyMinister(citizen.id)
+    case "technology": content = accountMode==="technology" && isCurrentTechnologyMinister(citizen.id)
       ? <TechnologyMinistryPortal sharedMark={<Emblem compact />} onOpenPhotos={()=>setSection("photos")} onBack={()=>setSection("profile")}/>
       : <HomeSection go={setSection}/>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <FeatureSuspense label="委员会 Lounge" onExit={() => setSection("home")}><CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /></FeatureSuspense> : <HomeSection go={setSection} />; break;
@@ -396,7 +416,7 @@ function System({ citizen, logout, initialBriefing }: {
         selfId={citizen.id}
         renderMemberMark={memberId => {
           const member = CITIZENS.find(entry => entry.id === memberId);
-          return member ? <CitizenMark citizen={member} placement={member.id === citizen.id ? (clubOpen ? "sidebar-lounge-self" : "sidebar-main-self") : "sidebar-main-other-member"} /> : null;
+          return member && accountMode==="technology" && member.id===citizen.id ? <Emblem compact/> : member ? <CitizenMark citizen={member} placement={member.id === citizen.id ? (clubOpen ? "sidebar-lounge-self" : "sidebar-main-self") : "sidebar-main-other-member"} /> : null;
         }}
         onToggle={toggleSidebar}
         onLogo={() => { if (clubOpen) exitLounge(); else if (CLUB_MEMBER_IDS.has(citizen.id)) enterLounge(); }}
@@ -412,12 +432,15 @@ function System({ citizen, logout, initialBriefing }: {
           document.querySelector(".system-main")?.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onLogout={logout}
+        onSelfLongPress={isCurrentTechnologyMinister(citizen.id)?()=>setSwitcherOpen(true):undefined}
       />
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>
         <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
       </section>
       {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
         onSwap={swapPortalRoom} onFinish={() => setPortal(null)}/>}
+      {switcherOpen && <AccountModeSwitcher mode={accountMode} onClose={()=>setSwitcherOpen(false)}
+        onChanged={next=>{onAccountModeChange(next);setSwitcherOpen(false);setSection(next==="technology"?"technology":"home");}}/>}
 
     </main>
   );
@@ -429,6 +452,7 @@ type SystemBriefing = { feed: BriefingFeed };
 export default function Home() {
   const [phase, setPhase] = useState<Phase>("opening");
   const [citizen, setCitizen] = useState(CITIZENS[0]);
+  const [accountMode,setAccountMode] = useState<AccountMode>("citizen");
   const [preload, setPreload] = useState<PreparedBriefing>({ status: "loading" });
   const [preloadAttempt, setPreloadAttempt] = useState(0);
   const [systemBriefing, setSystemBriefing] = useState<SystemBriefing | null>(null);
@@ -455,13 +479,14 @@ export default function Home() {
     const controller = new AbortController();
     restoreController.current = controller;
     void fetch("/api/member-session", { cache: "no-store", signal: controller.signal })
-      .then(async (response) => response.ok ? await response.json() as { citizenId?: string } : null)
+      .then(async (response) => response.ok ? await response.json() as { citizenId?: string; accountMode?: AccountMode } : null)
       .then((session) => {
         if (controller.signal.aborted) return;
         const member = CITIZENS.find((item) => item.id === session?.citizenId && !item.locked);
         if (!member) return;
         restoredCitizen.current = member;
         setCitizen(member);
+        setAccountMode(session?.accountMode==="technology"?"technology":"citizen");
         let entryCompleted = false;
         try { entryCompleted = window.sessionStorage.getItem("schicksal:entry-complete") === "1"; window.sessionStorage.removeItem("schicksal:entry-complete"); } catch { /* Retain the normal opening when storage is unavailable. */ }
         setPhase((current) => entryCompleted || current === "login" ? "welcome" : current);
@@ -501,12 +526,12 @@ export default function Home() {
     setPhase("system");
   }, [citizen.id, preload]);
   if (phase === "opening") return <Opening done={() => setPhase(restoredCitizen.current ? "welcome" : "login")} />;
-  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next) => { restoreController.current?.abort(); setCitizen(next); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
+  if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next,mode) => { restoreController.current?.abort(); setCitizen(next); setAccountMode(mode); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
   // A phase transition alone never grants site access. If its live feed
   // is missing, keep the authenticated member on the Welcome gate.
-  if (phase === "welcome" || !systemBriefing) return <Welcome citizen={citizen} enter={enterSystem}
+  if (phase === "welcome" || !systemBriefing) return <Welcome citizen={citizen} accountMode={accountMode} enter={enterSystem}
     preloadStatus={preload.citizenId && preload.citizenId !== citizen.id ? "loading" : preload.status}
     retry={retryPreload} />;
-  return <System citizen={citizen} initialBriefing={systemBriefing.feed}
+  return <System citizen={citizen} accountMode={accountMode} onAccountModeChange={setAccountMode} initialBriefing={systemBriefing.feed}
     logout={() => { void logoutMember(); }} />;
 }
