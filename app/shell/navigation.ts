@@ -6,7 +6,7 @@ export type CollectionDestination = "library" | "atlas" | "photos" | "archives";
 export type PointsDestination = "honors" | "market";
 export type SidebarDestination = PrimaryDestination | CollectionDestination | PointsDestination | "messenger";
 /** Concrete page states; expandable group labels are not actual routes. */
-export type SiteSection = Exclude<SidebarDestination, "collection"> | "citizens" | "emblem" | "club";
+export type SiteSection = Exclude<SidebarDestination, "collection"> | "citizens" | "emblem" | "club" | "technology";
 
 export type PrimaryNavItem = { id: PrimaryDestination; label: string; en: string; icon: string };
 export type SubNavItem = { id: SidebarDestination; label: string };
