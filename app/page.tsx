@@ -146,7 +146,7 @@ function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode,
             ))}
             <button type="button" key="technology-ministry" onClick={chooseMinistry}
               aria-pressed={loginMode === "technology"}
-              className={`technology-login-card ${loginMode === "technology" ? "selected" : ""}`}>
+              className={`technology-login-card ${loginMode === "technology" ? "selected" : ""}`} aria-label="科技部部长专用登录">
               <Emblem compact />
               <span><strong>科技部部长</strong><small>MINISTRY OF TECHNOLOGY</small></span><i />
             </button>
