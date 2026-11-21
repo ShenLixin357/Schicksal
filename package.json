@@ -32,7 +32,7 @@
     "game:build-native": "bash ports/insaniquarium/build-web.sh",
     "test:insaniquarium": "node --experimental-transform-types --test tests/insaniquarium-api.test.mjs tests/insaniquarium-client.test.mjs tests/insaniquarium-runtime.test.mjs tests/insaniquarium-zip.test.mjs tests/insaniquarium-hosted-assets.test.mjs",
     "test:vase": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/vase-experience.test.mjs",
-    "test:lounge": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/lounge-chat-history.test.mjs",
+    "test:lounge": "node --import ./tests/vite-css-hook.mjs --experimental-transform-types --test tests/lounge-chat-history.test.mjs tests/no2-lounge-scythe.test.mjs",
     "test:cello": "node --experimental-strip-types --test tests/emerald-cello.test.mjs tests/cello-audio.test.mjs",
     "test:messenger": "node --experimental-transform-types --test tests/messenger-api.test.mjs",
     "test:shell": "node --test tests/shell-preview.test.mjs",
