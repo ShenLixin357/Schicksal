@@ -121,6 +121,29 @@ test("real member login unlocks resources while all returned content remains pri
   } finally { sqlite.close(); }
 });
 
+test("Fireboy, Aquarium and authenticated return must not revoke the same member session", async () => {
+  const sqlite=setup();
+  try {
+    const cookie=await login("amberina");
+    // Same cookie always survives this legacy hard-navigation fallback.
+    // Normal Lounge play now avoids the navigation entirely.
+    for (const path of [
+      "/games/fireboy-watergirl?from=game-room",
+      "/games/1-forest-temple/index.html",
+      "/games/aquarium?from=game-room",
+      "/games/insaniquarium/resources/manifest.json",
+      "/?lounge=game-room",
+    ]) {
+      const response=await visit(path,{ cookie });
+      assert.equal(response.status,200, "session lost across "+path);
+      assert.equal(response.headers.get("Set-Cookie"),null,"GET must not replace login cookie");
+    }
+    const response=await visit("/api/member-session",{ cookie });
+    assert.deepEqual(await response.json(),{ citizenId:"amberina" });
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM member_sessions").get().n,1);
+  } finally { sqlite.close(); }
+});
+
 test("logging out or expiring a real session immediately locks the whole site again", async () => {
   const sqlite = setup();
   try {
