@@ -8,8 +8,8 @@ test("first-site bundle excludes heavy parliament and Lounge scene implementatio
   const page = read("app/page.tsx");
   assert.match(page, /const PersistentParliamentSection = lazy\(\(\) => import\("\.\/parliament\/parliament-section"\)/);
   assert.match(page, /const CommitteeLounge = lazy\(\(\) => import\("\.\/club\/committee-lounge"\)/);
-  assert.match(page, /<FeatureSuspense label="帝国政务">/);
-  assert.match(page, /<FeatureSuspense label="委员会 Lounge">/);
+  assert.match(page, /<FeatureSuspense label="帝国政务" onExit=\{\(\) => setSection\("home"\)\}>/);
+  assert.match(page, /<FeatureSuspense label="委员会 Lounge" onExit=\{\(\) => setSection\("home"\)\}>/);
   assert.doesNotMatch(page, /function PersistentParliamentSection\(/);
   assert.doesNotMatch(page, /function CommitteeLounge\(/);
   assert.match(page, /if \(!mayMountSiteAfterBriefing\(entryBriefingPending\)\)/);
@@ -104,7 +104,8 @@ test("deferred feature errors are recoverable and cannot bypass the mandatory br
   const suspense = read("app/shell/feature-suspense.tsx");
   assert.match(suspense, /class FeatureLoadBoundary extends Component/);
   assert.match(suspense, /getDerivedStateFromError/);
-  assert.match(suspense, /window.location.reload\(\)/);
-  assert.match(suspense, /<FeatureLoadBoundary key=\{label\}/);
+  assert.doesNotMatch(suspense, /window.location.reload\(\)/);
+  assert.match(suspense, /onClick=\{this\.props\.onExit\}/);
+  assert.match(suspense, /<FeatureLoadBoundary key=\{label\} label=\{label\} onExit=\{onExit\}/);
   assert.match(read("app/page.tsx"), /mandatory-briefing-gate/);
 });
