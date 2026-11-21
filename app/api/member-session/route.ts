@@ -4,7 +4,7 @@ import { readJson, ApiError } from "../../../server/http.ts";
 import { currentTechnologyMinisterId } from "../../../server/auth/offices.ts";
 
 export async function GET(request: Request) {
-  try { const session = await currentSession(request); return Response.json({ citizenId: session?.citizenId ?? null, accountMode: session?.accountMode ?? "citizen" }, { headers: { "Cache-Control": "no-store" } }); }
+  try { const session = await currentSession(request); return Response.json({ citizenId: session?.citizenId ?? null, accountMode: session?.accountMode ?? "citizen", authSource: session?.authSource ?? "personal" }, { headers: { "Cache-Control": "no-store" } }); }
   catch { return Response.json({ error: "登录服务暂时未能回应。" }, { status: 503 }); }
 }
 export async function POST(request: Request) {
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       env.DB.prepare("DELETE FROM member_login_windows WHERE expires_at < ?").bind(now),
       env.DB.prepare("INSERT INTO member_sessions (token_hash, citizen_id, expires_at, account_mode, minister_grant_expires_at, auth_source) VALUES (?, ?, ?, ?, ?, ?)").bind(await digest(token), authenticatedCitizenId, now + (accountMode === "technology" ? MINISTRY_GRANT_MS : MEMBER_SESSION_SECONDS * 1000), accountMode, accountMode === "technology" ? now + MINISTRY_GRANT_MS : 0, accountMode === "technology" ? "ministry-direct" : "personal"),
     ]);
-    return Response.json({ citizenId: authenticatedCitizenId, accountMode }, { headers: { "Set-Cookie": sessionCookie(request, token), "Cache-Control": "no-store" } });
+    return Response.json({ citizenId: authenticatedCitizenId, accountMode, authSource: accountMode === "technology" ? "ministry-direct" : "personal" }, { headers: { "Set-Cookie": sessionCookie(request, token), "Cache-Control": "no-store" } });
   } catch { return Response.json({ error: "暂时无法完成登录，请稍后重试。" }, { status: 503 }); }
 }
 export async function DELETE(request: Request) {
