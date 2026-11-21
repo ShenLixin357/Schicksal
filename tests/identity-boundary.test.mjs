@@ -5,7 +5,8 @@ import { registerHooks } from "node:module";
 import { DatabaseSync } from "node:sqlite";
 import { after, test } from "node:test";
 import { ApiError, readJson } from "../server/http.ts";
-const env = { SCHICKSAL_HOSTING: "cloudflare" };
+const DIRECT_TEST_SECRET = "UnitTest-Minister-SpecialCredential-2026";
+const env = { SCHICKSAL_HOSTING: "cloudflare", SCHICKSAL_MINISTRY_DIRECT_PASSWORD: DIRECT_TEST_SECRET };
 globalThis.__boundaryEnv = env;
 const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier === "cloudflare:workers")
         return { url: "data:text/javascript,export const env=globalThis.__boundaryEnv", shortCircuit: true }; if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier))
@@ -128,41 +129,72 @@ test("minister portal retains the shared emblem, with separate account mode", as
     assert.match(code,/isCurrentTechnologyMinister\(citizen\.id, offices\)/);
     assert.match(code,/\/api\/offices\/current/);
     assert.match(code,/currentOfficeLabel\(citizen,offices\)/);
-    assert.match(code,/科技部部长入口/);
+    assert.match(code,/technology-login-card/);
+    assert.match(code,/switchAccountImmediately/);
+    assert.doesNotMatch(code,/AccountModeSwitcher|technology-ministry-entry|setSwitcherOpen/);
+    assert.match(code,/case "profile":[^]*?accountMode === "technology"/);
     assert.match(code,/<Emblem compact\s*\/>/);
     assert.match(hub,/sharedMark/);
     assert.doesNotMatch(hub,/PublicCitizenMark|CitizenMark/);
 });
-test("minister role switching uses the incumbent's actual personal password and a short grant", async () => {
+test("ministry direct-login requires the independent secret, never the incumbent's personal password", async () => {
     const { hashMemberPassword } = await import("../app/member-passwords.ts");
-    const db = setup();
+    const db=setup();
     try {
-        const pass = "OnePersonalPassword-42";
-        const hashed = await hashMemberPassword(pass);
+        const personal="Test-Actual-Personal-Password-42";
+        const hash=await hashMemberPassword(personal);
         db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
-          .run("amberina",hashed.hash,hashed.salt,Date.now(),"amberina");
-        const cookie = session(db,"amberina");
+          .run("amberina",hash.hash,hash.salt,Date.now(),"amberina");
+        const directPath="/api/member-session";
+        const direct=(password,citizenId="technology")=>memberSessions.POST(request(directPath,{
+            method:"POST",body:{citizenId,accountMode:"technology",password}
+        }));
+        assert.equal((await direct(personal)).status,401,"personal password cannot enter direct ministry gate");
+        assert.equal((await direct("incorrect-ministry-secret")).status,401);
+        assert.equal((await direct(DIRECT_TEST_SECRET,"amberina")).status,400,"direct gate must resolve current officeholder itself");
+        const response=await direct(DIRECT_TEST_SECRET);
+        assert.equal(response.status,200);
+        const result=await response.json();
+        assert.equal(result.citizenId,"amberina");
+        assert.equal(result.accountMode,"technology");
+        assert.equal((await memberSessions.POST(request(directPath,{
+          method:"POST",body:{citizenId:"amberina",accountMode:"citizen",password:personal}
+        }))).status,200,"ordinary personal login remains valid");
+        assert.equal((await memberSessions.POST(request(directPath,{
+          method:"POST",body:{citizenId:"amberina",accountMode:"citizen",password:DIRECT_TEST_SECRET}
+        }))).status,401,"ministry-only password cannot unlock citizen login");
+    } finally {db.close();}
+});
+
+test("incumbent long-hold switches role automatically, without password, dialog or duplicate account", async () => {
+    const db=setup();
+    try {
+        const cookie=session(db,"amberina");
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,403);
-        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology"}}))).status,401);
-        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology",password:"wrong"}}))).status,401);
-        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,origin:"https://wrong.invalid",body:{target:"technology",password:pass}}))).status,403);
-        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology",password:pass}}))).status,200);
+        const first=await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology"}}));
+        assert.equal(first.status,200);
+        assert.deepEqual((await first.json()).accountMode,"technology");
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,200);
-        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"citizen"}}))).status,200);
+        const back=await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"citizen"}}));
+        assert.equal(back.status,200);
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,403);
         assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology"}}))).status,200);
         db.prepare("UPDATE member_sessions SET minister_grant_expires_at=0 WHERE citizen_id='amberina'").run();
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,403);
-        assert.equal(db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='technology_credentials'").get().n,0);
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,body:{target:"technology"}}))).status,200,
+          "a still-valid signed-in incumbent session can re-enter without a password after grant expiry");
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie,origin:"https://wrong.invalid",body:{target:"citizen"}}))).status,403);
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie:session(db,"truth"),body:{target:"technology"}}))).status,403);
+        assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,200);
     } finally {db.close();}
 });
 
-test("password update and future election transfer use the same source for authority and office titles", async () => {
+test("password updates revoke sessions; new appointments transfer special gate, quick switch and title", async () => {
     const { hashMemberPassword } = await import("../app/member-passwords.ts");
     const db=setup();
     try {
-        const oldPassword="CurrentCitizenPassword42";
-        const newPassword="UpdatedCitizenPassword43";
+        const oldPassword="Original-Personal-Password-42";
+        const newPassword="New-Personal-Password-43";
         const first=await hashMemberPassword(oldPassword);
         db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
           .run("amberina",first.hash,first.salt,Date.now(),"amberina");
@@ -170,33 +202,38 @@ test("password update and future election transfer use the same source for autho
         const next=await hashMemberPassword(newPassword);
         db.prepare("UPDATE member_credentials SET password_hash=?,password_salt=?,updated_at=? WHERE citizen_id='amberina'")
           .run(next.hash,next.salt,Date.now());
-        // The real member-access endpoint also invalidates every existing
-        // member_sessions row when it changes a personal password.
+        // The actual member-access action revokes all sessions after a personal password change.
         db.prepare("DELETE FROM member_sessions WHERE citizen_id='amberina'").run();
         assert.equal((await technology.GET(request("/api/technology",{cookie}))).status,401);
-        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{citizenId:"amberina",password:oldPassword,accountMode:"technology"}}))).status,401);
-        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{citizenId:"amberina",password:newPassword,accountMode:"technology"}}))).status,200);
+        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
+          citizenId:"amberina",password:oldPassword,accountMode:"citizen"}}))).status,401);
+        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
+          citizenId:"amberina",password:newPassword,accountMode:"citizen"}}))).status,200);
+        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
+          citizenId:"technology",password:newPassword,accountMode:"technology"}}))).status,401);
+        assert.equal((await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
+          citizenId:"technology",password:DIRECT_TEST_SECRET,accountMode:"technology"}}))).status,200);
 
         const before=await offices.GET(request("/api/offices/current",{cookie:session(db,"truth")}));
-        assert.equal(before.status,200);
         assert.deepEqual((await before.json()).offices.find(o=>o.id==="technology").holderIds,["amberina"]);
-
-        const incumbent=session(db,"amberina","technology");
-        // Simulates the future election processor's one-transaction update.
+        const former=session(db,"amberina","technology");
         db.prepare("DELETE FROM current_office_holders WHERE office_id='technology'").run();
         db.prepare("INSERT INTO current_office_holders(office_id,citizen_id,term_id) VALUES('technology','truth','election-2027')").run();
-        assert.equal((await technology.GET(request("/api/technology",{cookie:incumbent}))).status,403);
+        assert.equal((await technology.GET(request("/api/technology",{cookie:former}))).status,403);
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie:former,body:{target:"technology"}}))).status,403);
         const after=await offices.GET(request("/api/offices/current",{cookie:session(db,"truth")}));
         assert.deepEqual((await after.json()).offices.find(o=>o.id==="technology").holderIds,["truth"]);
-        const truthPersonal="TruthCitizenPassword44";
-        const h=await hashMemberPassword(truthPersonal);
-        db.prepare("INSERT INTO member_credentials(citizen_id,password_hash,password_salt,updated_at,updated_by) VALUES(?,?,?,?,?)")
-          .run("truth",h.hash,h.salt,Date.now(),"truth");
         const newIncumbent=session(db,"truth");
-        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie:newIncumbent,body:{target:"technology",password:truthPersonal}}))).status,200);
+        assert.equal((await switcher.POST(request("/api/member-session/switch",{method:"POST",cookie:newIncumbent,body:{target:"technology"}}))).status,200);
         assert.equal((await technology.GET(request("/api/technology",{cookie:newIncumbent}))).status,200);
+        const special=await memberSessions.POST(request("/api/member-session",{method:"POST",body:{
+          citizenId:"technology",password:DIRECT_TEST_SECRET,accountMode:"technology"
+        }}));
+        assert.equal(special.status,200);
+        assert.equal((await special.json()).citizenId,"truth");
     } finally {db.close();}
 });
+
 test("JSON reader bounds actual streamed bytes and rejects malformed roots", async () => {
     const stream = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('{"x":"')); c.enqueue(new Uint8Array(100)); c.close(); } }), r = new Request("https://test.invalid", { method: "POST", body: stream, duplex: "half", headers: { "content-length": "1" } });
     await assert.rejects(readJson(r, 20), e => e instanceof ApiError && e.status === 413);
