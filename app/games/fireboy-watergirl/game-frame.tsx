@@ -32,13 +32,12 @@ export function FireboyWatergirlFrame({ onBack }: { onBack?: () => void } = {}) 
       .finally(()=>clearTimeout(deadline));
     return()=>{active=false;clearTimeout(deadline);controller.abort()};
   },[manifestAttempt]);
+  useEffect(()=>{setFrameLoaded(false);setFrameFailed(false)},[chosen,frameAttempt]);
   useEffect(()=>{
-    setFrameLoaded(false);setFrameFailed(false);
-    if(!chosen)return;
+    if(!chosen || frameLoaded)return;
     const timer=setTimeout(()=>setFrameFailed(true),25_000);
     return()=>clearTimeout(timer);
-  },[chosen,frameAttempt]);
-  useEffect(()=>{if(frameLoaded)setFrameFailed(false)},[frameLoaded]);
+  },[chosen,frameAttempt,frameLoaded]);
   const source=chosen?`/games/${chosen}/index.html`:null;
   return <main style={{minHeight:"100svh",background:"#091525",color:"#f5f3e9",fontFamily:"system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
     <header style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:12,padding:"10px 18px",background:"#142a3f",borderBottom:"1px solid #63869b"}}>
