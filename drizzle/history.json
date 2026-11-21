@@ -76,6 +76,10 @@
     {
       "name": "0018_technology_direct_login.sql",
       "sha256": "b7a71ed970cb88d1af716520fe8fe511432f8d7c8d278a0577e71be8586743f6"
+    },
+    {
+      "name": "0019_technology_credential_tenure.sql",
+      "sha256": "8930f78ca11b41e54063148146f1c8af91f752dda65ea10ec3c240214978d4cb"
     }
   ]
 }
