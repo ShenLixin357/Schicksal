@@ -71,3 +71,15 @@ test("mandatory briefing and private Worker session boundaries stay enforced on 
   const overlay=read("app/club/embedded-arcade.tsx");
   assert.doesNotMatch(overlay,/\/api\/member-session|setPhase|setCitizen|logout|window\.location/);
 });
+
+
+test("module chunk errors return to signed-in shell instead of forcing re-login", () => {
+  const feature=read("app/shell/feature-suspense.tsx");
+  const page=read("app/page.tsx");
+  assert.match(feature,/type FeatureProps = \{ label: string; children: ReactNode; onExit: \(\) => void \}/);
+  assert.match(feature,/onClick=\{this\.props\.onExit\}/);
+  assert.doesNotMatch(feature,/window\.location\.reload\(\)/);
+  for (const label of ["天命图谱","帝国政务","家庭影像馆","政务手册","国家档案馆","委员会 Lounge"]) {
+    assert.ok(page.includes('<FeatureSuspense label="'+label+'" onExit={() => setSection("home")}>'), label+" must recover locally");
+  }
+});
