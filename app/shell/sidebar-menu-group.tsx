@@ -15,10 +15,11 @@ export function SidebarNavCopy({ label, en }: Pick<PrimaryNavItem, "label" | "en
 /** Both Collection and Points share the same accessible submenu behaviour.
  * Keeping expansion local avoids duplicating two state machines in the shell.
  */
-export function SidebarMenuGroup({ item, items, menuId, activeSection, collapsed, onExpandSidebar, onNavigate }: {
+export function SidebarMenuGroup({ item, items, menuId, indexLabel, activeSection, collapsed, onExpandSidebar, onNavigate }: {
   item: PrimaryNavItem;
   items: readonly SubNavItem[];
   menuId: "collection" | "points";
+  indexLabel: string;
   activeSection: string;
   collapsed: boolean;
   onExpandSidebar: () => void;
@@ -45,7 +46,7 @@ export function SidebarMenuGroup({ item, items, menuId, activeSection, collapsed
       aria-expanded={expanded && !collapsed}
       aria-controls={`imperial-${menuId}-submenu`}
       title={item.label} onClick={toggle}>
-      <span className="imperial-nav-icon"><NavigationIcon name={item.icon}/></span>
+      <span className="imperial-nav-number" aria-hidden="true">{indexLabel}</span>
       <SidebarNavCopy label={item.label} en={item.en}/>
       <span className={`imperial-nav-chevron ${expanded ? "expanded" : ""}`} aria-hidden="true">
         <NavigationIcon name="chevron" size={15}/>
