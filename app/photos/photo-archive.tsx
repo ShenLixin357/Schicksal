@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState, type CSSProperties, type ReactNode, type Dispatch, type SetStateAction, type DragEvent, type FormEvent } from "react";
 import { CITIZENS, citizenRepresentativeColor, type Citizen } from "../citizens";
+import { isCurrentTechnologyMinister } from "../identity/office-registry";
 import { PageHead } from "../shell/page-head";
 import type { PublicMarkPlacement } from "../identity/mark-placements";
 type PhotoMarkPlacement = Extract<PublicMarkPlacement, "photos-filter-subject" | "photos-upload-subject" | "photos-card-subject">;
@@ -89,7 +90,7 @@ export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: 
       return body.photos ?? [];
     };
     setPhotos(await load(false));
-    if (citizen.id === "amberina") setTrashPhotos(await load(true));
+    if (isCurrentTechnologyMinister(citizen.id)) setTrashPhotos(await load(true));
   };
   const mutatePhoto = async (photo: ArchivePhoto, method: "PATCH" | "DELETE" | "PUT", payload?: object) => {
     if (method === "DELETE" && !window.confirm("将此照片移入回收站？原图会保留，可由管理员恢复。")) return;
@@ -236,13 +237,13 @@ export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: 
         </form>
       </aside>
       <section className="photo-gallery" aria-live="polite">
-        <header><div><p className="eyebrow">{showTrash ? "Recoverable Archive" : "Selected Collection"}</p><h2>{showTrash ? "照片回收站" : filterLabel}</h2></div><div className="photo-gallery-toolbar"><span>{visiblePhotos.length} / {album.length} PHOTOS</span>{citizen.id === "amberina" && <button type="button" onClick={() => { setShowTrash((value) => !value); if (!showTrash) void reloadPhotos().catch(() => setStatus("无法读取回收站。")); }}>{showTrash ? "返回影像馆" : "管理回收站"}</button>}</div></header>
+        <header><div><p className="eyebrow">{showTrash ? "Recoverable Archive" : "Selected Collection"}</p><h2>{showTrash ? "照片回收站" : filterLabel}</h2></div><div className="photo-gallery-toolbar"><span>{visiblePhotos.length} / {album.length} PHOTOS</span>{isCurrentTechnologyMinister(citizen.id) && <button type="button" onClick={() => { setShowTrash((value) => !value); if (!showTrash) void reloadPhotos().catch(() => setStatus("无法读取回收站。")); }}>{showTrash ? "返回影像馆" : "管理回收站"}</button>}</div></header>
         {loading ? <div className="gallery-empty loading"><i /><h3>正在打开影像馆</h3><p>读取已保存的照片与分类信息…</p></div> : visiblePhotos.length === 0 ? <div className="gallery-empty"><span>S</span><h3>{album.length ? "这个精确组合还没有照片" : showTrash ? "回收站为空" : "影像馆正在等待第一张照片"}</h3><p>{album.length ? "可以更换上方标志组合，或上传一张属于这个组合的照片。" : showTrash ? "尚无等待恢复的照片。" : "从左侧上传一张共同记忆，并为它选择人物标志。"}</p></div> : <div className="photo-grid">{visiblePhotos.map((photo) => <article className="photo-card" key={photo.id}>
           <figure><Image src={photo.imageUrl} alt={photo.title} fill sizes="(max-width: 760px) 100vw, (max-width: 1100px) 50vw, 32vw" /><figcaption>{photo.capturedAt || photo.era || "日期待补"}</figcaption></figure>
           <div className="photo-card-copy"><div className="photo-card-marks">{photo.subjects.map((id) => { const subject = subjectFor(id); return subject ? <span key={id} title={subject.username}>{renderSubjectMark(subject, "photos-card-subject")}</span> : null; })}</div><h3>{photo.title}</h3>{photo.description ? <p>{photo.description}</p> : <p className="muted">尚未填写照片说明。</p>}<footer><span>{photo.era || "时期待补"}</span><span>UPLOADED BY {subjectFor(photo.uploaderCitizenId)?.username ?? "CITIZEN"}</span></footer>
-            {(citizen.id === "amberina" || citizen.id === photo.uploaderCitizenId) && <div className="photo-card-actions">
+            {(isCurrentTechnologyMinister(citizen.id) || citizen.id === photo.uploaderCitizenId) && <div className="photo-card-actions">
               {showTrash
-                ? citizen.id === "amberina" && <button type="button" disabled={busyId === photo.id} onClick={() => void mutatePhoto(photo, "PUT")}>恢复照片</button>
+                ? isCurrentTechnologyMinister(citizen.id) && <button type="button" disabled={busyId === photo.id} onClick={() => void mutatePhoto(photo, "PUT")}>恢复照片</button>
                 : <><button type="button" disabled={busyId === photo.id} onClick={() => editingId === photo.id ? setEditingId(null) : beginEdit(photo)}>{editingId === photo.id ? "取消编辑" : "编辑资料"}</button>
                   <button type="button" disabled={busyId === photo.id} onClick={() => void mutatePhoto(photo, "DELETE")}>移入回收站</button></>}
             </div>}
