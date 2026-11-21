@@ -18,9 +18,10 @@ test("six main destinations plus self-profile use approved pictograms and preser
     ["profile", "个人页", "Profile", "profile"],
   ]);
 });
-test("collection expands into four separate destinations; library and messenger are minimal placeholders", () => {
+test("collection hides the unapproved Atlas design but preserves library, photo and archive entries", () => {
   const nav = read("app/shell/navigation.ts");
-  for (const id of ["library", "atlas", "photos", "archives"]) assert.match(nav, new RegExp('id: "' + id + '"'));
+  for (const id of ["library", "photos", "archives"]) assert.match(nav, new RegExp('id: "' + id + '"'));
+  assert.match(nav, /ATLAS_VISUAL_APPROVED = false/);
   const placeholder = read("app/shell/placeholder.tsx");
   assert.match(placeholder, /魔法图书馆/);
   assert.match(placeholder, /帝国通讯/);
@@ -53,10 +54,11 @@ test("sidebar icons, single-click members, phone and reversible logo are present
   assert.match(page, /import \{ CLUB_MEMBER_IDS, announceCommitteeLounge \} from "\.\/club\/lounge-access";/);
   assert.match(page, /if \(target === "profile"\) setViewedCitizenId\(citizen.id\)/);
   const styles = read("app/shell/shell.css");
-  assert.match(styles, /font:500 \.74rem\/1\.4 var\(--sans\)/);
+  assert.match(styles, /font-size:\.74rem/);
+  assert.match(styles, /font-weight:500/);
   assert.match(styles, /color:#738095/);
-  assert.match(styles, /font:400 6px\/1\.3 var\(--sans\)/);
-  assert.match(styles, /color:#9daab9/);
+  assert.match(styles, /font-size:6px/);
+  assert.match(styles, /color:#505d70/);
   assert.match(styles, /\.imperial-nav-copy > small \{ display:none; \}/);
   assert.doesNotMatch(styles, /color:#586777/);
   assert.doesNotMatch(page, /SYSTEM ONLINE|IMPERIAL CORE \/|FIRST EMPIRE · 2026/);
