@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { readPrivateJson } from "./input.mjs";
 
-export const OMIT_TABLES = new Set(["member_sessions", "member_login_windows", "member_credentials", "technology_credentials"]);
+export const OMIT_TABLES = new Set(["member_sessions", "member_login_windows", "member_credentials"]);
 const identifier = (name) => { if (!/^[a-z][a-z0-9_]*$/.test(name)) throw new Error("Unexpected SQL identifier"); return `\"${name}\"`; };
 export function sqlValue(value) {
   if (value === null) return "NULL";
