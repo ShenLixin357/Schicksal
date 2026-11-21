@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { amberinaMarkAt, type PublicMarkPlacement } from "./mark-placements";
 import type { CSSProperties, ReactNode } from "react";
 import type { Citizen } from "../citizens";
 import { isCurrentPresident } from "./office-registry";
@@ -11,14 +12,15 @@ import { getPublicMemberVisual } from "./visual-registry";
  * This is not a Lounge magic sigil. Approved SVG paths and PNG art unchanged.
  * Future public image replacements require only visual-registry.ts edits.
  */
-export function PublicCitizenMark({ citizen, display = "web" }: { citizen: Citizen; display?: "web" | "official" }) {
+export function PublicCitizenMark({ citizen, placement }: { citizen: Citizen; placement: PublicMarkPlacement }) {
   const leaderClass = isCurrentPresident(citizen.id) ? " leader" : "";
-  // Beige-page Simple uses the approved emphasized gold; official in parliament
-  // and on other non-ivory surfaces. This colour NEVER flows into score/other UI.
-  // Original circles and President-only points inherit the exact same --mark hue.
+  // Exact placement identity is mandatory; only main-site self presence is strong.
+  // Shared members retain their original public mark colours. The official
+  // representative colour and shared emblem palette are separate from this.
   const visual = getPublicMemberVisual(citizen.id);
-  const markColor = display === "official" ? (visual?.officialMarkColor ?? citizen.markColor) : (visual?.webMarkColor ?? citizen.markColor);
-  const markAsset = display === "official" ? visual?.officialMarkAsset : visual?.webMarkAsset;
+  const amberina = citizen.id === "amberina" ? amberinaMarkAt(placement) : null;
+  const markColor = amberina?.color ?? visual?.officialMarkColor ?? citizen.markColor;
+  const markAsset = amberina?.asset ?? visual?.officialMarkAsset;
   if (markAsset) {
     return <span className={`citizen-mark personal-simple${leaderClass}`} style={{ "--mark": markColor } as CSSProperties} aria-hidden="true">
       <Image src={markAsset} alt="" width={800} height={800} unoptimized className="citizen-simple-image" />
