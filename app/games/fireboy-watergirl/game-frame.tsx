@@ -17,7 +17,28 @@ export function FireboyWatergirlFrame({ onBack }: { onBack?: () => void } = {}) 
   const [fromGameRoom,setFromGameRoom]=useState(false);
   useEffect(()=>{setFromGameRoom(new URLSearchParams(window.location.search).get("from")==="game-room")},[]);
   const [installed,setInstalled]=useState<"checking"|"ready"|"missing">("checking");
-  useEffect(()=>{let active=true;fetch("/games/ice-fire-import.json",{credentials:"same-origin",cache:"no-store"}).then(async r=>{if(!r.ok)throw Error("not installed");const j=await r.json() as {imported?:string[]};if(j.imported?.length!==6)throw Error("incomplete");if(active)setInstalled("ready");}).catch(()=>{if(active)setInstalled("missing")});return()=>{active=false}},[]);
+  const [manifestAttempt,setManifestAttempt]=useState(0);
+  const [frameAttempt,setFrameAttempt]=useState(0);
+  const [frameLoaded,setFrameLoaded]=useState(false);
+  const [frameFailed,setFrameFailed]=useState(false);
+  useEffect(()=>{
+    let active=true;
+    setInstalled("checking");
+    const controller = new AbortController();
+    const deadline = setTimeout(()=>controller.abort(),15_000);
+    fetch("/games/ice-fire-import.json",{credentials:"same-origin",cache:"no-store",signal:controller.signal})
+      .then(async r=>{if(!r.ok)throw Error("not installed");const j=await r.json() as {imported?:string[]};if(j.imported?.length!==6)throw Error("incomplete");if(active)setInstalled("ready");})
+      .catch(()=>{if(active)setInstalled("missing")})
+      .finally(()=>clearTimeout(deadline));
+    return()=>{active=false;clearTimeout(deadline);controller.abort()};
+  },[manifestAttempt]);
+  useEffect(()=>{
+    setFrameLoaded(false);setFrameFailed(false);
+    if(!chosen)return;
+    const timer=setTimeout(()=>setFrameFailed(true),25_000);
+    return()=>clearTimeout(timer);
+  },[chosen,frameAttempt]);
+  useEffect(()=>{if(frameLoaded)setFrameFailed(false)},[frameLoaded]);
   const source=chosen?`/games/${chosen}/index.html`:null;
   return <main style={{minHeight:"100svh",background:"#091525",color:"#f5f3e9",fontFamily:"system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
     <header style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:12,padding:"10px 18px",background:"#142a3f",borderBottom:"1px solid #63869b"}}>
@@ -36,7 +57,7 @@ export function FireboyWatergirlFrame({ onBack }: { onBack?: () => void } = {}) 
         <h1 style={{fontSize:"clamp(26px,4vw,46px)",textAlign:"center"}}>选择神庙 · 1–6 代</h1>
         <p style={{textAlign:"center",opacity:.8}}>点击后加载天命服务器上的独立游戏文件，不加载 Lounge 的 3D 场景。</p>
         {installed==="checking"&&<p role="status">正在检查游戏资源...</p>}
-        {installed==="missing"&&<p role="alert" style={{padding:18,borderRadius:10,background:"#713b32"}}>游戏资源尚未导入。部署时需要将构建命令改成 npm run build:with-ice-fire；不要使用原来仅依赖外部网址的版本。</p>}
+        {installed==="missing"&&<p role="alert" style={{padding:18,borderRadius:10,background:"#713b32"}}>游戏资源加载失败或超时。<button type="button" onClick={()=>setManifestAttempt(n=>n+1)}>重试加载</button> 如仍失败，请检查部署资源。</p>}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14,marginTop:28}}>
         {games.map((game,i)=><button key={game.slug} type="button" disabled={installed!=="ready"} onClick={()=>setChosen(game.slug)}
           style={{minHeight:125,background:"linear-gradient(135deg,#7a342c,#245575)",border:"2px solid #bb9559",borderRadius:14,color:"white",cursor:installed==="ready"?"pointer":"not-allowed",opacity:installed==="ready"?1:.5,fontSize:21,fontWeight:700}}>
@@ -45,9 +66,10 @@ export function FireboyWatergirlFrame({ onBack }: { onBack?: () => void } = {}) 
         </div>
       </section>
       :<section style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
-        <iframe key={chosen} title="森林冰火人游戏" src={source!} allow="fullscreen; gamepad" allowFullScreen
+        <iframe key={chosen + ":" + frameAttempt} title="森林冰火人游戏" src={source!} allow="fullscreen; gamepad" allowFullScreen onLoad={()=>setFrameLoaded(true)} onError={()=>setFrameFailed(true)}
           referrerPolicy="no-referrer" style={{display:"block",width:"100%",height:"calc(100svh - 65px)",border:0,background:"#050e16"}}/>
-        <p style={{padding:"7px 15px",margin:0,textAlign:"center",fontSize:12,background:"#142a3f"}}>独立同站游戏资源 · 若无法加载，请检查游戏导入与静态资源路径</p>
+        {frameFailed&&<div role="alert" style={{padding:12,background:"#713b32",color:"white"}}>未能确认游戏框架加载完成，请重试；如画面仍空白，可返回重新选择神庙。<button type="button" onClick={()=>{setFrameFailed(false);setFrameAttempt(n=>n+1)}}>重试游戏</button><button type="button" onClick={()=>setChosen(null)}>返回神庙列表</button></div>}
+        <p style={{padding:"7px 15px",margin:0,textAlign:"center",fontSize:12,background:"#142a3f"}}>独立同站游戏资源 · 如果画面空白，可切换神庙并重新加载。iframe 页面载入不代表全部脚本已就绪。</p>
       </section>
     }
   </main>;
