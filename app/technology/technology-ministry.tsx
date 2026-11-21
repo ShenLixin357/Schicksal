@@ -38,6 +38,6 @@ export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onBack }: {
           <button type="button" onClick={onOpenPhotos}>进入家庭影像馆管理 <span aria-hidden="true">→</span></button>
           <MemberAccessSettings />
         </section>}
-    <button type="button" className="technology-ministry-back" onClick={onBack}>← 返回个人页</button>
+    <button type="button" className="technology-ministry-back" onClick={onBack}>← 返回首页</button>
   </section>;
 }
