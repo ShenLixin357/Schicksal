@@ -7,7 +7,7 @@ const css = readFileSync("app/club/no2-lounge-scythe.css", "utf8");
 const asset = readFileSync("public/no2-lounge-purple-scythe.webp");
 
 test("No.2 is bound to the animated purple-scythe Lounge sigil", () => {
-  assert.match(sigil, /memberId === "zxy"[\\s\\S]*?mystic-shadow-scythe/);
+  assert.match(sigil, /memberId === "zxy"[\s\S]*?mystic-shadow-scythe/);
   assert.match(sigil, /no2-scythe-art/);
   assert.doesNotMatch(sigil, /mystic-ember-flame/);
   assert.match(sigil, /memberId === "amberina"/);
