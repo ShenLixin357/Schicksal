@@ -15,6 +15,7 @@ export const memberSessions = sqliteTable("member_sessions", {
   expiresAt: integer("expires_at").notNull(),
   accountMode: text("account_mode", { enum: ["citizen", "technology"] }).notNull().default("citizen"),
   ministerGrantExpiresAt: integer("minister_grant_expires_at").notNull().default(0),
+  authSource: text("auth_source",{enum:["personal","ministry-direct"]}).notNull().default("personal"),
 }, (table) => [index("member_sessions_expiry_idx").on(table.expiresAt)]);
 
 export const currentOfficeHolders = sqliteTable("current_office_holders", {
@@ -26,6 +27,14 @@ export const currentOfficeHolders = sqliteTable("current_office_holders", {
   primaryKey({columns:[table.officeId,table.citizenId]}),
   index("current_office_holders_citizen_idx").on(table.citizenId),
 ]);
+
+export const technologyDirectCredentials = sqliteTable("technology_direct_credentials", {
+  officeId: text("office_id").primaryKey(),
+  passwordHash: text("password_hash").notNull(),
+  passwordSalt: text("password_salt").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull(),
+});
 
 export const memberLoginWindows = sqliteTable("member_login_windows", {
   windowKey: text("window_key").primaryKey(),
