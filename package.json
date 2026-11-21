@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "npm run game:import && node scripts/insaniquarium/check-engine.mjs && node scripts/insaniquarium/check-resources.mjs && vinext build",
     "start": "vinext start",
-    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase && npm run test:messenger && npm run test:shell && npm run test:architecture && npm run test:identity && npm run test:backup-restore && npm run test:migration-authority && npm run db:check && npm run test:isolation && npm run test:game-room-return && npm run test:lounge-api && npm run test:identity-architecture && npm run test:asset-audit && npm run test:profile-crystal && npm run test:performance && npm run test:mark-placements && npm run test:visual-interactions && npm run test:lounge-return",
+    "test": "npm run test:records && npm run test:migration && npm run test:deployment && npm run test:photos && npm run test:privacy && npm run test:parliament && npm run test:minigames && npm run test:solitaire && npm run test:ice-fire && npm run test:lounge && npm run test:cello && npm run test:vase && npm run test:messenger && npm run test:shell && npm run test:architecture && npm run test:identity && npm run test:backup-restore && npm run test:migration-authority && npm run db:check && npm run test:isolation && npm run test:game-room-return && npm run test:lounge-api && npm run test:identity-architecture && npm run test:asset-audit && npm run test:profile-crystal && npm run test:performance && npm run test:mark-placements && npm run test:visual-interactions && npm run test:lounge-return && npm run test:sidebar-visual-parity",
     "test:solitaire": "node --experimental-transform-types --test tests/solitaire-engine.test.ts",
     "test:minigames": "node --experimental-transform-types --test tests/potion-sort-engine.test.ts tests/merge-game-engine.test.ts tests/chryser-games.test.ts",
     "test:mafraer": "node --experimental-transform-types --test tests/mafraer-magic.test.ts tests/mafraer-observatory.test.ts",
@@ -57,7 +57,8 @@
     "test:performance": "node --test tests/performance-boundaries.test.mjs",
     "test:mark-placements": "node --experimental-transform-types --test tests/mark-placements.test.mjs",
     "test:visual-interactions": "node --experimental-transform-types --test tests/visual-interaction-regressions.test.mjs",
-    "test:lounge-return": "node --test tests/lounge-in-app-return.test.mjs"
+    "test:lounge-return": "node --test tests/lounge-in-app-return.test.mjs",
+    "test:sidebar-visual-parity": "node --test tests/sidebar-visual-parity.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
