@@ -287,5 +287,6 @@ jobs:
             echo "- Verified deployment SHA: $GITHUB_SHA"
             echo "- Photo uploads require separately created preview R2; check R2 provisioning step output."
             echo "- Ministry direct login is set exclusively in the authenticated minister dashboard; no environment secret required."
+            echo "- Accepted UX: personal long-hold toggles directly; minister dashboard replaces profile; dedicated login uses a term-bound D1 hash."
             echo "- Check login, daily news and responsive layout manually before claiming acceptance."
           } >> "$GITHUB_STEP_SUMMARY"
