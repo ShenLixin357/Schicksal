@@ -1,7 +1,7 @@
-/* Preview shell: navigation-only styling. Does not recolour scene art.
- * Preserve the original 248px/200px/collapsed64px sidebar widths from
- * navigation-layout.css and original 0.74rem / 6px nav type scale.
- * Small-screen labels are NOT shrunk below the original type size. */
+/* Visual-scale parity with the original sidebar, NOT a return to numbered menus.
+ * Preserve icon navigation, Collection/Honors groups, communication and Lounge.
+ * The original layout owns 248/200/64px widths and .74rem/6px typography.
+ * Only adjust this shell's CSS: no approved scene art or font files. */
 .imperial-sidebar .imperial-side-brand {
   display:grid;
   grid-template-columns:42px minmax(0,1fr);
@@ -47,15 +47,19 @@
 .imperial-sidebar .imperial-main-nav { flex:1; min-height:0; padding:17px 0 10px; overflow-y:auto; }
 .imperial-sidebar .imperial-main-nav > .imperial-nav-entry,
 .imperial-sidebar .imperial-nav-group > .imperial-nav-entry {
-  width:100%; min-height:49px; display:flex; align-items:center; gap:0;
-  padding:0 9px; border:0; border-left:2px solid transparent; border-radius:0;
+  width:100%; min-height:49px;
+  display:grid;
+  grid-template-columns:25px minmax(0,1fr) 15px;
+  grid-template-areas:"icon copy chevron";
+  align-items:center; gap:0;
+  padding:0 9px; border:0; border-left:1px solid transparent; border-radius:0;
   background:transparent; text-align:left; color:#738095; cursor:pointer;
 }
 /* Match the original two-line nav hierarchy; the subtitle is decorative,
    faint, and separate from the global page heading styles. */
 .imperial-sidebar .imperial-main-nav .imperial-nav-copy {
   display:flex; flex:1; flex-direction:column; align-items:flex-start;
-  justify-content:center; gap:2px; min-width:0; grid-area:auto;
+  justify-content:center; gap:2px; min-width:0; grid-area:copy;
   color:inherit; font:inherit;
 }
 .imperial-sidebar .imperial-nav-copy > strong {
@@ -70,9 +74,16 @@
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .imperial-sidebar .imperial-nav-icon {
-  flex:0 0 25px; display:grid; place-items:center; color:inherit;
+  width:25px; height:25px; grid-area:icon;
+  display:grid; place-items:center; color:inherit;
 }
-.imperial-sidebar .imperial-nav-chevron { display:grid; place-items:center; opacity:.6; transition:transform .24s ease; }
+.imperial-sidebar .imperial-nav-icon > svg {
+  width:18px; height:18px; stroke-width:1.5;
+}
+.imperial-sidebar .imperial-nav-chevron {
+  grid-area:chevron; display:grid; place-items:center;
+  opacity:.6; transition:transform .24s ease;
+}
 .imperial-sidebar .imperial-nav-chevron.expanded { transform:rotate(90deg); }
 .imperial-sidebar .imperial-main-nav .imperial-nav-entry:hover { color:var(--ink); background:rgba(56,99,129,.055); }
 .imperial-sidebar .imperial-main-nav .imperial-nav-entry.active {
@@ -84,19 +95,40 @@
   border-radius:4px; color:#738095; cursor:pointer; font-family:var(--sans); font-size:.74rem; font-weight:500; line-height:normal; letter-spacing:.04em; }
 .imperial-nav-submenu button:hover { color:#3b5367; background:rgba(77,92,108,.07); }
 .imperial-nav-submenu button.active { color:#72532f; background:rgba(182,153,99,.12); }
+/* Three separate, non-overlapping rows: expand arrow / emblem / phone.
+ * The old absolute utilities column overpainted the centered emblem.
+ * display:contents places its real buttons in this grid without changing DOM. */
 .system.sidebar-collapsed .imperial-sidebar .imperial-side-brand {
-  display:flex; flex-direction:column; align-items:center; gap:6px; padding:0 0 12px; min-height:118px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:30px 46px 30px;
+  justify-items:center; align-items:center;
+  gap:7px; padding:0 0 14px; min-height:0;
 }
 .system.sidebar-collapsed .imperial-side-heading { display:none; }
-.system.sidebar-collapsed .imperial-sidebar .imperial-side-utilities { gap:4px; }
+.system.sidebar-collapsed .imperial-sidebar .imperial-side-utilities {
+  position:static; display:contents;
+}
+.system.sidebar-collapsed .imperial-sidebar .imperial-logo-trigger {
+  grid-column:1; grid-row:2;
+}
+.system.sidebar-collapsed .imperial-sidebar .sidebar-toggle {
+  grid-column:1; grid-row:1;
+}
+.system.sidebar-collapsed .imperial-sidebar .imperial-phone {
+  grid-column:1; grid-row:3;
+}
 .system.sidebar-collapsed .imperial-sidebar .imperial-main-nav .imperial-nav-entry {
-  min-height:44px; width:100%; padding:8px 0; display:flex;
-  align-items:center; justify-content:center; border-left:0; border-radius:6px;
+  min-height:44px; width:100%; padding:8px 0; display:grid;
+  grid-template-columns:1fr;
+  grid-template-areas:"icon";
+  justify-items:center; align-items:center;
+  border-left:0; border-radius:6px;
 }
 .system.sidebar-collapsed .imperial-sidebar .imperial-nav-copy,
 .system.sidebar-collapsed .imperial-nav-chevron,.system.sidebar-collapsed .imperial-nav-submenu { display:none; }
 .system.sidebar-collapsed .imperial-sidebar .imperial-nav-group { width:100%; }
-.system.sidebar-collapsed .imperial-sidebar .imperial-nav-icon { flex:0 0 auto; }
+.system.sidebar-collapsed .imperial-sidebar .imperial-nav-icon { width:25px; height:25px; }
 .club-system .imperial-side-heading strong { color:#efdfef; }
 .club-system .imperial-side-heading span { color:#b6a2c7; }
 .club-system .imperial-sidebar .imperial-main-nav .imperial-nav-entry { color:#b4a4c6; }
@@ -121,13 +153,16 @@
   }
   .imperial-sidebar .imperial-main-nav > .imperial-nav-entry,
   .imperial-sidebar .imperial-nav-group > .imperial-nav-entry {
-    min-height:42px; padding:7px 5px; gap:5px; border-left:0; border-bottom:1px solid transparent;
+    min-height:42px; padding:7px 5px; gap:5px;
+    grid-template-columns:20px minmax(0,1fr);
+    grid-template-areas:"icon copy";
+    border-left:0; border-bottom:1px solid transparent;
     justify-content:center;
   }
   .imperial-sidebar .imperial-main-nav .imperial-nav-copy { flex:0 1 auto; }
   /* Preserve the original site's 0.74rem title size at tablet/mobile. */
   .imperial-sidebar .imperial-nav-copy > small { display:none; }
-  .imperial-sidebar .imperial-nav-icon { flex:0 0 20px; }
+  .imperial-sidebar .imperial-nav-icon { width:20px; height:20px; }
   .imperial-sidebar .imperial-nav-chevron { display:none; }
   .imperial-sidebar .imperial-nav-group { position:relative; }
   .imperial-sidebar .imperial-nav-submenu {
@@ -137,13 +172,27 @@
   }
   .club-system .imperial-sidebar .imperial-nav-submenu { background:#23172e; }
   .system.sidebar-collapsed .imperial-sidebar .imperial-side-brand {
-    min-height:45px; display:grid; grid-template-columns:40px minmax(0,1fr) 70px; align-items:center;
+    min-height:45px; display:grid;
+    grid-template-columns:40px minmax(0,1fr) 68px;
+    grid-template-rows:44px;
+    justify-items:stretch; align-items:center;
     gap:6px; padding:0;
   }
-  .system.sidebar-collapsed .imperial-side-heading { display:grid; min-height:40px; }
-  .system.sidebar-collapsed .imperial-sidebar .imperial-side-utilities { flex-direction:row; }
+  .system.sidebar-collapsed .imperial-side-heading {
+    display:grid; grid-column:2; grid-row:1; min-height:40px;
+  }
+  .system.sidebar-collapsed .imperial-sidebar .imperial-side-utilities {
+    position:static; display:flex; grid-column:3; grid-row:1;
+    flex-direction:row; justify-content:flex-end; gap:4px;
+  }
+  .system.sidebar-collapsed .imperial-sidebar .sidebar-toggle,
+  .system.sidebar-collapsed .imperial-sidebar .imperial-phone {
+    grid-area:auto;
+  }
   .system.sidebar-collapsed .imperial-sidebar .imperial-main-nav { display:none; }
-  .system.sidebar-collapsed .imperial-sidebar .imperial-logo-trigger { width:40px; height:40px; }
+  .system.sidebar-collapsed .imperial-sidebar .imperial-logo-trigger {
+    grid-column:1; grid-row:1; width:40px; height:40px;
+  }
   .system.sidebar-collapsed .imperial-sidebar .imperial-logo-trigger .imperial-lounge-mark { width:37px; height:37px; }
 }
 /* Do not reintroduce mobile-only label shrinkage: original nav used .74rem. */
