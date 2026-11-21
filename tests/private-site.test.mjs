@@ -123,7 +123,7 @@ test("real member login unlocks resources while all returned content remains pri
       assert.match(response.headers.get("Vary"), /Cookie/);
     }
     const session = await visit("/api/member-session", { cookie });
-    assert.deepEqual(await session.json(), { citizenId: "amberina", accountMode: "citizen" });
+    assert.deepEqual(await session.json(), { citizenId: "amberina", accountMode: "citizen", authSource: "personal" });
   } finally { sqlite.close(); }
 });
 
@@ -145,7 +145,7 @@ test("Fireboy, Aquarium and authenticated return must not revoke the same member
       assert.equal(response.headers.get("Set-Cookie"),null,"GET must not replace login cookie");
     }
     const response=await visit("/api/member-session",{ cookie });
-    assert.deepEqual(await response.json(),{ citizenId:"amberina", accountMode:"citizen" });
+    assert.deepEqual(await response.json(),{ citizenId:"amberina", accountMode: "citizen", authSource: "personal" });
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM member_sessions").get().n,1);
   } finally { sqlite.close(); }
 });
@@ -247,7 +247,7 @@ test("a signed-in browser receives stylesheet, script and artwork bytes from the
     assert.equal(unchanged.status, 304);
     assert.equal(await unchanged.text(), "");
     assert.deepEqual(protectedCalls, []);
-    assert.deepEqual(await (await visit("/api/member-session", { cookie })).json(), { citizenId: "amberina", accountMode: "citizen" });
+    assert.deepEqual(await (await visit("/api/member-session", { cookie })).json(), { citizenId: "amberina", accountMode: "citizen", authSource: "personal" });
     assert.ok(!assetCalls.includes("/api/member-session"));
     assert.equal(await (await visit("/", { cookie })).text(), "private-content-sentinel");
   } finally { sqlite.close(); }
@@ -274,7 +274,7 @@ test("the owner can enable another member with a short Unicode password without 
     const entry = await visit("/api/member-session", { method: "POST", body: { citizenId: "zxy", password: short } });
     assert.equal(entry.status, 200);
     const member = entry.headers.get("Set-Cookie").split(";")[0];
-    assert.deepEqual(await (await visit("/api/member-session", { cookie: member })).json(), { citizenId: "zxy", accountMode: "citizen" });
+    assert.deepEqual(await (await visit("/api/member-session", { cookie: member })).json(), { citizenId: "zxy", accountMode: "citizen", authSource: "personal" });
     assert.equal((await visit("/", { cookie: member })).status, 200);
     assert.equal((await visit("/api/member-access", { cookie: member })).status, 403);
     assert.equal((await visit("/api/member-access", { method: "POST", cookie: member, body: { citizenId: "amberina", password: "x" } })).status, 403);
