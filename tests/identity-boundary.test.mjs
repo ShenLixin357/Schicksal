@@ -125,7 +125,9 @@ test("minister portal retains the shared emblem, with separate account mode", as
     assert.equal(isCurrentTechnologyMinister("amberina", transferred), false);
     const code = readFileSync(new URL("../app/page.tsx",import.meta.url),"utf8");
     const hub = readFileSync(new URL("../app/technology/technology-ministry.tsx",import.meta.url),"utf8");
-    assert.match(code,/isCurrentTechnologyMinister\(citizen\.id\)/);
+    assert.match(code,/isCurrentTechnologyMinister\(citizen\.id, offices\)/);
+    assert.match(code,/\/api\/offices\/current/);
+    assert.match(code,/currentOfficeLabel\(citizen,offices\)/);
     assert.match(code,/科技部部长入口/);
     assert.match(code,/<Emblem compact\s*\/>/);
     assert.match(hub,/sharedMark/);
