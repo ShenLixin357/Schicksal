@@ -186,3 +186,46 @@ test("direct appointment enters debate, supports immediate start or seating firs
     }
   } finally { sqlite.close(); }
 });
+
+
+test("votes freeze when resolved; tally, official comment and audit commit atomically", async () => {
+  const sqlite = setup("voting");
+  try {
+    sqlite.exec("UPDATE parliament_items SET voting_version=version WHERE id='speaker-test'");
+    const owner = await login("amberina"), voter = await login("truth");
+    await act(voter, "cast_vote", { choice: "support" });
+    await act(owner, "transition_stage", { stage: "resolved", reason: "Votes counted and frozen" });
+    const final = sqlite.prepare("SELECT stage,outcome FROM parliament_items WHERE id='speaker-test'").get();
+    assert.deepEqual(final, { stage: "resolved", outcome: "passed" });
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_comments WHERE item_id='speaker-test' AND comment_type='system'").get().n, 1);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_audit_events WHERE item_id='speaker-test' AND event_type='stage_transition'").get().n, 1);
+    await act(voter, "cast_vote", { choice: "oppose" }, 409);
+    assert.equal(sqlite.prepare("SELECT choice FROM parliament_votes WHERE item_id='speaker-test'").get().choice,"support");
+  } finally { sqlite.close(); }
+});
+
+test("injected audit failure rolls back a staged resolution and its system comment", async () => {
+  const sqlite = setup("voting");
+  try {
+    sqlite.exec("UPDATE parliament_items SET voting_version=version WHERE id='speaker-test'");
+    const owner = await login("amberina"), originalBatch = env.DB.batch;
+    env.DB.batch = async (statements) => {
+      sqlite.exec("BEGIN");
+      try {
+        await statements[0].run();
+        await statements[1].run();
+        throw new Error("isolated audit write failure");
+      } catch (error) {
+        sqlite.exec("ROLLBACK");
+        throw error;
+      }
+    };
+    try {
+      const failed = await visit({method:"POST", cookie:owner, body:{itemId:"speaker-test",action:"transition_stage",stage:"resolved",reason:"Must roll back atomically"}});
+      assert.ok(failed.status >= 500);
+    } finally { env.DB.batch = originalBatch; }
+    assert.equal(sqlite.prepare("SELECT stage FROM parliament_items WHERE id='speaker-test'").get().stage, "voting");
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_comments WHERE item_id='speaker-test' AND comment_type='system'").get().n, 0);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_audit_events WHERE item_id='speaker-test' AND event_type='stage_transition'").get().n, 0);
+  } finally { sqlite.close(); }
+});
