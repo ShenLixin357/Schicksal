@@ -1,4 +1,6 @@
 /** Single source of truth for visible navigation labels, icons and muted subtitles. */
+/** Atlas code is retained for further design work, but visual art was not approved. */
+export const ATLAS_VISUAL_APPROVED = false;
 export type PrimaryDestination = "home" | "briefing" | "parliament" | "collection" | "calendar" | "honors" | "profile";
 export type CollectionDestination = "library" | "atlas" | "photos" | "archives";
 export type PointsDestination = "honors" | "market";
@@ -21,8 +23,8 @@ export const PRIMARY_NAV: readonly PrimaryNavItem[] = [
 
 export const COLLECTION_NAV: readonly SubNavItem[] = [
   { id: "library", label: "魔法图书馆" },
-  // Atlas artwork has NOT passed owner review. Do not expose a navigation
-  // entry until separately approved; preserve implementation for private art review.
+  // No public Atlas link until the owner explicitly approves its artwork.
+  ...(ATLAS_VISUAL_APPROVED ? [{ id: "atlas" as const, label: "天命图谱" }] : []),
   { id: "photos", label: "家庭影像馆" },
   { id: "archives", label: "国家档案馆" },
 ];
