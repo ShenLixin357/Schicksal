@@ -62,7 +62,7 @@ test("presidency is an office, not an account, mark color, or Lounge persona", (
   assert.equal(currentOfficeLabel(former, next), "Minister of Technology", "leaving presidency does not erase another current office");
   assert.equal(currentOfficeLabel(elected, next), "President of the First Empire");
   assert.equal(citizenRepresentativeColor(former), "#F3ED87");
-  assert.equal(citizenRepresentativeColor(elected), "#d95d52");
+  assert.equal(citizenRepresentativeColor(elected), "#D7263D");
   assert.deepEqual(officeHolders("president"), ["amberina"], "simulation must never mutate current offices");
   assert.throws(() => withOfficeHolders(ATLAS_OFFICES, "nonexistent", ["zxy"]), /Unknown office/);
   assert.throws(() => withOfficeHolders(ATLAS_OFFICES, "president", ["zxy", "zxy"]), /Invalid/);

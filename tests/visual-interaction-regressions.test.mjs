@@ -20,7 +20,7 @@ test("elected President dots are globally loaded and no longer trapped in lazy L
   // The locked room stylesheet remains untouched; the exact style is mirrored globally.
   assert.match(lounge,/\.citizen-mark\.leader::after/);
   assert.match(mark,/isCurrentPresident\(citizen\.id\)/);
-  assert.match(mark,/personal-simple\$\{leaderClass\}/);
+  assert.match(mark,/personal-simple.*\$\{leaderClass\}/, "elected president insignia must survive optional member mark class");
   assert.match(mark,/style=\{\{ "--mark": markColor \}/);
   assert.ok(isCurrentPresident("amberina"));
   assert.ok(!isCurrentPresident("zxy"));

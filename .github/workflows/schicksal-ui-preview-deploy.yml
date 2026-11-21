@@ -1,6 +1,7 @@
 name: Deploy isolated Schicksal UI preview
 # Manual QA release after the repository visibility was changed to public.
 # This workflow targets only the isolated preview Worker and preview D1.
+# Acceptance request: No.2 Garnet Red assets and all representative-colour placements.
 
 # This workflow NEVER runs on a normal push. A connected coding agent can
 # trigger it only with an explicit [preview-deploy] commit message, after the
@@ -10,10 +11,12 @@ on:
     branches:
       - "preview/sidebar-lounge-v4-20261120"
       - "feature/minister-dual-account-switch-20261121"
+      - "feature/no2-garnet-identity-20261122"
     paths:
       - ".github/workflows/schicksal-ui-preview-deploy.yml"
       - "scripts/cloudflare/prepare-ui-preview.mjs"
       - "app/**"
+      - "public/no2-personal-*.png"
       - "tests/**"
       - "package.json"
   workflow_dispatch:
@@ -63,6 +66,8 @@ jobs:
       - name: Install and build the real React website
         run: |
           npm ci
+          npm run test:identity-architecture
+          npm run test:mark-placements
           npm run build
           bash scripts/validate-artifact.sh
       - name: Identify production D1 by name, provision only separate preview D1
@@ -286,6 +291,29 @@ jobs:
           }
           await fetch(base + "/api/member-session", {method:"DELETE",
             headers:{Cookie:cookie,Origin:base}});
+          NODE
+      - name: Confirm actual deployed No.2 Garnet Red entry and eight-ray colour
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          const root = "https://schicksal-ui-preview.m17686100216.workers.dev";
+          const response = await fetch(root + "/?no2-garnet-qa=" + process.env.GITHUB_SHA, {
+            headers: {"Cache-Control":"no-cache"}, cache:"no-store",
+          });
+          const html = await response.text();
+          if (response.status !== 401) throw Error("Expected anonymous entry HTTP 401");
+          const required = [
+            'class="citizen-mark personal-simple no2-symbol mark-zxy"',
+            '.ray-1{--ray:1;--ray-color:#D7263D}',
+            '#identity-zxy{--citizen:#D7263D}',
+            '.mark-zxy{--mark:#D7263D}',
+            '.mark-zxy .citizen-simple-image{background-image:url("data:image/png;base64,',
+          ];
+          for (const marker of required) {
+            if (!html.includes(marker)) throw Error("No.2 preview display mismatch: " + marker.slice(0, 80));
+          }
+          console.log("Verified actual preview: No.2 original responsive PNG, shared ray #D7263D and all identity colours #D7263D.");
           NODE
       - name: Final summary
         shell: bash
