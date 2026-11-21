@@ -24,6 +24,8 @@ type ArchivePhoto = {
   mimeType: string;
   sizeBytes: number;
   createdAt: string;
+  deletedAt?: string | null;
+  deletedByCitizenId?: string | null;
   imageUrl: string;
 };
 
@@ -42,6 +44,15 @@ export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: 
   const renderSubjectMark = (subject: Citizen, placement: PhotoMarkPlacement) =>
     <PhotoSubjectMark subject={subject} sharedMark={sharedMark} placement={placement} renderCitizenMark={renderCitizenMark}/>;
   const [photos, setPhotos] = useState<ArchivePhoto[]>([]);
+  const [trashPhotos, setTrashPhotos] = useState<ArchivePhoto[]>([]);
+  const [showTrash, setShowTrash] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editEra, setEditEra] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editSubjects, setEditSubjects] = useState<string[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterSubjects, setFilterSubjects] = useState<string[]>([]);
   const [uploadSubjects, setUploadSubjects] = useState<string[]>([]);
@@ -70,9 +81,44 @@ export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: 
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
+  const reloadPhotos = async () => {
+    const load = async (trash: boolean) => {
+      const response = await fetch(trash ? "/api/photos?trash=1" : "/api/photos", { cache: "no-store" });
+      const body = await response.json() as { photos?: ArchivePhoto[]; error?: string };
+      if (!response.ok) throw new Error(body.error || "影像馆暂时无法读取。");
+      return body.photos ?? [];
+    };
+    setPhotos(await load(false));
+    if (citizen.id === "amberina") setTrashPhotos(await load(true));
+  };
+  const mutatePhoto = async (photo: ArchivePhoto, method: "PATCH" | "DELETE" | "PUT", payload?: object) => {
+    if (method === "DELETE" && !window.confirm("将此照片移入回收站？原图会保留，可由管理员恢复。")) return;
+    setBusyId(photo.id);
+    try {
+      const response = await fetch(`/api/photos?id=${encodeURIComponent(photo.id)}`, {
+        method, headers: payload ? { "Content-Type": "application/json" } : {},
+        ...(payload ? { body: JSON.stringify(payload) } : {}),
+      });
+      const body = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(body.error || "操作失败。");
+      await reloadPhotos();
+      setEditingId(null);
+      setStatus(method === "PATCH" ? "照片资料已更新。" : method === "DELETE" ? "照片已进入回收站，原图没有删除。" : "照片已恢复到影像馆。");
+    } catch (error) { setStatus(error instanceof Error ? error.message : "操作失败，请重试。"); }
+    finally { setBusyId(null); }
+  };
+  const beginEdit = (photo: ArchivePhoto) => {
+    setEditingId(photo.id);
+    setEditTitle(photo.title);
+    setEditDescription(photo.description);
+    setEditEra(photo.era);
+    setEditDate(photo.capturedAt);
+    setEditSubjects(photo.subjects);
+  };
+  const album = showTrash ? trashPhotos : photos;
   const normalisedKey = (ids: string[]) => ids.includes("empire") ? "empire" : [...ids].sort().join("+");
   const activeFilterKey = normalisedKey(filterSubjects);
-  const visiblePhotos = activeFilterKey ? photos.filter((photo) => photo.subjectKey === activeFilterKey) : photos;
+  const visiblePhotos = activeFilterKey ? album.filter((photo) => photo.subjectKey === activeFilterKey) : album;
 
   const toggleChoice = (id: string, update: Dispatch<SetStateAction<string[]>>) => {
     update((current) => {
@@ -190,10 +236,25 @@ export function PhotoArchiveSection({ citizen, sharedMark, renderCitizenMark }: 
         </form>
       </aside>
       <section className="photo-gallery" aria-live="polite">
-        <header><div><p className="eyebrow">Selected Collection</p><h2>{filterLabel}</h2></div><span>{visiblePhotos.length} / {photos.length} PHOTOS</span></header>
-        {loading ? <div className="gallery-empty loading"><i /><h3>正在打开影像馆</h3><p>读取已保存的照片与分类信息…</p></div> : visiblePhotos.length === 0 ? <div className="gallery-empty"><span>S</span><h3>{photos.length ? "这个精确组合还没有照片" : "影像馆正在等待第一张照片"}</h3><p>{photos.length ? "可以更换上方标志组合，或上传一张属于这个组合的照片。" : "从左侧上传一张共同记忆，并为它选择人物标志。"}</p></div> : <div className="photo-grid">{visiblePhotos.map((photo) => <article className="photo-card" key={photo.id}>
+        <header><div><p className="eyebrow">{showTrash ? "Recoverable Archive" : "Selected Collection"}</p><h2>{showTrash ? "照片回收站" : filterLabel}</h2></div><div className="photo-gallery-toolbar"><span>{visiblePhotos.length} / {album.length} PHOTOS</span>{citizen.id === "amberina" && <button type="button" onClick={() => { setShowTrash((value) => !value); if (!showTrash) void reloadPhotos().catch(() => setStatus("无法读取回收站。")); }}>{showTrash ? "返回影像馆" : "管理回收站"}</button>}</div></header>
+        {loading ? <div className="gallery-empty loading"><i /><h3>正在打开影像馆</h3><p>读取已保存的照片与分类信息…</p></div> : visiblePhotos.length === 0 ? <div className="gallery-empty"><span>S</span><h3>{album.length ? "这个精确组合还没有照片" : showTrash ? "回收站为空" : "影像馆正在等待第一张照片"}</h3><p>{album.length ? "可以更换上方标志组合，或上传一张属于这个组合的照片。" : showTrash ? "尚无等待恢复的照片。" : "从左侧上传一张共同记忆，并为它选择人物标志。"}</p></div> : <div className="photo-grid">{visiblePhotos.map((photo) => <article className="photo-card" key={photo.id}>
           <figure><Image src={photo.imageUrl} alt={photo.title} fill sizes="(max-width: 760px) 100vw, (max-width: 1100px) 50vw, 32vw" /><figcaption>{photo.capturedAt || photo.era || "日期待补"}</figcaption></figure>
-          <div className="photo-card-copy"><div className="photo-card-marks">{photo.subjects.map((id) => { const subject = subjectFor(id); return subject ? <span key={id} title={subject.username}>{renderSubjectMark(subject, "photos-card-subject")}</span> : null; })}</div><h3>{photo.title}</h3>{photo.description ? <p>{photo.description}</p> : <p className="muted">尚未填写照片说明。</p>}<footer><span>{photo.era || "时期待补"}</span><span>UPLOADED BY {subjectFor(photo.uploaderCitizenId)?.username ?? "CITIZEN"}</span></footer></div>
+          <div className="photo-card-copy"><div className="photo-card-marks">{photo.subjects.map((id) => { const subject = subjectFor(id); return subject ? <span key={id} title={subject.username}>{renderSubjectMark(subject, "photos-card-subject")}</span> : null; })}</div><h3>{photo.title}</h3>{photo.description ? <p>{photo.description}</p> : <p className="muted">尚未填写照片说明。</p>}<footer><span>{photo.era || "时期待补"}</span><span>UPLOADED BY {subjectFor(photo.uploaderCitizenId)?.username ?? "CITIZEN"}</span></footer>
+            {(citizen.id === "amberina" || citizen.id === photo.uploaderCitizenId) && <div className="photo-card-actions">
+              {showTrash
+                ? citizen.id === "amberina" && <button type="button" disabled={busyId === photo.id} onClick={() => void mutatePhoto(photo, "PUT")}>恢复照片</button>
+                : <><button type="button" disabled={busyId === photo.id} onClick={() => editingId === photo.id ? setEditingId(null) : beginEdit(photo)}>{editingId === photo.id ? "取消编辑" : "编辑资料"}</button>
+                  <button type="button" disabled={busyId === photo.id} onClick={() => void mutatePhoto(photo, "DELETE")}>移入回收站</button></>}
+            </div>}
+            {editingId === photo.id && !showTrash && <form className="photo-inline-edit" onSubmit={(event) => { event.preventDefault(); void mutatePhoto(photo, "PATCH", { title: editTitle, description: editDescription, era: editEra, capturedAt: editDate, subjects: editSubjects }); }}>
+              <label>标题<input required maxLength={120} value={editTitle} onChange={(event) => setEditTitle(event.target.value)}/></label>
+              <label>说明<textarea maxLength={800} value={editDescription} onChange={(event) => setEditDescription(event.target.value)}/></label>
+              <label>日期<input type="date" value={editDate} onChange={(event) => setEditDate(event.target.value)}/></label>
+              <label>时期<input maxLength={80} value={editEra} onChange={(event) => setEditEra(event.target.value)}/></label>
+              <fieldset><legend>照片人物</legend><div className="photo-edit-subjects">{PHOTO_SUBJECTS.map((subject) => <label key={subject.id}><input type="checkbox" checked={editSubjects.includes(subject.id)} onChange={() => toggleChoice(subject.id, setEditSubjects)}/>{subject.username}</label>)}</div></fieldset>
+              <button type="submit" disabled={busyId === photo.id || !editTitle.trim() || !editSubjects.length}>保存修改</button>
+            </form>}
+          </div>
         </article>)}</div>}
       </section>
     </div>
