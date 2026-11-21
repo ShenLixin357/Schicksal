@@ -50,7 +50,7 @@ test("actual API binds results to the server session, persists a best, and ignor
   try {
     assert.equal((await records.GET(request(board, { member: "amberina" }))).status, 401);
     const cookie = await login();
-    assert.deepEqual(await (await sessions.GET(request("/api/member-session", { cookie }))).json(), { citizenId: "amberina", accountMode: "citizen" });
+    assert.deepEqual(await (await sessions.GET(request("/api/member-session", { cookie }))).json(), { citizenId: "amberina", accountMode: "citizen", authSource: "personal" });
     const payload = { ...submission(), citizenId: "zxy", rankPrimary: -999999 };
     let response = await records.POST(request("/api/lounge-games", { method: "POST", cookie, member: "amberina", body: payload }));
     assert.equal(response.status, 200); let result = await response.json();
