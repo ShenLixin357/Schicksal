@@ -29,7 +29,7 @@
 - **Incumbent QUICK switch:** from an authenticated personal session, a long hold on the incumbent's own sidebar mark immediately sends a server-authorized mode switch. No popup, no retyping either credential, and no separate in-profile ministry entry.
 - **Profile replacement:** the minister console replaces the personal page only in minister mode; personal mode retains the normal profile, with the same approved per-citizen mark.
 - **Succession:** live appointment records determine who can quick-switch and who the direct ministry credential logs in as. Credential rotation and office audit will be handled by future election/term flow.
-- **Release limitation:** a preview Worker without a ministry secret and without an enrolled D1 hash deliberately denies direct ministry login. The incumbent can personally log in, long-hold to the manager dashboard, and set the office-only password there with personal-password confirmation; thereafter direct ministry login becomes available. `SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD` is optional, not required for setup.
+- **Release limitation:** a preview Worker without an enrolled, current-tenure D1 hash deliberately denies direct ministry login. The incumbent can personally log in, long-hold to the manager dashboard, and set the office-only password there with personal-password confirmation; thereafter direct ministry login becomes available. No GitHub/Worker secret is required for setup; election transfers invalidate the previous tenure's office password. A direct-ministry-origin session cannot switch to the incumbent's private citizen mode and fails closed on turnover.
 
 ## v1.3 historical decision (superseded by v1.4)
 
