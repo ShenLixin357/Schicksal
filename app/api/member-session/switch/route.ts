@@ -14,6 +14,7 @@ export async function POST(request: Request) {
     const session = await currentSession(request);
     const token = cookieToken(request);
     if (!session || !token) return Response.json({ error: "登录已失效，请重新进入。" }, { status: 401, headers });
+    if (session.authSource !== "personal") return Response.json({error:"部长专用入口登录的会话不能切换为私人公民账号。请用个人账号重新登录。"}, { status:403, headers });
     const payload = await readJson<{ target?: unknown }>(request, 4096);
     const target = payload.target;
     if (target !== "citizen" && target !== "technology")
