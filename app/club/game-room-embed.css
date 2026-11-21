@@ -1,0 +1,25 @@
+/* Isolated full-viewport game shell. It belongs to the lazy game-room chunk,
+ * not the approved Committee Lounge scenery or the global site shell.
+ * Closing it changes React state only: the original member session, room and
+ * mandatory-entry state all remain mounted and are never re-requested.
+ */
+.lounge-embedded-game {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  width: 100%;
+  height: 100svh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #091525;
+  isolation: isolate;
+}
+.lounge-embedded-loading {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  color: #f5f3e9;
+  background: #091525;
+  font: 14px/1.6 var(--sans, sans-serif);
+}
