@@ -1,6 +1,7 @@
 name: Deploy isolated Schicksal UI preview
 # Manual QA release after the repository visibility was changed to public.
 # This workflow targets only the isolated preview Worker and preview D1.
+# Acceptance request: No.2 Garnet Red assets and all representative-colour placements.
 
 # This workflow NEVER runs on a normal push. A connected coding agent can
 # trigger it only with an explicit [preview-deploy] commit message, after the
