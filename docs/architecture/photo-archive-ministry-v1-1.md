@@ -11,7 +11,7 @@
 - **Confirmed**: a pictured subject may immediately hide a photo involving them; an administrator reviews afterwards. Hidden status must be enforced by the server on lists, previews and original-file endpoints, and recorded in permanent history. **CONFIRMED:** the incumbent Technology Minister has the final authority to republish after review, even over the pictured subject's objection. Every restoration must preserve the objection and record the minister identity, decision, timestamp and written reason. This is not permission for public sharing outside the family archive.
 - Subject correction and withdrawal must be designed into the archive; editing history must not disappear.
 - The **Technology Minister** has full website administrative authority. The ministry entry uses the **approved eight-ray imperial shared emblem**, never the officeholder's personal mark.
-- The ministry direct-login card uses an independent Worker-only secret and resolves the current incumbent; the citizen password must NOT work at that card. The incumbent's existing personal session may long-hold their own sidebar mark to switch modes instantly, without password entry or modal. The ministry console replaces the officeholder's personal page in minister mode; in citizen mode the original personal profile remains. Office rights are server-verified, and this is never a ninth citizen.
+- The ministry direct-login card uses an independent secret stored only as a salted hash in private D1 after enrollment (optional Worker Secret for bootstrap), and resolves the current incumbent; the citizen password must NOT work at that card. The incumbent's existing personal session may long-hold their own sidebar mark to switch modes instantly, without password entry or modal. The ministry console replaces the officeholder's personal page in minister mode; in citizen mode the original personal profile remains. Office rights are server-verified, and this is never a ninth citizen.
 - Administrative actions must be auditable; an emblem or a hidden navigation control is not authentication.
 
 ## Confirmed privacy right and open design choices — do not silently pick defaults
@@ -25,11 +25,11 @@
 
 ## v1.4 confirmed two-password routes and automatic role switching
 
-- **Minister DIRECT login:** the separate ministry entry on Login requires the separately configured `SCHICKSAL_MINISTRY_DIRECT_PASSWORD` Cloudflare Worker Secret. The personal password cannot authenticate there. Secret values must not appear in GitHub source, public Markdown or workflow logs.
+- **Minister DIRECT login:** the separate ministry entry on Login requires the separately configured `SCHICKSAL_MINISTRY_DIRECT_PASSWORD` Cloudflare Worker Secret. The personal password cannot authenticate there. Rotating the D1 hash revokes existing ministry-direct login sessions without revoking the incumbent's personal login sessions. Secret values must not appear in GitHub source, public Markdown or workflow logs.
 - **Incumbent QUICK switch:** from an authenticated personal session, a long hold on the incumbent's own sidebar mark immediately sends a server-authorized mode switch. No popup, no retyping either credential, and no separate in-profile ministry entry.
 - **Profile replacement:** the minister console replaces the personal page only in minister mode; personal mode retains the normal profile, with the same approved per-citizen mark.
 - **Succession:** live appointment records determine who can quick-switch and who the direct ministry credential logs in as. Credential rotation and office audit will be handled by future election/term flow.
-- **Release limitation:** a preview Worker lacking `SCHICKSAL_MINISTRY_DIRECT_PASSWORD` deliberately denies direct ministry login. The connected GitHub deployment only sets it if `SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD` is separately configured as a GitHub Actions environment secret.
+- **Release limitation:** a preview Worker without a ministry secret and without an enrolled D1 hash deliberately denies direct ministry login. The incumbent can personally log in, long-hold to the manager dashboard, and set the office-only password there with personal-password confirmation; thereafter direct ministry login becomes available. `SCHICKSAL_PREVIEW_MINISTRY_DIRECT_PASSWORD` is optional, not required for setup.
 
 ## v1.3 historical decision (superseded by v1.4)
 
