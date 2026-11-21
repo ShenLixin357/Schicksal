@@ -60,6 +60,10 @@
     {
       "name": "0014_briefing_presence.sql",
       "sha256": "ddb696d50d057fbe4748b0eda4714531ee8bb2fb1fe53053eb1d06b918aeb2b0"
+    },
+    {
+      "name": "0015_photo_recycle_bin.sql",
+      "sha256": "a2f3fb839d153adc95393fa4184fc8692a205179325cb508ccc9eb69b16eebab"
     }
   ]
 }
