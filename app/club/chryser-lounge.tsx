@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { CelloCorner } from "./cello/cello-corner";
+import { EmbeddedArcade } from "./embedded-arcade";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { MiniGameSystem } from "./minigames/mini-game-system";
 import { useMiniGameSystem } from "./minigames/use-mini-game-system";
@@ -36,6 +37,7 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
   const [memory, setMemory] = useState(readRoomMemory);
   const [journalOpen, setJournalOpen] = useState(false);
   const [seated, setSeated] = useState(false);
+  const [aquariumOpen, setAquariumOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [effect, setEffect] = useState<{ kind: "hearth" | "decanter" | "clock"; token: number } | null>(null);
   const [whisper, setWhisper] = useState("书房安静得恰好。炉楣的翡翠、书桌的音乐匣和窗玻璃，都可以轻轻碰一碰。");
@@ -130,6 +132,7 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
     }
   };
 
+  if (aquariumOpen) return <EmbeddedArcade game="aquarium" onClose={() => setAquariumOpen(false)} />;
   if (miniGames.activeGame) return <MiniGameSystem citizenId={citizenId} gameId={miniGames.activeGame} emblemBlades={emblemBlades} onClose={miniGames.closeMiniGame} loungeTitle="Lord Chryser’s Lounge" />;
 
   return <section className={`chryser-lounge ${memory.rain ? "night-rain" : "star-night"} ${memory.moonlit ? "moonlit-study" : "candlelit-study"} ${seated ? "seated" : ""} ${effect ? `answer-${effect.kind}` : ""}`} aria-label="Lord Chryser the Jade Ember 的私人 Lounge">
@@ -154,10 +157,10 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
       <button className="chryser-object chryser-decanter" type="button" onClick={() => activate("decanter")} aria-label="开启圆桌上的草木酒壶，释放魔法香雾"><span>轻触草木酒壶</span></button>
       <button className="chryser-object chryser-window" type="button" onClick={() => activate("window")} aria-pressed={memory.rain} aria-label="触碰拱窗，在夜雨与星空之间切换"><span>{memory.rain ? "让雨停下" : "唤来夜雨"}</span></button>
       <button className="chryser-object chryser-armchair" type="button" onClick={() => activate("chair")} aria-pressed={seated} aria-label={seated ? "离开翡翠扶手椅" : "坐进翡翠扶手椅"}><span>{seated ? "离开扶手椅" : "坐进丝绒里"}</span></button>
-      <a className="chryser-aquarium" href="/games/aquarium" aria-label="进入透明大鱼缸，打开怪怪水族馆" title="怪怪水族馆 · Insaniquarium Deluxe">
+      <button type="button" className="chryser-aquarium" onClick={() => setAquariumOpen(true)} aria-label="进入透明大鱼缸，打开怪怪水族馆" title="怪怪水族馆 · Insaniquarium Deluxe">
         <span className="chryser-aquarium-water" aria-hidden="true"><i /><i /><i /><b /><b /><b /></span>
         <span className="chryser-aquarium-caption">怪怪水族馆 <small>INSANIQUARIUM DELUXE</small></span>
-      </a>
+      </button>
       <button className="chryser-music-box" type="button" onClick={() => activate("music")} aria-label="打开书桌上的翡翠音乐匣，游玩余烬回声"><Image src="/chryser-emerald-music-box.png" width={1536} height={1024} alt="古金与翡翠镶嵌的洛可可音乐匣" unoptimized /><span>打开翡翠音乐匣</span></button>
     </div>
     <footer className="chryser-whisper" aria-live="polite"><small>LORD CHRYSER’S STUDY</small><p>{whisper}</p></footer>
