@@ -86,7 +86,8 @@ test("anonymous login embeds approved image without making private static files 
   const entry = source("../app/entry-screen.ts");
   const boundary = source("../app/standalone-access.ts");
   const privacy = source("../app/private-login.ts");
-  assert.match(entry, /assets\/amberina-login-mark\.png\?inline/);
+  assert.match(entry, /assets\/amberina-login-mark-official\.png\?inline/);
+  assert.match(entry, /amberinaMarkAt\("login-entry-picker"\)/);
   assert.match(entry, /citizen-mark personal-simple/);
   assert.match(entry, /background-image:url/);
   assert.match(privacy, /img-src data:/);
