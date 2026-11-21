@@ -20,3 +20,7 @@
 .technology-ministry-entry strong { font-size:.88rem; }
 .technology-ministry-entry small { color:#756d5f; font-size:.68rem; }
 @media(max-width:760px) { .technology-ministry-banner { padding:18px; gap:15px; align-items:flex-start; } .technology-ministry-emblem { width:58px;height:58px; } .technology-ministry-emblem .emblem { width:48px;height:48px; } .technology-ministry-banner h2 { font-size:1.3rem; } }
+
+/* Minimal auxiliary mode selector in existing login form. */
+.technology-login-mode-button{display:inline-block;margin:4px 0 12px;padding:6px 0;border:0;background:transparent;color:#80673c;text-align:left;font-size:.73rem;cursor:pointer}
+.technology-login-mode-button:focus-visible{outline:2px solid #856b38;outline-offset:3px}
