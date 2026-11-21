@@ -117,7 +117,7 @@ test("real member login unlocks resources while all returned content remains pri
       assert.match(response.headers.get("Vary"), /Cookie/);
     }
     const session = await visit("/api/member-session", { cookie });
-    assert.deepEqual(await session.json(), { citizenId: "amberina" });
+    assert.deepEqual(await session.json(), { citizenId: "amberina", accountMode: "citizen" });
   } finally { sqlite.close(); }
 });
 
