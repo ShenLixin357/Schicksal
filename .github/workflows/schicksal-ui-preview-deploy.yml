@@ -104,25 +104,19 @@ jobs:
         run: |
           set -euo pipefail
           BUCKET_NAME="schicksal-ui-preview-photos"
-          if ! npx wrangler r2 bucket list --json > "$RUNNER_TEMP/schicksal-preview-r2.json" 2>/dev/null; then
-            echo "::warning::R2 unavailable: preview photo upload will remain disabled; all other pages can be tested."
+          # The Wrangler R2 bucket list command does not support --json.
+          # Probe our exact isolated bucket by name; never enumerate, mutate
+          # or bind any production bucket.
+          if npx wrangler r2 bucket info "$BUCKET_NAME" --json > "$RUNNER_TEMP/schicksal-preview-r2.json" 2>/dev/null; then
+            echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
+            echo "Isolated R2 already available."
           else
-            if node --input-type=module - "$RUNNER_TEMP/schicksal-preview-r2.json" <<'NODE'
-          import { readFileSync } from "node:fs";
-          const body = JSON.parse(readFileSync(process.argv[2], "utf8"));
-          const buckets = Array.isArray(body) ? body : (body.buckets ?? body.result ?? []);
-          if (!Array.isArray(buckets)) throw Error("Unexpected R2 inventory");
-          const existing=buckets.some(item=>item.name==="schicksal-ui-preview-photos");
-          process.exit(existing?0:1);
-          NODE
-            then
+            if npx wrangler r2 bucket create "$BUCKET_NAME"; then
+              npx wrangler r2 bucket info "$BUCKET_NAME" --json > "$RUNNER_TEMP/schicksal-preview-r2.json"
               echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
+              echo "Isolated preview photo R2 provisioned."
             else
-              if npx wrangler r2 bucket create "$BUCKET_NAME"; then
-                echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
-              else
-                echo "::warning::Could not provision an isolated R2 bucket. Photo upload is unavailable in this preview."
-              fi
+              echo "::warning::Cannot provision isolated R2. Preview image upload remains unavailable; other routes are functional."
             fi
           fi
       - name: Prepare and verify preview-only Worker artifact
