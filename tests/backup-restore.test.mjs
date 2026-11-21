@@ -32,6 +32,7 @@ test("real isolated restore preserves photos, music, private notes, native saves
         assert.ok(manifest.objects.some(o => o.objectKey.endsWith(".mp3")));
         assert.equal(manifest.counts.member_sessions, 0);
         assert.equal(manifest.counts.member_credentials, 1);
+        assert.equal(manifest.counts.technology_credentials, 1);
         const target = join(f.directory, "restore");
         await restoreLocal(f.input.output, target);
         const db = new DatabaseSync(join(target, "database.sqlite"));
