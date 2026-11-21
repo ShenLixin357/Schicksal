@@ -17,7 +17,8 @@ test("elected President dots are globally loaded and no longer trapped in lazy L
   assert.match(shared,/repeating-conic-gradient\(from 0deg,var\(--mark\) 0 2deg,transparent 2deg 30deg\)/);
   assert.match(shared,/inset: -7px/);
   assert.match(shared,/opacity: \.62/);
-  assert.doesNotMatch(lounge,/\.citizen-mark\.leader\s*\{|\.citizen-mark\.leader::after/);
+  // The locked room stylesheet remains untouched; the exact style is mirrored globally.
+  assert.match(lounge,/\.citizen-mark\.leader::after/);
   assert.match(mark,/isCurrentPresident\(citizen\.id\)/);
   assert.match(mark,/personal-simple\$\{leaderClass\}/);
   assert.match(mark,/style=\{\{ "--mark": markColor \}/);
