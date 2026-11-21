@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { cookieToken, currentSession, digest, MEMBER_SESSION_SECONDS, MINISTRY_GRANT_MS, sameOrigin, sessionCookie, verifyMemberPassword, verifyTechnologyPassword } from "../../member-session";
 import { readJson, ApiError } from "../../../server/http.ts";
+import { currentTechnologyMinisterId } from "../../../server/auth/offices.ts";
 
 export async function GET(request: Request) {
   try { const session = await currentSession(request); return Response.json({ citizenId: session?.citizenId ?? null, accountMode: session?.accountMode ?? "citizen" }, { headers: { "Cache-Control": "no-store" } }); }
@@ -23,16 +24,23 @@ export async function POST(request: Request) {
     const now = Date.now(), windowKey = await digest(`${request.headers.get("CF-Connecting-IP") || "local"}:${Math.floor(now / 60000)}`);
     const rate = await env.DB.prepare("INSERT INTO member_login_windows (window_key, attempts, expires_at) VALUES (?, 1, ?) ON CONFLICT(window_key) DO UPDATE SET attempts=attempts+1 RETURNING attempts").bind(windowKey, now + 120000).first<{ attempts: number }>();
     if ((rate?.attempts ?? 99) > 20) return Response.json({ error: "尝试次数较多，请一分钟后重试。" }, { status: 429, headers: { "Retry-After": "60" } });
-    const authenticated = accountMode === "technology" ?
-      await verifyTechnologyPassword(citizenId, password) : await verifyMemberPassword(citizenId, password);
-    if (!authenticated) return Response.json({ error: "密码不正确，或当前公民不担任科技部长。", }, { status: 401 });
+    // Direct ministry login is its own entry: the worker resolves the current
+    // officeholder; submitting an arbitrary citizen ID cannot impersonate it.
+    if (accountMode === "technology" && citizenId !== "technology")
+      return Response.json({ error: "请从科技部部长专用入口登录。" }, { status: 400 });
+    const authenticatedCitizenId = accountMode === "technology"
+      ? await currentTechnologyMinisterId() : citizenId;
+    const authenticated = Boolean(authenticatedCitizenId) && (accountMode === "technology"
+      ? await verifyTechnologyPassword(authenticatedCitizenId!, password)
+      : await verifyMemberPassword(authenticatedCitizenId!, password));
+    if (!authenticated) return Response.json({ error: "登录凭据不正确或当前部长身份不可用。" }, { status: 401 });
     const token = [...crypto.getRandomValues(new Uint8Array(32))].map((value) => value.toString(16).padStart(2, "0")).join("");
     await env.DB.batch([
       env.DB.prepare("DELETE FROM member_sessions WHERE expires_at < ?").bind(now),
       env.DB.prepare("DELETE FROM member_login_windows WHERE expires_at < ?").bind(now),
-      env.DB.prepare("INSERT INTO member_sessions (token_hash, citizen_id, expires_at, account_mode, minister_grant_expires_at) VALUES (?, ?, ?, ?, ?)").bind(await digest(token), citizenId, now + MEMBER_SESSION_SECONDS * 1000, accountMode, accountMode === "technology" ? now + MINISTRY_GRANT_MS : 0),
+      env.DB.prepare("INSERT INTO member_sessions (token_hash, citizen_id, expires_at, account_mode, minister_grant_expires_at) VALUES (?, ?, ?, ?, ?)").bind(await digest(token), authenticatedCitizenId, now + MEMBER_SESSION_SECONDS * 1000, accountMode, accountMode === "technology" ? now + MINISTRY_GRANT_MS : 0),
     ]);
-    return Response.json({ citizenId, accountMode }, { headers: { "Set-Cookie": sessionCookie(request, token), "Cache-Control": "no-store" } });
+    return Response.json({ citizenId: authenticatedCitizenId, accountMode }, { headers: { "Set-Cookie": sessionCookie(request, token), "Cache-Control": "no-store" } });
   } catch { return Response.json({ error: "暂时无法完成登录，请稍后重试。" }, { status: 503 }); }
 }
 export async function DELETE(request: Request) {
