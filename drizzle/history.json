@@ -68,6 +68,10 @@
     {
       "name": "0016_parliament_transition_token.sql",
       "sha256": "8221d3fbcc3264b881422d8f3f03d9dad2756b8c3d14cf575102ea723f12bb48"
+    },
+    {
+      "name": "0017_minister_dual_account.sql",
+      "sha256": "baddf186ed2092fc8b5bc2cf757f5ba899a4577cc105e8a656d5f3ded863e6ee"
     }
   ]
 }
