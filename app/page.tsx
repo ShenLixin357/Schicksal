@@ -460,6 +460,7 @@ function System({ citizen, accountMode, offices, onAccountModeChange, logout, in
         presence={presence}
         members={CITIZENS}
         selfId={citizen.id}
+        isTechnologyMode={accountMode === "technology" && isCurrentMinister}
         renderMemberMark={memberId => {
           const member = CITIZENS.find(entry => entry.id === memberId);
           return member && accountMode==="technology" && member.id===citizen.id ? <Emblem compact/> : member ? <CitizenMark citizen={member} placement={member.id === citizen.id ? (clubOpen ? "sidebar-lounge-self" : "sidebar-main-self") : "sidebar-main-other-member"} /> : null;
