@@ -20,7 +20,7 @@ test("official colour from Procreate README is NOT the brighter personal-web col
   const amberina=CITIZENS.find(c=>c.id==="amberina");
   const zxy=CITIZENS.find(c=>c.id==="zxy");
   assert.ok(amberina && zxy);
-  assert.equal(amberina.markColor,AMBERINA_WEB_MARK_COLOR);
+  assert.equal(amberina.markColor,AMBERINA_OFFICIAL_COLOR);
   assert.equal(citizenRepresentativeColor(amberina),AMBERINA_OFFICIAL_COLOR);
   assert.equal(citizenRepresentativeColor(zxy),zxy.accent);
 });
@@ -31,7 +31,7 @@ test("two separately verified transparent PNGs, original artwork never overwritt
   assert.notDeepEqual(asset("../public/amberina-personal-simple-gold-eecf58.png"),asset("../public/amberina-personal-simple-official.png"));
 });
 
-test("existing beige website mark and circles/leader dots use the enhanced gold; no fog or backplate",()=>{
+test("explicit original-colour placements preserve the unchanged Simple crop, with one approved strong sidebar",()=>{
   const page=source("../app/page.tsx");
   const entry=source("../app/entry.css");
   const globals=source("../app/globals.css");
@@ -41,18 +41,18 @@ test("existing beige website mark and circles/leader dots use the enhanced gold;
   assert.match(mark, /export function PublicCitizenMark/);
   assert.match(mark, /isCurrentPresident\(citizen\.id\)/);
   assert.match(mark, /visual\?\.officialMarkColor/);
-  assert.match(mark, /visual\?\.webMarkColor/);
+  assert.match(mark, /amberinaMarkAt\(placement\)/);
   assert.match(mark, /<Image src=\{markAsset\}/);
   const visuals = source("../app/identity/visual-registry.ts");
   assert.match(visuals, /officialMarkAsset: "\/amberina-personal-simple-official\.png"/);
   assert.match(visuals, /webMarkAsset: "\/amberina-personal-simple-gold-eecf58\.png"/);
-  assert.match(page,/<CitizenMark citizen=\{item\}/);
-  assert.match(page,/<div className="welcome-mark"><CitizenMark citizen=\{citizen\}/);
+  assert.match(page,/CitizenMark citizen=\{item\} placement="login-react-picker"/);
+  assert.match(page,/welcome-mark"><CitizenMark citizen=\{citizen\} placement="welcome-identity"/);
   const archive=source("../app/archives/archive-section.tsx");
   assert.match(archive,/className="book-cover-mark" style=\{\{ "--mark": authorMarkColor/);
   assert.match(page,/authorMarkColor=\{CITIZENS\[0\]\.markColor\}/);
   assert.match(archive,/className="reader-author-mark" style=\{\{ "--mark": authorMarkColor/);
-  assert.match(page,/authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} \/>\}/);
+  assert.match(page,/authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} placement="archive-book-cover" \/>\}/);
   assert.match(entry,/\.citizen-mark::before \{[^\n]*var\(--mark\)/);
   // This office-only outline was migrated with the original scene CSS.
   const loungeStyles=source("../app/club/lounge-scenes.css");
@@ -68,15 +68,15 @@ test("ALL parliamentary insignia show original even for seat members, candidate,
   assert.ok(section.length>3000);
   const marks=[...section.matchAll(/renderOfficialMark\(/g)];
   assert.ok(marks.length>=8,"expected eight or more parliament official marks, got "+marks.length);
-  assert.match(section,/renderOfficialMark\(electedSpeaker\)/);
-  assert.match(section,/renderOfficialMark\(citizenFor\(request\.citizenId\)!\)/);
+  assert.match(section,/renderOfficialMark\(electedSpeaker, "parliament-speaker-election"\)/);
+  assert.match(section,/renderOfficialMark\(citizenFor\(request\.citizenId\)!, "parliament-comment-request"\)/);
   // The official-mode renderer is supplied by the parent rather than being
   // copied into the parliament domain, preserving the exact approved colours.
-  assert.match(pg,/renderOfficialMark=\{member => <CitizenMark citizen=\{member\} display="official" \/>\}/);
+  assert.match(pg,/renderOfficialMark=\{\(member, placement\) => <CitizenMark citizen=\{member\} placement=\{placement\} \/>\}/);
   assert.doesNotMatch(section,/<CitizenMark citizen=/);
   // The member-presence footer moved to the extracted shell; identity rules did not change.
   assert.match(pg,/renderMemberMark=\{memberId => \{/);
-  assert.match(pg,/<CitizenMark citizen=\{member\} display=\{clubOpen \? "official" : "web"\}/);
+  assert.match(pg,/CitizenMark citizen=\{member\} placement=\{member\.id === citizen\.id \?/);
   const sidebar=source("../app/shell/imperial-sidebar.tsx");
   assert.match(sidebar,/className="schicksal-sidebar-footer"[^]*?<SidebarPresence[^]*?selfId=\{selfId\}/);
   assert.match(sidebar,/className="schicksal-sidebar-logout"/);
