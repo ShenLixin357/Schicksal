@@ -368,7 +368,7 @@ function System({ citizen, accountMode, onAccountModeChange, logout, initialBrie
     case "honors": content = <HonorsSection/>; break;
     case "calendar": content = <CalendarSection />; break;
     case "market": content = <MarketSection/>; break;
-    case "photos": content = <FeatureSuspense label="家庭影像馆" onExit={() => setSection("home")}><PhotoArchiveSection citizen={citizen} sharedMark={<Emblem compact />} renderCitizenMark={(subject, placement) => <CitizenMark citizen={subject} placement={placement} />} /></FeatureSuspense>; break;
+    case "photos": content = <FeatureSuspense label="家庭影像馆" onExit={() => setSection("home")}><PhotoArchiveSection citizen={citizen} accountMode={accountMode} sharedMark={<Emblem compact />} renderCitizenMark={(subject, placement) => <CitizenMark citizen={subject} placement={placement} />} /></FeatureSuspense>; break;
     case "archives": content = atlasHandbookOpen ? <FeatureSuspense label="政务手册" onExit={() => setSection("home")}><AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/></FeatureSuspense> : <FeatureSuspense label="国家档案馆" onExit={() => setSection("home")}><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-book-cover" />} readerAuthorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-reader-author" />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
     case "profile": content = viewedCitizen.id === citizen.id ? <><ProfileSection citizen={citizen} />
       {isCurrentTechnologyMinister(citizen.id) && <section className="technology-ministry-entry" aria-label="科技部部长管理入口">
