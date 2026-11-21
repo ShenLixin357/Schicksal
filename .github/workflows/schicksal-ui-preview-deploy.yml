@@ -65,6 +65,8 @@ jobs:
       - name: Install and build the real React website
         run: |
           npm ci
+          npm run test:identity-architecture
+          npm run test:mark-placements
           npm run build
           bash scripts/validate-artifact.sh
       - name: Identify production D1 by name, provision only separate preview D1
