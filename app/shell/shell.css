@@ -1,6 +1,6 @@
 /* Visual-scale parity with the original sidebar, NOT a return to numbered menus.
  * Preserve icon navigation, Collection/Honors groups, communication and Lounge.
- * The original layout owns 248/200/64px widths and .74rem/6px typography.
+ * Owner refinement 2026-11-27: 224/192/64px widths, lighter 400-weight navigation; preserve label sizes.
  * Only adjust this shell's CSS: no approved scene art or font files. */
 .imperial-sidebar .imperial-side-brand {
   display:grid;
@@ -64,7 +64,7 @@
 }
 .imperial-sidebar .imperial-nav-copy > strong {
   display:block; width:100%; font-family:var(--sans); font-size:.74rem;
-  font-weight:500; line-height:normal; letter-spacing:.04em;
+  font-weight:400; line-height:normal; letter-spacing:.04em;
   color:inherit; white-space:nowrap;
 }
 .imperial-sidebar .imperial-nav-copy > small {
@@ -92,7 +92,7 @@
 }
 .imperial-nav-submenu { display:grid; gap:2px; padding:4px 0 9px 36px; border-left:1px solid rgba(150,136,114,.18); margin-left:21px; }
 .imperial-nav-submenu button { border:0; background:transparent; padding:9px 8px; text-align:left;
-  border-radius:4px; color:#738095; cursor:pointer; font-family:var(--sans); font-size:.74rem; font-weight:500; line-height:normal; letter-spacing:.04em; }
+  border-radius:4px; color:#738095; cursor:pointer; font-family:var(--sans); font-size:.74rem; font-weight:400; line-height:normal; letter-spacing:.04em; }
 .imperial-nav-submenu button:hover { color:#3b5367; background:rgba(77,92,108,.07); }
 .imperial-nav-submenu button.active { color:#72532f; background:rgba(182,153,99,.12); }
 /* Three separate, non-overlapping rows: expand arrow / emblem / phone.
@@ -141,6 +141,18 @@
 .club-system .imperial-sidebar .imperial-nav-submenu button.active { color:#f6e7fc; background:rgba(145,105,178,.14); }
 .club-system .imperial-sidebar .sidebar-toggle,
 .club-system .imperial-sidebar .imperial-phone { color:#d0bbdb; }
+/* Compact expanded desktop rail; reserve a separate column for both tools. */
+@media (min-width:761px) {
+  .system:not(.sidebar-collapsed) .imperial-sidebar { padding-inline:12px; }
+  .system:not(.sidebar-collapsed) .imperial-side-brand {
+    grid-template-columns:42px minmax(0,1fr); gap:8px; padding-right:30px;
+  }
+}
+@media (min-width:761px) and (max-width:1100px) {
+  .system:not(.sidebar-collapsed) .imperial-side-brand { grid-template-columns:36px minmax(0,1fr); gap:6px; }
+  .system:not(.sidebar-collapsed) .imperial-logo-trigger { width:36px; }
+  .system:not(.sidebar-collapsed) .imperial-side-heading strong { font-size:.8rem; letter-spacing:.10em; }
+}
 @media (max-width:760px) {
   .imperial-sidebar { position:sticky; }
   .imperial-sidebar .imperial-side-brand {

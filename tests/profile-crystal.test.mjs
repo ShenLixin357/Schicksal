@@ -34,13 +34,13 @@ test("self-profile has ONE officially coloured blade plus unchanged Simple mark"
   assert.ok(!crystal.includes("MafraerLounge"));
 });
 
-test("sidebar width, typography, colour and navigation spacing match original", () => {
+test("sidebar uses owner-approved compact widths while preserving original label size and color", () => {
   const layout=read("app/navigation-layout.css");
   const original=read("app/globals.css");
   const shell=read("app/shell/shell.css");
   const root=read("app/entry.css");
-  assert.match(layout, /--sidebar-width: 248px/);
-  assert.match(layout, /--sidebar-width: 200px/);
+  assert.match(layout, /--sidebar-width: 224px/);
+  assert.match(layout, /--sidebar-width: 192px/);
   assert.match(layout, /--sidebar-width: 64px/);
   assert.match(original, /min-height: 49px/);
   assert.match(shell, /min-height:49px/);

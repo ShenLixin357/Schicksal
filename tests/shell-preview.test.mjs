@@ -57,7 +57,7 @@ test("sidebar icons, single-click members, phone and reversible logo are present
   assert.match(page, /if \(target === "profile"\) setViewedCitizenId\(citizen.id\)/);
   const styles = read("app/shell/shell.css");
   assert.match(styles, /font-size:\.74rem/);
-  assert.match(styles, /font-weight:500/);
+  assert.match(styles, /font-weight:400; line-height:normal; letter-spacing:\.04em/);
   assert.match(styles, /color:#738095/);
   assert.match(styles, /font-size:6px/);
   assert.match(styles, /color:#505d70/);
