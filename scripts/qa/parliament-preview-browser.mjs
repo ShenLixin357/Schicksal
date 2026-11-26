@@ -38,8 +38,10 @@ async function checkBrowser(engine, label, reducedMotion) {
     await page.locator("#identity-amberina").click();
     await page.locator("#password").fill(password);
     await page.locator("#entry button[type=submit]").click();
-    await page.locator(".mandatory-briefing-gate").waitFor({ state: "visible", timeout: 45_000 });
     signedIn = true;
+    // The gate wrapper has no intrinsic height: its fixed-position dialog is the visible UI.
+    await page.locator(".mandatory-briefing-gate").waitFor({ state: "attached", timeout: 45_000 });
+    await page.getByRole("dialog", { name: "帝国简报" }).waitFor({ state: "visible", timeout: 45_000 });
     assert.equal(await page.locator("#imperial-sidebar").count(), 0, "Mandatory briefing must precede shell mount");
     await verifyVersion(page);
     await page.getByRole("button", { name: "关闭帝国简报，返回天命首页" }).click();

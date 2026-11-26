@@ -47,7 +47,7 @@ function randomFactory(seed: number) {
   };
 }
 
-export function potionStateHash(bottles: readonly PotionColorId[][]) {
+export function potionStateHash(bottles: readonly (readonly PotionColorId[])[]) {
   return bottles.map((bottle) => bottle.join(".")).join("/");
 }
 
@@ -59,7 +59,7 @@ function topRunLength(bottle: readonly PotionColorId[]) {
   return count;
 }
 
-export function getPotionPour(bottles: readonly PotionColorId[][], from: number, to: number, capacity = 4): PotionMove | null {
+export function getPotionPour(bottles: readonly (readonly PotionColorId[])[], from: number, to: number, capacity = 4): PotionMove | null {
   if (from === to) return null;
   const source = bottles[from];
   const destination = bottles[to];
@@ -71,7 +71,7 @@ export function getPotionPour(bottles: readonly PotionColorId[][], from: number,
   return count > 0 ? { from, to, color, count } : null;
 }
 
-export function applyPotionMove(bottles: readonly PotionColorId[][], move: Pick<PotionMove, "from" | "to">, capacity = 4) {
+export function applyPotionMove(bottles: readonly (readonly PotionColorId[])[], move: Pick<PotionMove, "from" | "to">, capacity = 4) {
   const legal = getPotionPour(bottles, move.from, move.to, capacity);
   if (!legal) return null;
   const next = bottles.map((bottle) => [...bottle]);
@@ -80,7 +80,7 @@ export function applyPotionMove(bottles: readonly PotionColorId[][], move: Pick<
   return { bottles: next, move: legal };
 }
 
-export function isPotionComplete(bottles: readonly PotionColorId[][], capacity = 4) {
+export function isPotionComplete(bottles: readonly (readonly PotionColorId[])[], capacity = 4) {
   return bottles.every((bottle) => !bottle.length || bottle.length === capacity && bottle.every((color) => color === bottle[0]));
 }
 
