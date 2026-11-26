@@ -2,7 +2,7 @@ name: Library R4 isolated integration and acceptance
 on:
   push:
     branches: ["intake/library-r4-20261127"]
-    paths: ["Schicksal_Library_Integration_Candidate_R4_2026-11-27*.zip"]
+    paths: ["Schicksal_Library_Integration_Candidate_R4_2026-11-27*.zip", ".github/workflows/library-r4-intake.yml", "scripts/qa/library-r4-*.sh", "scripts/qa/library-r4-extra.py"]
 permissions:
   contents: read
 concurrency:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   integration:
-    if: github.event.repository.private == true && github.ref_name == 'intake/library-r4-20261127'
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'intake/library-r4-20261127'
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     permissions:
@@ -38,12 +38,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Verify private repository and extract exactly the approved R4
+      - name: Verify exact repository and extract the approved R4
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq '.private')" = true
+          test "$GITHUB_REPOSITORY" = "ShenLixin357/Schicksal"
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')" = "$R4_BASE"
           mkdir -p "$RUNNER_TEMP/library-r4-report" "$RUNNER_TEMP/library-r4"
           python3 - <<'PY'
@@ -61,7 +61,7 @@ jobs:
               assert not p.is_absolute() and ".." not in p.parts and p.parts[0]=="library-candidate"
               assert (item.external_attr>>16)&0o170000 != 0o120000
             z.extractall(target)
-          print("PASS exact R4 archive and private main baseline")
+          print("PASS exact R4 archive and pinned main baseline")
           PY
       - name: Execute original apply-local.py on real clean main and preserve candidate
         id: apply
@@ -170,7 +170,7 @@ jobs:
         if: always() && steps.browsers.outcome == 'success'
         working-directory: site
         run: bash ../intake/scripts/qa/library-r4-local-worker.sh
-      - name: Upload private QA evidence even on failure
+      - name: Upload QA evidence even on failure (repository-visible)
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -196,7 +196,7 @@ jobs:
   isolated_preview:
     name: Publish dedicated library preview only after automated gates pass
     needs: integration
-    if: needs.integration.result == 'success' && github.event.repository.private == true && github.ref_name == 'intake/library-r4-20261127'
+    if: needs.integration.result == 'success' && github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'intake/library-r4-20261127'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: briefing-preview

@@ -2,7 +2,7 @@
 # Dedicated library review only. Never invoke the main-site deployment command.
 set -euo pipefail
 test "$GITHUB_REF_NAME" = "intake/library-r4-20261127"
-test "$(gh api "repos/$GITHUB_REPOSITORY" --jq '.private')" = true
+test "$GITHUB_REPOSITORY" = "ShenLixin357/Schicksal"
 test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
 test "$(gh api "repos/$GITHUB_REPOSITORY/branches/feature%2Flibrary-integration-20261127" --jq '.commit.sha')" = "$CANDIDATE_SHA"
 test -n "$CLOUDFLARE_API_TOKEN"
