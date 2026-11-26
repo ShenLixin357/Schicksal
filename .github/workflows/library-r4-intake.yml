@@ -79,7 +79,7 @@ jobs:
           git add -A
           # Original manuscripts intentionally contain Markdown hard-break whitespace.
           # Preserve all source bytes; check only the code and generated metadata.
-          git diff --cached --check -- . ':(exclude)public/archives/*.md' ':(exclude)docs/library/r4-handoff/**'
+          git -c core.whitespace=-blank-at-eof diff --cached --check -- . ':(exclude)public/archives/*.md' ':(exclude)docs/library/r4-handoff/**'
           python3 - "$PKG" <<'PY'
           import pathlib, subprocess, sys, hashlib, json
           pkg=pathlib.Path(sys.argv[1]); overlay=pkg/"overlay"
