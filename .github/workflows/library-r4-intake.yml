@@ -144,8 +144,10 @@ jobs:
           REPORT="$RUNNER_TEMP/library-r4-report"
           npm install --prefix "$RUNNER_TEMP/library-native" --no-save --package-lock=false skia-canvas
           export SKIA_CANVAS_MODULE="$RUNNER_TEMP/library-native/node_modules/skia-canvas"
-          node --experimental-default-type=module "$PKG/tests/render-r4-lifecycle.mjs" 2>&1 | tee "$REPORT/native-lifecycle.log"
-          node --experimental-default-type=module "$PKG/tests/render-dense.mjs" "$REPORT/occlusion-frames" 2>&1 | tee "$REPORT/native-dense.log"
+          # Explicit ESM scope in the temporary extraction only; Node 24 no longer needs the old flag.
+          printf '{"type":"module"}\n' > "$PKG/package.json"
+          node "$PKG/tests/render-r4-lifecycle.mjs" 2>&1 | tee "$REPORT/native-lifecycle.log"
+          node "$PKG/tests/render-dense.mjs" "$REPORT/occlusion-frames" 2>&1 | tee "$REPORT/native-dense.log"
       - name: Install real Chromium and WebKit
         id: browsers
         if: always() && steps.build.outcome == 'success'
