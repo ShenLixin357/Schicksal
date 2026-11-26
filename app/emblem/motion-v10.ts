@@ -1,6 +1,6 @@
 /** V10 approved public emblem. No Lounge imports, network calls or private state.
  * Browser renderer is self-contained so public entry can embed it under CSP nonce. */
-export const EMBLEM_MOTION = Object.freeze({width:20,lengthRatio:4.236,shoulder:.618,innerRadius:3,shoulderTrim:.01,grow:420,interval:230,hold:900,scatter:350,scatterInterval:28,openingDelay:360,openingDuration:4200,loadingPeriod:4300,loadingSteps:15,loadingLighten:.3,ringWidth:2.5,ringMinor:13,ringMajor:86});
+export const EMBLEM_MOTION = Object.freeze({width:20,lengthRatio:4.236,shoulder:.618,innerRadius:3,shoulderTrim:.01,grow:420,interval:230,hold:900,scatter:350,scatterInterval:28,openingDelay:360,openingDuration:4200,loadingPeriod:4300,loadingSteps:15,loadingLighten:.3,ringWidth:2.875,ringMinor:13,ringMajor:86});
 export type MotionMode = "static" | "opening" | "loading";
 export type BladePose = {i:number;angle:number;opacity:number;scale:number;dy:number};
 export function bladeOutline(): string {
@@ -47,6 +47,7 @@ export function mountEmblem(canvas:HTMLCanvasElement,mode:MotionMode,pathSource:
   const path=new Path2D(pathSource),reduce=window.matchMedia("(prefers-reduced-motion: reduce)");
   let disposed=false,frame=0,lastSize=0;
   const started=performance.now();
+  const orbit=mode==="opening"?canvas.parentElement?.querySelector<HTMLElement>(".opening-orbit-v10"):null;
   const paint=(now:number)=>{
     if(disposed)return;
     const width=canvas.getBoundingClientRect().width;
@@ -56,7 +57,18 @@ export function mountEmblem(canvas:HTMLCanvasElement,mode:MotionMode,pathSource:
     if(buffer.width!==hi||buffer.height!==hi){buffer.width=hi;buffer.height=hi;}
     lastSize=size;
     ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,hi,hi);ctx.setTransform(hi/224,0,0,hi/224,hi/2,hi/2);
-    for(const r of sample(reduce.matches?"static":mode,now-started,revealed)){
+    const age=now-started;
+    // Keep the original opening orbit on exactly the same clock as its blades.
+    // Separate CSS animation timelines may drift during WebKit startup/replay.
+    if(orbit){
+      const clamp=(v:number)=>Math.max(0,Math.min(1,v));
+      const rise=reduce.matches?1:clamp((age-2390)/650);
+      const fall=reduce.matches?0:clamp((age-3290)/350);
+      const eased=rise*rise*(3-2*rise);
+      orbit.style.opacity=String(eased*(1-fall*fall));
+      orbit.style.transform="scale("+(.72+.28*eased+.12*fall)+")";
+    }
+    for(const r of sample(reduce.matches?"static":mode,age,revealed)){
       ctx.save();ctx.rotate(r.angle*Math.PI/180);ctx.translate(0,r.dy);ctx.scale(r.scale,r.scale);ctx.globalAlpha=r.opacity;
       const g=ctx.createLinearGradient(-10,0,10,0),c=palette[r.i];g.addColorStop(0,c[0]);g.addColorStop(.5,c[0]);g.addColorStop(.5,c[1]);g.addColorStop(1,c[1]);ctx.fillStyle=g;ctx.fill(path);ctx.restore();
     }
@@ -73,5 +85,5 @@ export function mountEmblem(canvas:HTMLCanvasElement,mode:MotionMode,pathSource:
 }
 export function technologyRingSvg(colors:readonly string[]):string {
   return '<svg viewBox="-112 -112 224 224" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">'+
-    Array.from({length:4},(_,i)=>'<g transform="rotate('+(i*45)+')" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M -13 0 A 13 86 0 0 1 13 0" stroke="'+colors[i]+'"/><path d="M 13 0 A 13 86 0 0 1 -13 0" stroke="'+colors[i+4]+'"/></g>').join("")+'</svg>';
+    Array.from({length:4},(_,i)=>'<g transform="rotate('+(i*45)+')" fill="none" stroke-width="'+EMBLEM_MOTION.ringWidth+'" stroke-linecap="round"><path d="M -13 0 A 13 86 0 0 1 13 0" stroke="'+colors[i]+'"/><path d="M 13 0 A 13 86 0 0 1 -13 0" stroke="'+colors[i+4]+'"/></g>').join("")+'</svg>';
 }
