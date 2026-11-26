@@ -13,7 +13,7 @@ async function fixture({ missingId = false, missingAccount = false, failMigratio
     await mkdir(join(root, "node_modules/wrangler/bin"), { recursive: true });
     await cp(new URL("../drizzle", import.meta.url), join(root, "drizzle"), { recursive: true });
     await writeFile(join(root, "dist/server/wrangler.json"), JSON.stringify({ name: "schicksal", ...(!missingAccount && { account_id: account }), assets: { run_worker_first: true }, preview_urls: false, d1_databases: [{ binding: "DB", database_name: "schicksal-db", ...(!missingId && { database_id: database }) }] }));
-    await writeFile(join(root, "node_modules/wrangler/bin/wrangler.js"), `const fs=require('node:fs'),args=process.argv.slice(2);fs.appendFileSync('calls.jsonl',JSON.stringify(args)+'\\n');if(args[0]==='d1'&&args[1]==='info')console.log(JSON.stringify({uuid:${JSON.stringify(wrongId ? 'wrong-id' : database)},name:${JSON.stringify(wrongName ? 'schicksal-ui-preview-db' : 'schicksal-db')}}));if(args[0]==='d1'&&args[1]==='migrations'&&${failMigration})process.exit(7);`);
+    await writeFile(join(root, "node_modules/wrangler/bin/wrangler.js"), `const fs=require('node:fs'),args=process.argv.slice(2);fs.appendFileSync('calls.jsonl',JSON.stringify(args)+'\\n');if(args[0]==='d1'&&args[1]==='info'&&args[2]!=='schicksal-db'&&args[2]!=='DB'){console.error("Could not find DB by name");process.exit(6);}if(args[0]==='d1'&&args[1]==='info')console.log(JSON.stringify({uuid:${JSON.stringify(wrongId ? 'wrong-id' : database)},name:${JSON.stringify(wrongName ? 'schicksal-ui-preview-db' : 'schicksal-db')}}));if(args[0]==='d1'&&args[1]==='migrations'&&${failMigration})process.exit(7);`);
     return root;
 }
 async function calls(root) { return (await readFile(join(root, "calls.jsonl"), "utf8").catch(() => "")).trim().split("\n").filter(Boolean).map(JSON.parse); }
@@ -41,6 +41,7 @@ test("verifies the exact existing DB then migrates before deploying", async () =
         const result = run(root);
         assert.equal(result.status, 0, result.stderr);
         assert.deepEqual((await calls(root)).map(a => a.slice(0, 2)), [["d1", "info"], ["d1", "migrations"], ["deploy", "--config"]]);
+        assert.deepEqual((await calls(root))[0].slice(0, 4), ["d1", "info", "schicksal-db", "--json"]);
         const config = JSON.parse(await readFile(join(root, "dist/server/wrangler.json"), "utf8"));
         assert.equal(config.d1_databases[0].database_id, database);
         assert.equal(config.account_id, account);
