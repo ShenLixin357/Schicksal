@@ -7,7 +7,7 @@ permissions:
   contents: read
 concurrency:
   group: schicksal-library-r4-intake
-  cancel-in-progress: true
+  cancel-in-progress: false # retain independent QA evidence from the running attempt
 env:
   R4_BASE: e31fe637aeb629bb0a2cf42223041f2c0755871a
   CANDIDATE_SHA: ed8bdf3b02a802a49ba7b96b61485576c2609c15
@@ -30,6 +30,7 @@ jobs:
         with:
           path: site
           ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 2 # HEAD^ is required for exact R4 baseline verification
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
