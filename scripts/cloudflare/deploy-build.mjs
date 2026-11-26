@@ -52,7 +52,9 @@ function run(args, json = false) {
     return json ? JSON.parse(result.stdout) : null;
 }
 await writeFile(config, JSON.stringify(settings, null, 2));
-const info = run(["d1", "info", binding.databaseId, "--json"], true);
+// Wrangler d1 info resolves a database NAME or binding, not its UUID.
+// UUID is still the authority: require the returned identity to match exactly.
+const info = run(["d1", "info", binding.databaseName || "DB", "--json"], true);
 assert.equal(info.uuid || info.id, binding.databaseId, "D1 identity differs; refusing migration/deployment");
 if (binding.databaseName)
     assert.equal(info.name, binding.databaseName, "D1 name differs from the reviewed binding");
