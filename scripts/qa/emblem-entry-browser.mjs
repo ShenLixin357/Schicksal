@@ -31,9 +31,14 @@ try{
       const waitForPaint=async selector=>{await page.waitForFunction(sel=>{const el=document.querySelector(sel);if(!el||!el.getBoundingClientRect().width)return false;const c=el.getContext("2d");return c.getImageData(0,0,el.width,el.height).data.some((v,i)=>i%4===3&&v>0);},selector,{polling:50,timeout:3500});};
       try{await waitForPaint("#opening canvas");}catch(e){console.log(name+" render diagnostic: "+JSON.stringify(await opening.evaluate(el=>({w:el.width,h:el.height,rect:el.getBoundingClientRect().toJSON(),visible:document.visibilityState,path2d:typeof Path2D,raf:typeof requestAnimationFrame,openingHidden:document.getElementById("opening").hidden}))));throw e;}
       assert.deepEqual(errors,[]);
+      const orbit=page.locator("#opening .opening-orbit-v10");
+      assert.equal(await orbit.count(),1);
+      assert.ok(await opening.evaluate(el=>el.getBoundingClientRect().width>=245),"desktop opening should be enlarged");
+      await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector("#opening .opening-orbit-v10")).opacity)>.5,null,{polling:50,timeout:3500});
       await page.locator("#skip").click();
       await page.locator("#login").waitFor({state:"visible"});
       await waitForPaint("#login .brand canvas");
+      assert.equal(await page.locator("#login .opening-orbit-v10").count(),0);
       assert.equal(await page.locator("#identity-technology .technology-orbits path").count(),8);
       await page.locator("#replay").click();
       await page.locator("#skip").click();
