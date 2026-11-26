@@ -7,13 +7,13 @@ import test from "node:test";
 import { lockBuiltBinding } from "../scripts/cloudflare/lock-built-binding.mjs";
 const deploy = new URL("../scripts/cloudflare/deploy-build.mjs", import.meta.url).pathname;
 const account = "a".repeat(32), database = "11111111-2222-4333-8444-555555555555";
-async function fixture({ missingId = false, missingAccount = false, failMigration = false, wrongId = false } = {}) {
+async function fixture({ missingId = false, missingAccount = false, failMigration = false, wrongId = false, wrongName = false } = {}) {
     const root = await mkdtemp(join(tmpdir(), "schicksal-deploy-"));
     await mkdir(join(root, "dist/server"), { recursive: true });
     await mkdir(join(root, "node_modules/wrangler/bin"), { recursive: true });
     await cp(new URL("../drizzle", import.meta.url), join(root, "drizzle"), { recursive: true });
     await writeFile(join(root, "dist/server/wrangler.json"), JSON.stringify({ name: "schicksal", ...(!missingAccount && { account_id: account }), assets: { run_worker_first: true }, preview_urls: false, d1_databases: [{ binding: "DB", database_name: "schicksal-db", ...(!missingId && { database_id: database }) }] }));
-    await writeFile(join(root, "node_modules/wrangler/bin/wrangler.js"), `const fs=require('node:fs'),args=process.argv.slice(2);fs.appendFileSync('calls.jsonl',JSON.stringify(args)+'\\n');if(args[0]==='d1'&&args[1]==='info')console.log(JSON.stringify({uuid:${JSON.stringify(wrongId ? 'wrong-id' : database)},name:'schicksal-db'}));if(args[0]==='d1'&&args[1]==='migrations'&&${failMigration})process.exit(7);`);
+    await writeFile(join(root, "node_modules/wrangler/bin/wrangler.js"), `const fs=require('node:fs'),args=process.argv.slice(2);fs.appendFileSync('calls.jsonl',JSON.stringify(args)+'\\n');if(args[0]==='d1'&&args[1]==='info')console.log(JSON.stringify({uuid:${JSON.stringify(wrongId ? 'wrong-id' : database)},name:${JSON.stringify(wrongName ? 'schicksal-ui-preview-db' : 'schicksal-db')}}));if(args[0]==='d1'&&args[1]==='migrations'&&${failMigration})process.exit(7);`);
     return root;
 }
 async function calls(root) { return (await readFile(join(root, "calls.jsonl"), "utf8").catch(() => "")).trim().split("\n").filter(Boolean).map(JSON.parse); }
@@ -50,13 +50,13 @@ test("verifies the exact existing DB then migrates before deploying", async () =
     }
 });
 test("wrong identity, conflicting ID or failed migration prevents deployment", async () => {
-    for (const options of [{ wrongId: true }, { failMigration: true }, {}]) {
+    for (const options of [{ wrongId: true }, { wrongName: true }, { failMigration: true }, {}]) {
         const root = await fixture(options);
         try {
             const result = run(root, [], Object.keys(options).length ? {} : { SCHICKSAL_D1_DATABASE_ID: "22222222-2222-4333-8444-555555555555" });
             assert.notEqual(result.status, 0);
             assert.ok(!(await calls(root)).some(a => a[0] === "deploy"));
-            if (options.wrongId)
+            if (options.wrongId || options.wrongName)
                 assert.ok(!(await calls(root)).some(a => a[1] === "migrations"));
         }
         finally {
@@ -93,4 +93,13 @@ test("build finalization pins direct Wrangler deployment and refuses missing IDs
     finally {
         await rm(root, { recursive: true, force: true });
     }
+});
+
+test("native non-main builds cannot call the production deployment command", async () => {
+    const root = await fixture();
+    try {
+        const result = run(root, [], { WORKERS_CI: "1", WORKERS_CI_BRANCH: "release/preview" });
+        assert.notEqual(result.status, 0);
+        assert.deepEqual(await calls(root), []);
+    } finally { await rm(root, { recursive: true, force: true }); }
 });

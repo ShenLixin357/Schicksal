@@ -20,6 +20,7 @@
   "d1_databases": [
     {
       "binding": "DB",
+      "database_name": "schicksal-db",
       "migrations_dir": "drizzle"
     }
   ],
