@@ -55,4 +55,4 @@ jobs:
       - name: Briefing data and authenticated API regression
         run: npm run test:briefing
       - name: Typecheck isolated briefing components
-        run: npx tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --jsx react-jsx --lib ES2022,DOM,DOM.Iterable --skipLibCheck --allowSyntheticDefaultImports --strict app/briefing/briefing.tsx app/briefing/briefing-data.ts app/briefing/briefing-feed.ts app/briefing/use-briefing-feed.ts app/briefing/affairs-history.ts app/briefing/affairs-inbox.tsx app/briefing/member-presence-strip.tsx app/briefing/use-member-presence.ts
+        run: npx tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --jsx react-jsx --lib ES2022,DOM,DOM.Iterable --skipLibCheck --allowSyntheticDefaultImports --allowImportingTsExtensions --strict app/briefing/briefing.tsx app/briefing/briefing-data.ts app/briefing/briefing-feed.ts app/briefing/use-briefing-feed.ts app/briefing/affairs-history.ts app/briefing/affairs-inbox.tsx app/briefing/member-presence-strip.tsx app/briefing/use-member-presence.ts

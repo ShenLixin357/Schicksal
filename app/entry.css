@@ -201,3 +201,44 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   background-repeat: no-repeat;
   background-size: contain;
 }
+
+/* V10 public emblem and delayed loading. Included in both entry and app. */
+.emblem .empire-emblem-canvas,.emblem.technology-orbits > svg {display:block;width:100%;height:100%;pointer-events:none}
+.emblem.technology-orbits {filter:none;flex-shrink:0}
+.empire-emblem-canvas {display:block;width:100%;height:100%;pointer-events:none}
+.imperial-loading {display:inline-flex;flex:none;align-items:center;justify-content:center;vertical-align:middle;line-height:0;pointer-events:none}
+.imperial-loading[hidden] {display:none!important}
+.imperial-loading-24 {width:24px;height:24px}
+.imperial-loading-48 {width:48px;height:48px}
+.imperial-loading-88 {width:88px;height:88px}
+.club-system .imperial-loading,.lounge-passage .imperial-loading,.club-content .imperial-loading {display:none!important}
+.feature-loading .imperial-loading,.gallery-empty .imperial-loading,.docket-empty .imperial-loading {margin:0 auto 8px;display:flex}
+.opening .emblem-reveal > .emblem {filter:none}
+.opening .emblem-reveal > .emblem canvas {opacity:1}
+.intro-progress i {animation-duration:4.2s;}
+
+.radial-emblem > .emblem {width:100%;height:100%;filter:none}
+.welcome-mark > .technology-orbits {transform:rotate(-45deg)}
+
+/* Opening only: enlarge the emblem without altering compact/static/loading sizes.
+ * Retain the original orbit (13% inset, 1px blue-grey line) behind the blades.
+ * Last blade finishes at 360 + 7*230 + 420 = 2390ms.
+ * Full emblem holds 900ms; orbit fades with the 350ms scatter. */
+.opening .emblem-reveal > .emblem.ceremonial {
+  width:clamp(188px,32vmin,250px); height:auto; aspect-ratio:1; transform:none;
+}
+.opening .emblem-reveal > .emblem.ceremonial .empire-emblem-canvas {
+  position:relative; z-index:1;
+}
+.opening .emblem-reveal > .emblem.ceremonial > .opening-orbit-v10 {
+  position:absolute; z-index:0; inset:13%; border:1px solid rgba(62,102,130,.2);
+  border-radius:50%; pointer-events:none; opacity:0;
+  transform:scale(.72);
+}
+/* Its opacity and scale are driven by the shared opening canvas clock. */
+@media(max-height:540px) {
+  .opening .emblem-reveal > .emblem.ceremonial {width:clamp(140px,34vh,188px);}
+}
+@media(prefers-reduced-motion:reduce) {
+  .opening .emblem-reveal > .emblem.ceremonial > .opening-orbit-v10 {animation:none;opacity:1;transform:none;}
+}

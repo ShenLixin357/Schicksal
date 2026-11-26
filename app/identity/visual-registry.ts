@@ -23,7 +23,7 @@ export type PublicMemberVisual = {
 export const PUBLIC_MEMBER_VISUALS = {
   amberina: {
     representativeColor: "#F3ED87",
-    emblemRayColor: "#f3c969",
+    emblemRayColor: "#F3ED87",
     webMarkColor: "#EECF58",
     officialMarkColor: "#F3ED87",
     webMarkAsset: "/amberina-personal-simple-gold-eecf58.png",

@@ -1,4 +1,5 @@
 "use client";
+import { ImperialLoading } from "../emblem/imperial-loading";
 
 import { useEffect, useState, type ReactNode } from "react";
 import { PageHead } from "../shell/page-head";
@@ -28,10 +29,10 @@ export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onBack }: {
       copy="管理权限属于现任科技部长公职；个人身份、职务标识与操作记录分别保存。" />
     <div className="technology-ministry-banner">
       <div className="technology-ministry-emblem" aria-hidden="true">{sharedMark}</div>
-      <div><small>IMPERIAL SHARED EMBLEM</small><h2>天命第一帝国 · 科技部</h2>
+      <div><small>MINISTRY OF TECHNOLOGY · OFFICIAL INSIGNIA</small><h2>天命第一帝国 · 科技部</h2>
         <p>部长拥有全站管理权限。当前只开放已完成服务端验证的管理操作；新增能力须逐项接入和审计。</p></div>
     </div>
-    {access === "checking" ? <p role="status" className="technology-ministry-state">正在验证现任科技部部长身份…</p>
+    {access === "checking" ? <p role="status" className="technology-ministry-state"><ImperialLoading size={48}/>正在验证现任科技部部长身份…</p>
       : access === "denied" ? <p role="alert" className="technology-ministry-state">当前身份没有管理权限，或身份核验暂时失败。请重新登录后再试。</p>
       : <section className="technology-ministry-functions">
           <h3>档案管理</h3>

@@ -1,0 +1,23 @@
+name: V10 public emblem browser checks
+on:
+  pull_request:
+    paths: ["app/emblem/**", "app/entry-screen.ts", "app/entry.css", "tests/emblem-motion-v10.test.mjs", "scripts/qa/emblem-entry-browser.mjs", ".github/workflows/emblem-v10-browser.yml"]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:emblem-motion
+      - run: npm install --no-save --package-lock=false playwright
+      - run: npx playwright install --with-deps chromium webkit
+      - run: node --import ./tests/vite-css-hook.mjs --experimental-transform-types scripts/qa/emblem-entry-browser.mjs

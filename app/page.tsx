@@ -11,6 +11,9 @@ import { isCurrentPresident, isCurrentTechnologyMinister, currentOfficeLabel, of
 import { PublicCitizenMark as CitizenMark } from "./identity/public-mark";
 import { ATLAS_VISUAL_APPROVED } from "./shell/navigation";
 import { CompactEmpireEmblem as Emblem } from "./emblem/compact-emblem";
+import { TechnologyEmblem } from "./emblem/compact-emblem";
+import { EMBLEM_BLADES } from "./emblem/blade-spec";
+import { ImperialLoading, ImperialLoadingScope } from "./emblem/imperial-loading";
 
 import { atlasName, atlasCodename } from "./atlas/atlas-data";
 
@@ -32,7 +35,6 @@ import { COMMITTEE_LOUNGE_ART } from "./club/lounge-access";
 
 
 
-import { EMBLEM_BLADES } from "./emblem/blade-spec";
 import { HomeSection } from "./home/home-section";
 import { FeatureSuspense } from "./shell/feature-suspense";
 // Parliament UI and state remain isolated from the global entry coordinator.
@@ -71,7 +73,6 @@ const PARTICLES = [[8,18,1],[17,72,2],[25,34,3],[35,84,1],[43,10,2],[54,68,3],[6
 
 function Opening({ done }: { done: () => void }) {
   const [leaving, setLeaving] = useState(false);
-  const [revealed, setRevealed] = useState(0);
   const completed = useRef(false);
   const finish = useCallback(() => {
     if (completed.current) return;
@@ -83,10 +84,9 @@ function Opening({ done }: { done: () => void }) {
       finish();
       return;
     }
-    const rayTimers = Array.from({ length: 8 }, (_, index) => window.setTimeout(() => setRevealed(index + 1), 360 + index * 245));
-    const openTimer = window.setTimeout(() => setLeaving(true), 4300);
-    const doneTimer = window.setTimeout(finish, 5200);
-    return () => { rayTimers.forEach(window.clearTimeout); window.clearTimeout(openTimer); window.clearTimeout(doneTimer); };
+    const openTimer = window.setTimeout(() => setLeaving(true), 3290);
+    const doneTimer = window.setTimeout(finish, 4200);
+    return () => { window.clearTimeout(openTimer); window.clearTimeout(doneTimer); };
   }, [finish]);
   return (
     <main className={`opening ${leaving ? "opening-exit" : ""}`}>
@@ -94,7 +94,7 @@ function Opening({ done }: { done: () => void }) {
       <div className="horizon" aria-hidden="true" />
       <section className="opening-content">
         <p className="kicker">EIGHT CITIZENS · ONE SHARED EMBLEM</p>
-        <div className="emblem-reveal"><Emblem ceremonial revealed={revealed} /></div>
+        <div className="emblem-reveal"><Emblem ceremonial /></div>
         <div className="title-reveal">
           <p>THE FIRST EMPIRE</p><h1>Schicksal</h1><div className="title-rule"><i /></div><h2>天命第一帝国</h2><small>EIGHT COLOURED RAYS · 八棱共同标志</small>
         </div>
@@ -166,7 +166,7 @@ function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode,
             <button type="button" key="technology-ministry" onClick={chooseMinistry}
               aria-pressed={loginMode === "technology"}
               className={`technology-login-card ${loginMode === "technology" ? "selected" : ""}`} aria-label="科技部部长专用登录">
-              <Emblem compact />
+              <TechnologyEmblem compact />
               <span><strong>科技部部长</strong><small>MINISTRY OF TECHNOLOGY</small></span><i />
             </button>
           </div>
@@ -186,7 +186,7 @@ function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode,
             <footer><p className={error ? "error" : ""} role="status">
               {error || (loginMode === "technology" ? "部长专用入口不接受个人密码" : `正在以 ${selected.username} 的身份登录`)}
             </p>
-            <button className="primary" type="submit" disabled={loggingIn}>{loggingIn ? "正在登录…" : "LOGIN"} <span>→</span></button></footer>
+            <button className="primary" type="submit" disabled={loggingIn}>{loggingIn && <ImperialLoading size={24}/>} {loggingIn ? "正在登录…" : "LOGIN"} <span>→</span></button></footer>
           </form>
         </div>
       </section>
@@ -205,29 +205,45 @@ function Welcome({ citizen, accountMode, offices, enter, preloadStatus, retry }:
   retry: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
-  const [introFinished, setIntroFinished] = useState(false);
+  const startedAt = useRef<number | null>(null);
+  const enterRef = useRef(enter);
+  useEffect(() => { startedAt.current ??= performance.now(); }, []);
+  useEffect(() => { enterRef.current = enter; }, [enter]);
   useEffect(() => {
-    const timer = window.setTimeout(() => setIntroFinished(true), 3900);
-    return () => window.clearTimeout(timer);
-  }, []);
-  useEffect(() => {
-    if (!introFinished || preloadStatus !== "ready") return;
-    // Do not fade the welcome screen until the latest briefing is ready.
-    const fadeTimer = window.setTimeout(() => setLeaving(true), 0);
-    const enterTimer = window.setTimeout(enter, 800);
-    return () => { window.clearTimeout(fadeTimer); window.clearTimeout(enterTimer); };
-  }, [introFinished, preloadStatus, enter]);
+    if (preloadStatus !== "ready") { setLeaving(false); return; }
+    // One deadline after verified readiness; unrelated rerenders must not reset
+    // it. Preserve the 3.9s welcome and 0.8s exit, even if the feed is late.
+    const now = performance.now();
+    const fadeAt = Math.max((startedAt.current ?? now) + 3900, now);
+    const enterAt = fadeAt + 800;
+    let finished = false;
+    const finish = () => { if (!finished) { finished = true; enterRef.current(); } };
+    const advance = () => {
+      if (performance.now() >= enterAt) finish();
+      else if (performance.now() >= fadeAt) setLeaving(true);
+    };
+    const fadeTimer = window.setTimeout(() => setLeaving(true), Math.max(0, fadeAt - performance.now()));
+    const enterTimer = window.setTimeout(finish, Math.max(0, enterAt - performance.now()));
+    document.addEventListener("visibilitychange", advance);
+    window.addEventListener("focus", advance);
+    return () => {
+      finished = true;
+      window.clearTimeout(fadeTimer); window.clearTimeout(enterTimer);
+      document.removeEventListener("visibilitychange", advance);
+      window.removeEventListener("focus", advance);
+    };
+  }, [preloadStatus]);
   return (
     <main className={`welcome ${leaving ? "leaving" : ""}`} style={{ "--citizen": citizenRepresentativeColor(citizen), "--identity-mark": citizen.markColor } as CSSProperties}>
       <div className="welcome-rings" aria-hidden="true"><i /><i /><i /></div>
       <section>
         <p className="eyebrow">Identity Confirmed · 身份已确认</p>
-        <div className="welcome-mark">{accountMode==="technology"?<Emblem compact/>:<CitizenMark citizen={citizen} placement="welcome-identity" />}<i /></div>
+        <div className="welcome-mark">{accountMode==="technology"?<TechnologyEmblem compact/>:<CitizenMark citizen={citizen} placement="welcome-identity" />}<i /></div>
         <small>WELCOME TO SCHICKSAL</small><h1>{accountMode==="technology"?"科技部部长":citizen.name}</h1>
         <div className="welcome-meta"><span>{offices ? currentOfficeLabel(citizen,offices) : "正在核验现任公职"}</span><i /><span>CODE NAME · {citizen.codename}</span></div>
         <p>Your citizen identity has been recognised by the Imperial System.<br />帝国系统已识别你的公民身份。</p>
         <button type="button" onClick={enter} disabled={preloadStatus !== "ready"}>{preloadStatus === "ready" ? "ENTER NOW" : "PREPARING BRIEFING…"} <span>→</span></button>
-        {preloadStatus === "loading" && <div className="welcome-preload-status" role="status">正在准备最新政务与简报…</div>}
+        {preloadStatus === "loading" && <div className="welcome-preload-status" role="status"><ImperialLoading size={48}/>正在准备最新政务与简报…</div>}
         {preloadStatus === "error" && <div className="welcome-preload-status" role="alert">
           简报尚未准备好。同步成功并查看简报后，才能进入帝国。
           <div className="welcome-preload-actions"><button type="button" onClick={retry}>重新同步简报</button></div>
@@ -240,13 +256,7 @@ function Welcome({ citizen, accountMode, offices, enter, preloadStatus, retry }:
 }
 
 function CitizenEmblem({ large = false }: { large?: boolean }) {
-  return (
-    <div className={`radial-emblem ${large ? "large" : ""}`} role="img" aria-label="八个彩色棱分别象征八位公民">
-      <span className="emblem-ring outer" /><span className="emblem-ring inner" />
-      {EMBLEM_BLADES.map((blade) => <span className={`emblem-slot ${isCurrentPresident(blade.citizenId) ? "leader" : ""}`} key={blade.citizenId} style={{ "--slot": blade.index, "--citizen": blade.color } as CSSProperties}><i /><b>{blade.index + 1}</b></span>)}
-      <span className="emblem-center">S</span>
-    </div>
-  );
+  return <div className={"radial-emblem "+(large?"large":"")} data-blade-order={EMBLEM_BLADES.map(blade=>blade.citizenId).join("|")}><Emblem />{EMBLEM_BLADES.map(blade=><span key={blade.citizenId} className={`emblem-slot ${isCurrentPresident(blade.citizenId)?"leader":""}`} style={{"--slot":blade.index,"--citizen":blade.color} as CSSProperties}><b>{blade.index+1}</b></span>)}</div>;
 }
 
 
@@ -438,17 +448,17 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
     case "archives": content = atlasHandbookOpen ? <FeatureSuspense label="政务手册" onExit={() => setSection("home")}><AtlasGovernmentHandbook onBack={()=>setAtlasHandbookOpen(false)}/></FeatureSuspense> : <FeatureSuspense label="国家档案馆" onExit={() => setSection("home")}><ArchivesSection authorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-book-cover" />} readerAuthorMark={<CitizenMark citizen={CITIZENS[0]} placement="archive-reader-author" />} authorMarkColor={CITIZENS[0].markColor} /></FeatureSuspense>; break;
     case "profile": content = viewedCitizen.id === citizen.id
       ? (accountMode === "technology" && isCurrentMinister
-        ? <TechnologyMinistryPortal sharedMark={<Emblem compact />}
+        ? <TechnologyMinistryPortal sharedMark={<TechnologyEmblem compact={false} />}
             onOpenPhotos={() => setSection("photos")} onBack={() => setSection("home")}/>
         : <ProfileSection citizen={citizen} offices={offices}/>)
       : <PublicAtlasCitizenProfile citizen={viewedCitizen} offices={offices} onBack={() => setSection("atlas")}/>; break;
     // Older URLs/internal references resolve to the same profile destination,
     // not to a separate elevated menu or extra admin entry.
     case "technology": content = accountMode === "technology" && isCurrentMinister
-      ? <TechnologyMinistryPortal sharedMark={<Emblem compact />}
+      ? <TechnologyMinistryPortal sharedMark={<TechnologyEmblem compact={false} />}
           onOpenPhotos={() => setSection("photos")} onBack={() => setSection("home")}/>
       : <HomeSection go={setSection}/>; break;
-    case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <FeatureSuspense label="委员会 Lounge" onExit={() => setSection("home")}><CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /></FeatureSuspense> : <HomeSection go={setSection} />; break;
+    case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <FeatureSuspense label="委员会 Lounge" onExit={() => setSection("home")} lounge><CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /></FeatureSuspense> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;
   }
   // Do not mount the sidebar, homepage, parliament or Lounge behind the
@@ -471,6 +481,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
 
   return (
     <main className={`system ${clubOpen ? "club-system" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <ImperialLoadingScope enabled={!clubOpen && !portal}>
       {briefingOpen && briefingDialog}
       <ImperialSidebar
         activeSection={section}
@@ -484,7 +495,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
         isTechnologyMode={accountMode === "technology" && isCurrentMinister}
         renderMemberMark={memberId => {
           const member = CITIZENS.find(entry => entry.id === memberId);
-          return member && accountMode==="technology" && member.id===citizen.id ? <Emblem compact/> : member ? <CitizenMark citizen={member} placement={member.id === citizen.id ? (clubOpen ? "sidebar-lounge-self" : "sidebar-main-self") : "sidebar-main-other-member"} /> : null;
+          return member && accountMode==="technology" && member.id===citizen.id ? <TechnologyEmblem compact/> : member ? <CitizenMark citizen={member} placement={member.id === citizen.id ? (clubOpen ? "sidebar-lounge-self" : "sidebar-main-self") : "sidebar-main-other-member"} /> : null;
         }}
         onToggle={toggleSidebar}
         onLogo={() => { if (clubOpen) exitLounge(); else if (CLUB_MEMBER_IDS.has(citizen.id)) enterLounge(); }}
@@ -513,7 +524,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
         休息室暂时无法加载。<button type="button" onClick={enterLounge}>重试</button><button type="button" onClick={() => setPortalError(false)}>关闭</button>
       </div>}
       {modeSwitchMessage && <div className="technology-inline-switch-status" role="alert" aria-live="assertive">{modeSwitchMessage}</div>}
-
+      </ImperialLoadingScope>
     </main>
   );
 }
@@ -631,7 +642,7 @@ export default function Home() {
   // A phase transition alone never grants site access. If its live feed
   // is missing, keep the authenticated member on the Welcome gate.
   if (phase === "welcome" || !systemBriefing) return <Welcome citizen={citizen} accountMode={accountMode} offices={offices} enter={enterSystem}
-    preloadStatus={preload.citizenId && preload.citizenId !== citizen.id ? "loading" : preload.status}
+    preloadStatus={readyForMandatoryBriefing(preload, citizen.id) ? "ready" : preload.status === "error" && preload.citizenId === citizen.id ? "error" : "loading"}
     retry={retryPreload} />;
   return <System citizen={citizen} accountMode={accountMode} authSource={authSource} offices={offices} onAccountModeChange={setAccountMode} initialBriefing={systemBriefing.feed}
     logout={() => { void logoutMember(); }} />;

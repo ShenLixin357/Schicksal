@@ -9,7 +9,7 @@ test("first-site bundle excludes heavy parliament and Lounge scene implementatio
   assert.match(page, /const PersistentParliamentSection = lazy\(\(\) => import\("\.\/parliament\/parliament-section"\)/);
   assert.match(page, /const CommitteeLounge = lazy\(\(\) => import\("\.\/club\/committee-lounge"\)/);
   assert.match(page, /<FeatureSuspense label="帝国政务" onExit=\{\(\) => setSection\("home"\)\}>/);
-  assert.match(page, /<FeatureSuspense label="委员会 Lounge" onExit=\{\(\) => setSection\("home"\)\}>/);
+  assert.match(page, /<FeatureSuspense label="委员会 Lounge" onExit=\{\(\) => setSection\("home"\)\} lounge>/);
   assert.doesNotMatch(page, /function PersistentParliamentSection\(/);
   assert.doesNotMatch(page, /function CommitteeLounge\(/);
   assert.match(page, /if \(!mayMountSiteAfterBriefing\(entryBriefingPending\)\)/);

@@ -1,8 +1,9 @@
 "use client";
 
 import { Component, Suspense, type ReactNode } from "react";
+import { ImperialLoading } from "../emblem/imperial-loading";
 
-type FeatureProps = { label: string; children: ReactNode; onExit: () => void };
+type FeatureProps = { label: string; children: ReactNode; onExit: () => void; lounge?: boolean };
 
 /** A broken lazy chunk must not crash the authenticated shell. Do not force
  * a full-site reload merely because one private module failed: the fresh
@@ -28,9 +29,10 @@ class FeatureLoadBoundary extends Component<FeatureProps, { failed: boolean }> {
  * Approved art does not render until its code chunk is ready; a network
  * failure shows only a neutral retry interface, never stale artwork.
  */
-export function FeatureSuspense({ label, children, onExit }: FeatureProps) {
+export function FeatureSuspense({ label, children, onExit, lounge = false }: FeatureProps) {
   return <FeatureLoadBoundary key={label} label={label} onExit={onExit}>
     <Suspense fallback={<section className="feature-loading" role="status" aria-live="polite">
+      {!lounge && <ImperialLoading size={48}/>}
       <p>{label} · 正在打开…</p>
     </section>}>{children}</Suspense>
   </FeatureLoadBoundary>;
