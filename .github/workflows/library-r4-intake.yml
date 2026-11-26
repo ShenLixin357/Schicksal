@@ -77,7 +77,9 @@ jobs:
           cp "$PKG/README.md" docs/library/r4-handoff/README.md
           cp "$PKG/docs/"{ROUND4.md,FINAL_BOOK_CONFIG.md,MAIN_SITE_HANDOFF.md,HANDOFF_MANIFEST.json,BASELINE_R4.json} docs/library/r4-handoff/
           git add -A
-          git diff --cached --check
+          # Original manuscripts intentionally contain Markdown hard-break whitespace.
+          # Preserve all source bytes; check only the code and generated metadata.
+          git diff --cached --check -- . ':(exclude)public/archives/*.md' ':(exclude)docs/library/r4-handoff/**'
           python3 - "$PKG" <<'PY'
           import pathlib, subprocess, sys, hashlib, json
           pkg=pathlib.Path(sys.argv[1]); overlay=pkg/"overlay"
@@ -86,7 +88,10 @@ jobs:
             p=pathlib.Path("public/library")/x["path"]
             assert p.stat().st_size==x["size"] and hashlib.sha256(p.read_bytes()).hexdigest()==x["sha256"],p
           allowed={str(p.relative_to(overlay)) for p in overlay.rglob("*") if p.is_file()}
-          for p in allowed: assert pathlib.Path(p).read_bytes()==(overlay/p).read_bytes(),p
+          for p in allowed:
+            assert pathlib.Path(p).read_bytes()==(overlay/p).read_bytes(),p
+            subprocess.run(["git","ls-files","--error-unmatch",p],check=True,stdout=subprocess.DEVNULL)
+            assert subprocess.check_output(["git","show",":"+p])==(overlay/p).read_bytes(),p
           allowed.update(["app/page.tsx","app/archives/archive-section.tsx","app/technology/technology-ministry.tsx","tests/shell-preview.test.mjs","tests/identity-boundary.test.mjs","scripts/architecture/check-boundaries.mjs","tests/architecture-phase1.test.mjs","tests/private-site.test.mjs","package.json"])
           allowed.update(str(p) for p in pathlib.Path("docs/library/r4-handoff").glob("*") if p.is_file())
           actual=set(subprocess.check_output(["git","diff","--cached","--name-only"],text=True).splitlines())
