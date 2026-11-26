@@ -136,12 +136,3 @@ export function latestNews(news: readonly BriefingNews[]): BriefingNews[] {
   return [...news].sort((a, b) => briefingDateTime(b.publishedAt) - briefingDateTime(a.publishedAt));
 }
 
-// A per-login, non-authentication fingerprint is supplied only for a verified
-// member session. This stores no password, session cookie, or session token.
-export const BRIEFING_SEEN_SESSION_KEY = "schicksal:briefing-seen-session";
-
-export function markBriefingViewed(storage: Pick<Storage, "getItem" | "setItem">, sessionKey: string): boolean {
-  if (storage.getItem(BRIEFING_SEEN_SESSION_KEY) === sessionKey) return false;
-  storage.setItem(BRIEFING_SEEN_SESSION_KEY, sessionKey);
-  return true;
-}

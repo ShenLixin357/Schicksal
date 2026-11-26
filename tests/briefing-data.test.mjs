@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  BRIEFING_SEEN_SESSION_KEY, briefingCountdown, briefingDateTime, briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages,
-  markBriefingViewed, orderedBriefingTasks,
+  briefingCountdown, briefingDateTime, briefingDeadlineInfo, foundingNews, latestNews, latestUnreadMessages,
+  orderedBriefingTasks,
 } from "../app/briefing/briefing-data.ts";
 
 const task = (id, deadline, extra = {}) => ({
@@ -44,15 +44,6 @@ test("all news is retained and date ordered; nothing is silently discarded", () 
   assert.equal(ordered[0].id, "11");
   assert.equal(ordered.at(-1).id, "0");
   assert.equal(foundingNews[0].id, "restoration-2026-08-15");
-});
-
-test("one automatic display per login marker; new login marker displays again", () => {
-  const memory = new Map();
-  const storage = { getItem: (key) => memory.get(key) ?? null, setItem: (key, value) => { memory.set(key, value); } };
-  assert.equal(markBriefingViewed(storage, "session-A"), true);
-  assert.equal(markBriefingViewed(storage, "session-A"), false);
-  assert.equal(memory.get(BRIEFING_SEEN_SESSION_KEY), "session-A");
-  assert.equal(markBriefingViewed(storage, "session-B"), true);
 });
 
 test("date-only expected dates use the end of the UTC+8 calendar day", () => {

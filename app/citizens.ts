@@ -1,3 +1,7 @@
+import { PUBLIC_MEMBER_VISUALS, getPublicMemberVisual, AMBERINA_OFFICIAL_COLOR, AMBERINA_WEB_MARK_COLOR } from "./identity/visual-registry.ts";
+
+export { AMBERINA_OFFICIAL_COLOR, AMBERINA_WEB_MARK_COLOR } from "./identity/visual-registry.ts";
+
 export type Citizen = { id: string; username: string; name: string; codename: string; office: string; accent: string; markColor: string; motif: string; locked?: boolean };
 
 /** Leadership halo belongs to the President office, not member identity or login.
@@ -8,26 +12,19 @@ export function hasLeaderInsignia(citizen: Pick<Citizen, "office">): boolean {
   return citizen.office === "President of the First Empire";
 }
 
-/** Official member colour: unaffected by website icon contrast tuning. */
-export const AMBERINA_OFFICIAL_COLOR = "#F3ED87" as const;
-/**
- * User-approved stronger display colour for Amberina's Simple personal mark
- * on beige/ivory backgrounds ONLY. This is NEVER the representative colour.
- * New personal-mark/name scenarios: ASK FIRST whether display should be
- * stronger. Only "official" (#F3ED87) and "emphasized" (#EECF58) are allowed
- * without a fresh user-approved change. See /AGENTS.md and the identity policy.
+/** All public colors, approved mark files and decorative variants now live
+ * in identity/visual-registry.ts; Lounge identities remain entirely separate.
  */
-export const AMBERINA_WEB_MARK_COLOR = "#EECF58" as const;
 export function citizenRepresentativeColor(citizen: Pick<Citizen, "id" | "accent">): string {
-  return citizen.id === "amberina" ? AMBERINA_OFFICIAL_COLOR : citizen.accent;
+  return getPublicMemberVisual(citizen.id)?.representativeColor ?? citizen.accent;
 }
 export const CITIZENS: Citizen[] = [
-  { id: "amberina", username: "宇宙霸主", name: "Amberina von Schicksal", codename: "宇宙霸主", office: "President of the First Empire", accent: "#f3c969", markColor: AMBERINA_WEB_MARK_COLOR, motif: "snow" },
-  { id: "zxy", username: "No.2", name: "zxy", codename: "No.2", office: "Citizen of the First Empire", accent: "#d95d52", markColor: "#f05f55", motif: "flame" },
-  { id: "truth", username: "我说 真的", name: "我说 真的", codename: "我说 真的", office: "Core Member of the Legislative Committee", accent: "#eecf58", markColor: "#ffd84f", motif: "lightning" },
-  { id: "kaito", username: "怪盗 基德", name: "怪盗 基德", codename: "怪盗 基德", office: "Citizen of the First Empire", accent: "#65cae9", markColor: "#65cae9", motif: "water" },
-  { id: "harry", username: "哈利 波特", name: "哈利 波特", codename: "哈利 波特", office: "Citizen of the First Empire", accent: "#a99ce6", markColor: "#a99ce6", motif: "wind" },
-  { id: "sealed-6", username: "Citizen No. 6", name: "Citizen No. 6", codename: "身份待补", office: "Sealed Record", accent: "#48ad83", markColor: "#48ad83", motif: "sealed", locked: true },
-  { id: "sealed-7", username: "Citizen No. 7", name: "Citizen No. 7", codename: "身份待补", office: "Sealed Record", accent: "#ef9148", markColor: "#ef9148", motif: "sealed", locked: true },
-  { id: "sealed-8", username: "Citizen No. 8", name: "Citizen No. 8", codename: "身份待补", office: "Sealed Record", accent: "#e982ad", markColor: "#e982ad", motif: "sealed", locked: true },
+  { id: "amberina", username: "宇宙霸主", name: "Amberina von Schicksal", codename: "宇宙霸主", office: "President of the First Empire", accent: PUBLIC_MEMBER_VISUALS.amberina.emblemRayColor, markColor: AMBERINA_OFFICIAL_COLOR, motif: "snow" },
+  { id: "zxy", username: "No.2", name: "zxy", codename: "No.2", office: "Citizen of the First Empire", accent: PUBLIC_MEMBER_VISUALS.zxy.emblemRayColor, markColor: PUBLIC_MEMBER_VISUALS.zxy.webMarkColor, motif: "skull" },
+  { id: "truth", username: "我说 真的", name: "我说 真的", codename: "我说 真的", office: "Core Member of the Legislative Committee", accent: PUBLIC_MEMBER_VISUALS.truth.emblemRayColor, markColor: PUBLIC_MEMBER_VISUALS.truth.webMarkColor, motif: "lightning" },
+  { id: "kaito", username: "怪盗 基德", name: "怪盗 基德", codename: "怪盗 基德", office: "Citizen of the First Empire", accent: PUBLIC_MEMBER_VISUALS.kaito.emblemRayColor, markColor: PUBLIC_MEMBER_VISUALS.kaito.webMarkColor, motif: "water" },
+  { id: "harry", username: "哈利 波特", name: "哈利 波特", codename: "哈利 波特", office: "Citizen of the First Empire", accent: PUBLIC_MEMBER_VISUALS.harry.emblemRayColor, markColor: PUBLIC_MEMBER_VISUALS.harry.webMarkColor, motif: "wind" },
+  { id: "sealed-6", username: "Citizen No. 6", name: "Citizen No. 6", codename: "身份待补", office: "Sealed Record", accent: PUBLIC_MEMBER_VISUALS["sealed-6"].emblemRayColor, markColor: PUBLIC_MEMBER_VISUALS["sealed-6"].webMarkColor, motif: "sealed", locked: true },
+  { id: "sealed-7", username: "Citizen No. 7", name: "Citizen No. 7", codename: "身份待补", office: "Sealed Record", accent: PUBLIC_MEMBER_VISUALS["sealed-7"].emblemRayColor, markColor: PUBLIC_MEMBER_VISUALS["sealed-7"].webMarkColor, motif: "sealed", locked: true },
+  { id: "sealed-8", username: "Citizen No. 8", name: "Citizen No. 8", codename: "身份待补", office: "Sealed Record", accent: PUBLIC_MEMBER_VISUALS["sealed-8"].emblemRayColor, markColor: PUBLIC_MEMBER_VISUALS["sealed-8"].webMarkColor, motif: "sealed", locked: true },
 ];

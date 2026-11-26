@@ -1,12 +1,15 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { ensureParliamentSchema } from "../../../db/parliament-schema";
-import { standaloneMember } from "../../standalone-access";
+import { requireMember } from "../../../server/auth/member.ts";
+import { readJson, apiFailure } from "../../../server/http.ts";
+import { suggestedRouting } from "../../../server/parliament/policy.ts";
 import {
   parliamentAmendments,
   parliamentAuditEvents,
   parliamentComments,
+  parliamentDocumentVersions,
   parliamentFloorRequests,
   parliamentItems,
   parliamentMeetingSessions,
@@ -42,14 +45,9 @@ function truthy(value: unknown) {
   return value === true || value === 1 || value === "1" || value === "true";
 }
 
-function citizenFromRequest(request: Request, payload?: Record<string, unknown>) {
-  const value = standaloneMember(request, env) || cleanText(request.headers.get("x-schicksal-citizen") || payload?.citizenId, 40);
-  return CITIZEN_IDS.has(value) ? value : "";
-}
-
 function isStageManager(request: Request, citizenId: string) {
   if (citizenId !== "amberina") return false;
-  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return standaloneMember(request, env) === "amberina";
+  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return true;
   const hostname = new URL(request.url).hostname;
   if (hostname === "terminal.local" || hostname === "localhost") return true;
   const authenticatedEmail = request.headers.get("oai-authenticated-user-email")?.trim().toLowerCase();
@@ -59,7 +57,7 @@ function isStageManager(request: Request, citizenId: string) {
 
 function isSpeakerManager(request: Request, citizenId: string) {
   if (!SPEAKER_MANAGERS.has(citizenId)) return false;
-  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return standaloneMember(request, env) === citizenId;
+  if ((env as unknown as { SCHICKSAL_HOSTING?: string }).SCHICKSAL_HOSTING === "cloudflare") return true;
   const hostname = new URL(request.url).hostname;
   return hostname === "terminal.local" || hostname === "localhost" || Boolean(request.headers.get("oai-authenticated-user-email"));
 }
@@ -72,14 +70,6 @@ async function speakerRecord(itemId: string) {
     db.select().from(parliamentSpeakerVotes).where(eq(parliamentSpeakerVotes.itemId, itemId)),
   ]);
   return { meeting: meetings[0] ?? null, candidates, ballots };
-}
-
-function suggestedRouting(classification: string, ageBand: string, recusalRequested: boolean) {
-  if (classification === "constitutional") return "dual_review";
-  if (classification === "pending_review" || ageBand === "unknown") return "pending_review";
-  if (classification === "youth_autonomy" || (ageBand !== "12_plus" && recusalRequested)) return "youth_electorate";
-  if (ageBand === "12_plus") return "legislative_committee";
-  return "parliament";
 }
 
 async function audit(itemId: string, actorCitizenId: string, eventType: string, description: string, metadata: Record<string, unknown>, createdAt: string) {
@@ -169,7 +159,7 @@ async function boardPayload(request: Request, requestedItemId: string, citizenId
       stageManager: isStageManager(request, citizenId),
       speakerManager: isSpeakerManager(request, citizenId),
       meetingSpeaker: Boolean(meeting && meeting.speakerStatus === "elected" && meeting.speakerCitizenId === citizenId),
-      platformAuthenticated: Boolean(standaloneMember(request, env) || request.headers.get("oai-authenticated-user-email")),
+      platformAuthenticated: Boolean(citizenId),
     },
   };
 }
@@ -202,30 +192,52 @@ async function livePayload(request: Request, itemId: string, citizenId: string) 
       stageManager: isStageManager(request, citizenId),
       speakerManager: isSpeakerManager(request, citizenId),
       meetingSpeaker: Boolean(meeting && meeting.speakerStatus === "elected" && meeting.speakerCitizenId === citizenId),
-      platformAuthenticated: Boolean(standaloneMember(request, env) || request.headers.get("oai-authenticated-user-email")),
+      platformAuthenticated: Boolean(citizenId),
     },
   };
 }
 
 export async function GET(request: Request) {
   try {
+    const citizenId = await requireMember(request);
     await ensureParliamentSchema();
     const url = new URL(request.url);
-    const citizenId = standaloneMember(request, env) || (CITIZEN_IDS.has(url.searchParams.get("citizenId") || "") ? url.searchParams.get("citizenId")! : "");
     const itemId = cleanText(url.searchParams.get("itemId"), 80);
+    if (url.searchParams.get("scope") === "documents") {
+      const headers = { "Cache-Control": "private, no-store" };
+      const rawVersion = url.searchParams.get("version");
+      const version = Number(rawVersion);
+      if (!itemId || (rawVersion !== null && (!/^\d+$/.test(rawVersion) || !Number.isSafeInteger(version) || version < 1))) {
+        return Response.json({ error: "请选择有效的议案和正文版本。" }, { status: 400, headers });
+      }
+      const db = getDb();
+      if (rawVersion !== null) {
+        const [document] = await db.select().from(parliamentDocumentVersions)
+          .where(and(eq(parliamentDocumentVersions.itemId, itemId), eq(parliamentDocumentVersions.version, version))).limit(1);
+        return document
+          ? Response.json({ document }, { headers })
+          : Response.json({ error: "这个版本的正文没有存档。" }, { status: 404, headers });
+      }
+      const documents = await db.select({
+        version: parliamentDocumentVersions.version, title: parliamentDocumentVersions.title,
+        source: parliamentDocumentVersions.source, recordedAt: parliamentDocumentVersions.recordedAt,
+      }).from(parliamentDocumentVersions).where(eq(parliamentDocumentVersions.itemId, itemId))
+        .orderBy(desc(parliamentDocumentVersions.version));
+      return Response.json({ documents }, { headers });
+    }
     if (url.searchParams.get("scope") === "live") return Response.json(await livePayload(request, itemId, citizenId));
     return Response.json(await boardPayload(request, itemId, citizenId));
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "议会资料暂时无法读取。" }, { status: 500 });
+    return apiFailure(error, "议会资料暂时无法读取。");
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const citizenId = await requireMember(request);
     await ensureParliamentSchema();
-    const payload = await request.json() as Record<string, unknown>;
+    const payload = await readJson(request, 60000);
     const action = cleanText(payload.action, 40);
-    const citizenId = citizenFromRequest(request, payload);
     if (!citizenId) return Response.json({ error: "只有已识别的第一帝国公民可以参与议事。" }, { status: 403 });
 
     const db = getDb();
@@ -268,10 +280,24 @@ export async function POST(request: Request) {
       const [existing] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
       if (!existing) return Response.json({ error: "找不到这项议案。" }, { status: 404 });
       if (existing.stage === "voting" || existing.stage === "resolved") return Response.json({ error: "投票中或已结案的文本已冻结；请先正式重开议案。" }, { status: 409 });
+      if (payload.expectedVersion !== existing.version) return Response.json({ error: "议案正文已更新，请刷新后再编辑。" }, { status: 409 });
       const nextVersion = existing.version + 1;
-      await db.update(parliamentItems).set({ title, summary, body, version: nextVersion, updatedAt: now }).where(eq(parliamentItems.id, itemId));
-      await db.insert(parliamentComments).values({ id: crypto.randomUUID(), itemId, citizenId, commentType: "system", body: `正式文稿更新至 v${nextVersion}。`, createdAt: now });
-      await audit(itemId, citizenId, "text_revised", `正式文稿更新至 v${nextVersion}。`, { fromVersion: existing.version, toVersion: nextVersion }, now);
+      const token = crypto.randomUUID();
+      const note = `正式文稿更新至 v${nextVersion}。`;
+      const results = await env.DB.batch([
+        env.DB.prepare(`UPDATE parliament_items SET title = ?, summary = ?, body = ?,
+          version = ?, updated_at = ?, transition_token = ?
+          WHERE id = ? AND version = ? AND stage NOT IN ('voting', 'resolved')`)
+          .bind(title, summary, body, nextVersion, now, token, itemId, existing.version),
+        env.DB.prepare(`INSERT INTO parliament_comments (id, item_id, citizen_id, comment_type, body, created_at)
+          SELECT ?, id, ?, 'system', ?, ? FROM parliament_items WHERE id = ? AND transition_token = ?`)
+          .bind(crypto.randomUUID(), citizenId, note, now, itemId, token),
+        env.DB.prepare(`INSERT INTO parliament_audit_events
+          (id, item_id, actor_citizen_id, event_type, description, metadata_json, created_at)
+          SELECT ?, id, ?, 'text_revised', ?, ?, ? FROM parliament_items WHERE id = ? AND transition_token = ?`)
+          .bind(crypto.randomUUID(), citizenId, note, JSON.stringify({ fromVersion: existing.version, toVersion: nextVersion }), now, itemId, token),
+      ]);
+      if (!results[0]?.meta?.changes) return Response.json({ error: "议案版本或阶段已改变，请刷新后重试。" }, { status: 409 });
     } else if (action === "classify_item") {
       if (!isStageManager(request, citizenId)) return Response.json({ error: "只有宇宙霸主账号可以确认议案分类与程序路线。" }, { status: 403 });
       const classification = cleanText(payload.classification, 40);
@@ -471,26 +497,54 @@ export async function POST(request: Request) {
       const [existing] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
       if (!existing) return Response.json({ error: "找不到议案正文。" }, { status: 404 });
       if (existing.stage === "voting" || existing.stage === "resolved") return Response.json({ error: "文本已冻结，不能处理修正案。" }, { status: 409 });
-      let nextVersion = existing.version;
       if (decision === "accepted") {
         if (!existing.body.includes(amendment.targetQuote)) return Response.json({ error: "当前正文已变化，请重新提交针对新版本的修正案。" }, { status: 409 });
-        nextVersion += 1;
+        const nextVersion = existing.version + 1;
         const nextBody = existing.body.replace(amendment.targetQuote, amendment.proposedText);
-        await db.update(parliamentItems).set({ body: nextBody, version: nextVersion, updatedAt: now }).where(eq(parliamentItems.id, itemId));
+        const token = crypto.randomUUID();
+        const results = await env.DB.batch([
+          env.DB.prepare(`UPDATE parliament_items SET body = ?, version = ?, updated_at = ?, transition_token = ?
+            WHERE id = ? AND version = ? AND stage NOT IN ('voting', 'resolved')
+              AND EXISTS (SELECT 1 FROM parliament_amendments WHERE id = ? AND item_id = ? AND status = 'pending')`)
+            .bind(nextBody, nextVersion, now, token, itemId, existing.version, amendmentId, itemId),
+          env.DB.prepare(`UPDATE parliament_amendments SET status = 'accepted', decided_at = ?, decided_by_citizen_id = ?
+            WHERE id = ? AND item_id = ? AND status = 'pending'
+              AND EXISTS (SELECT 1 FROM parliament_items WHERE id = ? AND transition_token = ?)`)
+            .bind(now, citizenId, amendmentId, itemId, itemId, token),
+          env.DB.prepare(`INSERT INTO parliament_audit_events
+            (id, item_id, actor_citizen_id, event_type, description, metadata_json, created_at)
+            SELECT ?, id, ?, 'amendment_accepted', ?, ?, ? FROM parliament_items WHERE id = ? AND transition_token = ?`)
+            .bind(crypto.randomUUID(), citizenId, `修正案已接受并并入 v${nextVersion}。`,
+              JSON.stringify({ amendmentId, decision, version: nextVersion }), now, itemId, token),
+        ]);
+        if (!results[0]?.meta?.changes) return Response.json({ error: "议案版本、阶段或修正案状态已改变，请刷新后重试。" }, { status: 409 });
+      } else {
+        const [rejected] = await db.update(parliamentAmendments).set({ status: decision, decidedAt: now, decidedByCitizenId: citizenId })
+          .where(and(eq(parliamentAmendments.id, amendmentId), eq(parliamentAmendments.status, "pending"))).returning({ id: parliamentAmendments.id });
+        if (!rejected) return Response.json({ error: "这项修正案已经处理。" }, { status: 409 });
+        await audit(itemId, citizenId, "amendment_rejected", "修正案已否决。", { amendmentId, decision, version: existing.version }, now);
       }
-      await db.update(parliamentAmendments).set({ status: decision, decidedAt: now, decidedByCitizenId: citizenId }).where(eq(parliamentAmendments.id, amendmentId));
-      await audit(itemId, citizenId, `amendment_${decision}`, `修正案已${decision === "accepted" ? `接受并并入 v${nextVersion}` : "否决"}。`, { amendmentId, decision, version: nextVersion }, now);
     } else if (action === "cast_vote") {
       const choice = cleanText(payload.choice, 20);
       if (!itemId || !VOTE_CHOICES.has(choice)) return Response.json({ error: "请选择支持、反对或弃权。" }, { status: 400 });
       const [existing] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
       if (!existing) return Response.json({ error: "找不到这项议案。" }, { status: 404 });
       if (existing.stage !== "voting" || !existing.votingVersion || existing.votingVersion !== existing.version) return Response.json({ error: "投票尚未开放，或表决文本版本已失效。" }, { status: 409 });
-      await env.DB.prepare(`INSERT INTO parliament_votes (id, item_id, citizen_id, choice, document_version, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(item_id, citizen_id) DO UPDATE SET choice = excluded.choice, document_version = excluded.document_version, updated_at = excluded.updated_at`)
-        .bind(`${itemId}:${citizenId}`, itemId, citizenId, choice, existing.votingVersion, now, now).run();
-      await db.update(parliamentItems).set({ updatedAt: now }).where(eq(parliamentItems.id, itemId));
+      if (payload.documentVersion !== existing.votingVersion) return Response.json({ error: "表决正文已变化，请刷新后重新确认。" }, { status: 409 });
+      // Vote and stage check happen in one SQL statement. No late vote can land.
+      const voted = await env.DB.prepare(`INSERT INTO parliament_votes
+        (id, item_id, citizen_id, choice, document_version, created_at, updated_at)
+        SELECT ?, i.id, ?, ?, i.voting_version, ?, ?
+        FROM parliament_items i
+        WHERE i.id = ? AND i.stage = 'voting' AND i.voting_version IS NOT NULL
+          AND i.voting_version = i.version AND i.voting_version = ?
+          AND EXISTS (SELECT 1 FROM parliament_document_versions d WHERE d.item_id = i.id AND d.version = i.voting_version)
+        ON CONFLICT(item_id, citizen_id) DO UPDATE SET
+          choice = excluded.choice, document_version = excluded.document_version,
+          updated_at = excluded.updated_at`)
+        .bind(`${itemId}:${citizenId}`, citizenId, choice, now, now, itemId, existing.votingVersion).run();
+      if (!voted.meta.changes) return Response.json({ error: "表决已结束，请刷新当前议案。" }, { status: 409 });
+      await db.update(parliamentItems).set({ updatedAt: now }).where(and(eq(parliamentItems.id, itemId), eq(parliamentItems.stage, "voting")));
     } else if (action === "transition_stage") {
       if (!isStageManager(request, citizenId)) return Response.json({ error: "只有宇宙霸主账号可以切换议事阶段。" }, { status: 403 });
       const nextStage = cleanText(payload.stage, 30);
@@ -509,27 +563,52 @@ export async function POST(request: Request) {
         }
       }
       if (nextStage === "resolved" && existing.stage !== "voting") return Response.json({ error: "只有正在表决的议案可以直接结案。" }, { status: 409 });
-      let outcome = nextStage === "resolved" ? existing.outcome : "pending";
-      if (nextStage === "resolved") {
-        const requestedOutcome = cleanText(payload.outcome, 40);
-        if (OUTCOMES.has(requestedOutcome) && requestedOutcome !== "pending") outcome = requestedOutcome;
-        else {
-          const votes = await db.select().from(parliamentVotes).where(eq(parliamentVotes.itemId, itemId));
-          const eligibleVotes = votes.filter((vote) => vote.documentVersion === existing.votingVersion);
-          const support = eligibleVotes.filter((vote) => vote.choice === "support").length;
-          const oppose = eligibleVotes.filter((vote) => vote.choice === "oppose").length;
-          outcome = support > oppose ? "passed" : oppose > support ? "rejected" : "leader_decision_required";
-        }
-      }
-      await db.update(parliamentItems).set({ stage: nextStage, outcome, stageReason: reason, votingVersion: nextStage === "voting" ? existing.version : existing.votingVersion, updatedAt: now }).where(eq(parliamentItems.id, itemId));
-      await db.insert(parliamentComments).values({ id: crypto.randomUUID(), itemId, citizenId, commentType: "system", body: `议事阶段由“${existing.stage}”切换为“${nextStage}”：${reason}`, createdAt: now });
-      await audit(itemId, citizenId, "stage_transition", `议事阶段由“${existing.stage}”切换为“${nextStage}”。`, { from: existing.stage, to: nextStage, reason, outcome, frozenVersion: nextStage === "voting" ? existing.version : existing.votingVersion }, now);
+      // D1 batch executes atomically. Tally comes from the frozen vote set at
+      // the UPDATE statement, then the comment and audit share that transaction.
+      const requested = cleanText(payload.outcome, 40);
+      const explicitOutcome = nextStage === "resolved" && OUTCOMES.has(requested) && requested !== "pending" ? requested : "";
+      const transitionToken = crypto.randomUUID();
+      const previousStage = existing.stage;
+      const outcomeExpression = `CASE
+        WHEN ? <> 'resolved' THEN 'pending'
+        WHEN ? <> '' THEN ?
+        ELSE (SELECT CASE
+          WHEN SUM(CASE WHEN v.choice='support' THEN 1 ELSE 0 END) >
+               SUM(CASE WHEN v.choice='oppose' THEN 1 ELSE 0 END) THEN 'passed'
+          WHEN SUM(CASE WHEN v.choice='oppose' THEN 1 ELSE 0 END) >
+               SUM(CASE WHEN v.choice='support' THEN 1 ELSE 0 END) THEN 'rejected'
+          ELSE 'leader_decision_required' END
+          FROM parliament_votes v
+          WHERE v.item_id = parliament_items.id AND v.document_version = parliament_items.voting_version)
+      END`;
+      const transitions = await env.DB.batch([
+        env.DB.prepare(`UPDATE parliament_items SET
+          stage = ?, outcome = ${outcomeExpression}, stage_reason = ?,
+          voting_version = CASE WHEN ? = 'voting' THEN version ELSE voting_version END,
+          transition_token = ?, updated_at = ?
+          WHERE id = ? AND stage = ? AND version = ?`)
+          .bind(nextStage, nextStage, explicitOutcome, explicitOutcome, reason, nextStage,
+                transitionToken, now, itemId, existing.stage, existing.version),
+        env.DB.prepare(`INSERT INTO parliament_comments
+          (id, item_id, citizen_id, comment_type, body, created_at)
+          SELECT ?, id, ?, 'system', ?, ? FROM parliament_items
+          WHERE id = ? AND transition_token = ?`)
+          .bind(crypto.randomUUID(), citizenId, `议事阶段由“${previousStage}”切换为“${nextStage}”：${reason}`, now, itemId, transitionToken),
+        env.DB.prepare(`INSERT INTO parliament_audit_events
+          (id, item_id, actor_citizen_id, event_type, description, metadata_json, created_at)
+          SELECT ?, id, ?, 'stage_transition', ?,
+            json_object('from', ?, 'to', ?, 'reason', ?, 'outcome', outcome, 'frozenVersion', voting_version),
+            ? FROM parliament_items WHERE id = ? AND transition_token = ?`)
+          .bind(crypto.randomUUID(), citizenId, `议事阶段由“${previousStage}”切换为“${nextStage}”。`,
+                previousStage, nextStage, reason, now, itemId, transitionToken),
+      ]);
+      if (!transitions[0]?.meta?.changes) return Response.json({ error: "议事阶段已被其他操作改变，请刷新后重试。" }, { status: 409 });
     } else {
       return Response.json({ error: "未知的议会操作。" }, { status: 400 });
     }
 
     return Response.json(LIVE_RESPONSE_ACTIONS.has(action) ? await livePayload(request, itemId, citizenId) : await boardPayload(request, itemId, citizenId));
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "议会操作失败，请稍后重试。" }, { status: 500 });
+    return apiFailure(error, "议会操作失败，请稍后重试。");
   }
 }

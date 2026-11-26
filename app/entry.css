@@ -39,9 +39,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .title-rule i { width: 5px; height: 5px; margin: 0 14px; border: 1px solid var(--gold); transform: rotate(45deg); }
 .title-reveal h2 { margin: 0; font: 400 1.1rem var(--serif); letter-spacing: .35em; }
 .title-reveal small { display: block; margin-top: 1rem; color: #67758a; font-size: 7px; letter-spacing: .48em; }
-.skip { position: absolute; z-index: 3; right: clamp(20px,4vw,60px); bottom: clamp(24px,4vw,48px); border: 0; background: none; color: #8794a6; font-size: 8px; letter-spacing: .24em; cursor: pointer; opacity: 0; animation: fadeUp .7s 2.2s forwards; }
-.skip span { margin-left: 16px; }
-.skip:hover { color: var(--ink); }
+.opening-skip-surface { position:absolute; inset:0; z-index:3; width:100%; height:100%; padding:0; border:0; background:transparent; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.opening-skip-surface:focus-visible { outline:2px solid var(--ink); outline-offset:-3px; }
 .intro-progress { position: absolute; z-index: 3; inset: auto 0 0; height: 2px; background: rgba(49,92,122,.08); }
 .intro-progress i { display: block; width: 100%; height: 100%; transform-origin: left; background: linear-gradient(90deg,#5794c1,var(--gold)); animation: introProgress 5.2s linear; }
 
@@ -168,8 +167,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   filter: none;
 }
 
-/* The approved Amberina mark is inlined into the CSP-nonced stylesheet on
-   the public login screen, preserving the private static-asset boundary. */
+/* The original Amberina Simple asset is selected by the public-entry
+   placement registry and loaded without a private React bundle. */
 .citizen-mark.personal-simple .citizen-simple-image {
   background-position: center;
   background-repeat: no-repeat;
@@ -179,3 +178,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .welcome-preload-status { margin: 14px 0; color: #7d899b; font-size: 11px; line-height: 1.5; }
 .welcome-preload-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .welcome-preload-actions button { padding: 10px 14px; border: 1px solid #6d7786; background: transparent; color: inherit; cursor: pointer; font-size: 10px; }
+
+/* The official identity appears as its own option, never as a ninth citizen. */
+.identity-grid > button.technology-login-card { --citizen:#b99a60; background:linear-gradient(115deg,rgba(246,235,206,.45),rgba(255,255,255,.44)); }
+.identity-grid > button.technology-login-card.selected { background:linear-gradient(105deg,rgba(236,208,149,.27),rgba(255,255,255,.72)); }
+.identity-grid > button.technology-login-card .emblem { flex:0 0 auto; width:36px; height:36px; }
+.identity-grid > button.technology-login-card > span:nth-of-type(1) { min-width:0; flex:1; display:flex; flex-direction:column; gap:5px; }
+.identity-grid > button.technology-login-card strong { color:#775c2c; }
+.identity-grid > button.technology-login-card small { color:#806e4b; }
+
+/* Official office login is a distinct full-width row, never a ninth citizen.
+ * Keep enough scroll room at short desktop and mobile viewport heights. */
+.identity-grid > button.technology-login-card { grid-column:1/-1; min-height:58px; padding:10px 17px; border-right:0; }
+.identity-grid > button.technology-login-card .emblem { width:36px; height:36px; flex:0 0 36px; }
+.login { overflow-x:hidden; overflow-y:auto; }
+
+/* No.2's original Garnet Red responsive artwork is not an SVG flame.
+   Keep the transparent master and full detailed portrait version untouched. */
+.citizen-mark.no2-symbol .citizen-simple-image {
+  object-fit: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}

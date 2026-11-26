@@ -17,7 +17,7 @@ Connect this private GitHub repository in **Workers & Pages → Create applicati
 | Deploy command | `npm run deploy` |
 | Node version | `24` |
 
-The deploy script finds and reuses the `DB` D1 database, creating it only if needed, then applies schema migrations before publishing the Worker. Photos use a private Supabase bucket named `schicksal-photos`. Configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as Worker Secrets; never commit their real values. No old account resource IDs are embedded.
+The reviewed C security integration changes deployment to **fail closed** when the existing production Cloudflare account or D1 `DB` binding is missing/mismatched. It must never create a substitute production database. Migrations need an isolated rehearsal and a coherent backup before an explicitly approved production release. Older free-setup scripts may describe a less strict first-install path; do not follow those instructions for the current production database. Photos use a private Supabase bucket named `schicksal-photos`. Configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as Worker Secrets; never commit their real values. No old account resource IDs are embedded.
 
 Add **SCHICKSAL_MEMBER_PASSWORDS** as a Worker **Secret**. Its value is a JSON object containing the owner key `amberina`; add `zxy`, `truth`, `kaito` or `harry` only when inviting those members. Passwords may use 1–1024 characters. After the initial owner login, use Profile → Member login settings to set other members’ passwords; those values are salted and hashed in D1. Configure the initial owner credential privately in Cloudflare; do not put them in Git, screenshots or chat. The whole site stays closed until owner login is configured correctly. The source contains no working fallback member password.
 
@@ -34,7 +34,7 @@ The data backup is separate from this source repository. It contains the source 
 3. Upload backup `objects/family-archive/...` to the private Supabase `schicksal-photos` bucket, retaining the `family-archive/...` object key and MIME type.
 4. Compare the restored row counts and photo hashes with the backup manifest. Refresh the source snapshot before final cutover if the old site received new writes.
 
-The original export contained 313 application records and one archive photo. Login sessions and rate-limit windows were intentionally omitted. Creating the Worker alone does not finish the data migration. Keep the old website until the restored site is checked.
+An earlier historical export contained 313 application records and one archive photo; these are **not** asserted to be the current production counts. Login sessions and rate-limit windows were intentionally omitted. Creating the Worker alone does not finish the data migration. Keep the old website until the restored site is checked.
 
 ## Local development and checks
 
@@ -50,3 +50,26 @@ read [AGENTS.md](AGENTS.md) and the authoritative
 Official representative colour is `#F3ED87`; approved stronger emblem-only
 colour is `#EECF58`. New emblem/name display contexts require an explicit
 question about whether the colour should be strengthened.
+
+## Public identity, modularity and asset audits (Draft #14)
+
+Future public modules (including Library and Gallery) should use the shared, light
+`app/identity/public.ts` contract for member colors, image/mark asset metadata
+and office assignments, plus the reusable
+`app/identity/public-mark.tsx` and `app/emblem/compact-emblem.tsx` components
+for approved public mark presentation. The Lounge's personal masks remain a
+separate identity domain. The approved current President is a static office
+assignment until a separately authenticated election/term service is built.
+Never infer platform-admin permission from a political office.
+
+Use `npm run audit:assets -- --json` for a **read-only** inventory of every
+`public/` asset, including game WASM/BIN and source archives; it does not
+automatically delete or optimize any artwork. Legacy Lounge CSS still needs
+visual approval for per-scene scoping.
+
+Read [the full site audit](docs/architecture/site-audit-2026-11-20.md)
+before adding new modules, uploading gallery originals or rewriting
+shared identity. The additive `0014_briefing_presence.sql` replaces
+request-time schema creation; it must be tested and applied in an isolated
+D1 environment **before** deploying code that requires the new tables.
+Neither this migration nor the stacked C/D/E PRs are applied to production.

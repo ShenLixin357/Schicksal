@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./identity/office-insignia.css";
+import "./club/lounge-core.css";
+import "./parliament/parliament-workspace.css";
+import "./archives/archive-reader.css";
+import "./parliament/parliament-scenes.css";
+import "./club/lounge-v15.css";
 import "./navigation-layout.css";
 import "./club/lounge-magic.css";
+import "./shell/shell.css";
+import "./shell/placeholder.css";
+import "./transitions/lounge-passage.css";
 
 export const metadata: Metadata = {
   title: "Schicksal — 天命第一帝国",

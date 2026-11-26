@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import "./messenger.css";
+import type { PublicMarkPlacement } from "../identity/mark-placements";
 
 type Member = { id: string; username: string; name: string; locked?: boolean };
 type Message = { id: string; senderId: string; recipientId: string; body: string; createdAt: string };
@@ -12,7 +13,7 @@ export function Messenger({ selfId, members, peerId, onSelect, renderMark }: {
   members: readonly Member[];
   peerId: string | null;
   onSelect: (peerId: string | null) => void;
-  renderMark: (memberId: string) => ReactNode;
+  renderMark: (memberId: string, placement: Extract<PublicMarkPlacement, "messenger-contact" | "messenger-peer">) => ReactNode;
 }) {
   const contacts = members.filter(member => !member.locked);
   const peer = contacts.find(member => member.id === peerId);
@@ -90,7 +91,7 @@ export function Messenger({ selfId, members, peerId, onSelect, renderMark }: {
       {contacts.map(member => {
         const latest = recent[member.id];
         return <button key={member.id} type="button" onClick={() => { setDraft(""); onSelect(member.id); }}>
-          {renderMark(member.id)}
+          {renderMark(member.id, "messenger-contact")}
           <span className="imperial-messenger-contact-copy">
             <strong>{member.username}{member.id === selfId ? " · 我的私人笔记" : ""}</strong>
             <small>{latest ? latest.body : member.id === selfId ? "给自己写一封信" : "开始一段私人对话"}</small>
@@ -101,7 +102,7 @@ export function Messenger({ selfId, members, peerId, onSelect, renderMark }: {
       {status === "error" && <p role="alert">{error} <button type="button" onClick={() => setRefresh(value=>value+1)}>重试</button></p>}
     </div> : <div className="imperial-messenger-thread">
       <header><button type="button" onClick={() => onSelect(null)} aria-label="返回通讯录">← 全部通讯</button>
-        <div className="imperial-messenger-peer">{renderMark(peer.id)}<span><strong>{peer.username}</strong><small>{peer.id === selfId ? "PRIVATE NOTES · 私人笔记" : "DIRECT MESSAGE · 私人通讯"}</small></span></div>
+        <div className="imperial-messenger-peer">{renderMark(peer.id, "messenger-peer")}<span><strong>{peer.username}</strong><small>{peer.id === selfId ? "PRIVATE NOTES · 私人笔记" : "DIRECT MESSAGE · 私人通讯"}</small></span></div>
       </header>
       <div className="imperial-messenger-messages" role="log" aria-label={`与${peer.username}的消息`}>
         {status === "loading" && !messages.length ? <p className="imperial-messenger-muted">正在打开书信…</p>

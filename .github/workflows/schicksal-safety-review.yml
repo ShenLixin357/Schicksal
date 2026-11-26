@@ -1,0 +1,65 @@
+name: Schicksal safety integration review
+on:
+  pull_request:
+    paths:
+      - "app/api/**"
+      - "db/**"
+      - "drizzle/**"
+      - "server/**"
+      - "scripts/cloudflare/**"
+      - "scripts/migrations.mjs"
+      - "tests/**"
+      - "package.json"
+      - ".github/workflows/schicksal-safety-review.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrity:
+    name: Session, migrations and local restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Record reviewed commit
+        env:
+          REVIEWED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SHA"
+          echo "Reviewed commit: $REVIEWED_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run db:check
+      - run: npm run test:migration-authority
+      - run: npm run test:identity
+      - run: npm run test:backup-restore
+      - run: npm run test:deployment
+      - run: npm run test:messenger
+      - run: npm run test:architecture
+  site:
+    name: Full site regressions and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Record reviewed commit
+        env:
+          REVIEWED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SHA"
+          echo "Reviewed commit: $REVIEWED_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+# No Cloudflare credentials, production deployments, remote migrations or snapshots here.

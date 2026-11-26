@@ -16,25 +16,53 @@ on:
       - "scripts/ice-fire/**"
       - "package.json"
       - ".github/workflows/ice-fire-check.yml"
+concurrency:
+  group: ice-fire-verification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
-  native-engine:
-    uses: ./.github/workflows/insaniquarium-web.yml
   verify:
-    needs: native-engine
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: npm
-      - uses: actions/download-artifact@v4
-        with:
-          name: insaniquarium-original-engine-and-source
-          path: public/games/insaniquarium
+      - name: Install dependencies once for native and whole-site tests
+        run: npm ci
+      - name: Check whether the committed original game engine matches its source
+        id: existing-engine
+        shell: bash
+        run: |
+          if node scripts/insaniquarium/check-engine.mjs; then
+            echo "rebuild=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "rebuild=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned Emscripten SDK only when the engine needs rebuilding
+        if: steps.existing-engine.outputs.rebuild == 'true'
+        shell: bash
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          git -C "$RUNNER_TEMP/emsdk" checkout 1693ce7359fc9694f198694f902a2cc061239b86
+          cd "$RUNNER_TEMP/emsdk"
+          ./emsdk install 4.0.20
+          ./emsdk activate 4.0.20
+      - name: Compile original engine only when source changed
+        if: steps.existing-engine.outputs.rebuild == 'true'
+        shell: bash
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          bash ports/insaniquarium/build-web.sh
+      - name: Validate native-engine and source equivalence
+        run: node scripts/insaniquarium/check-engine.mjs
+      - name: Test native engine and member saves
+        run: npm run test:insaniquarium
+      - name: Verify automatically hosted native game files
+        run: node scripts/insaniquarium/check-resources.mjs
       - name: Import pinned HTML5 game resources
         run: npm run game:import
       - name: Verify local game files
@@ -44,8 +72,6 @@ jobs:
           test -f public/games/6-fairy-tales/game.js
           test ! -e public/games/sw.js
           ! grep -R 'serviceWorker.register' public/games/*/index.html
-      - name: Install dependencies
-        run: npm ci
       - name: Project tests
         run: npm test
       - name: Build website with imported game assets
@@ -56,3 +82,8 @@ jobs:
           find dist/client -name 'game.js' -print | head
           test -f dist/client/games/1-forest-temple/js/game.js
 
+# PR validation intentionally avoids upload-artifact / download-artifact.
+# The committed engine is checked/compiled inside the same ephemeral runner:
+# no 30-day large engine bundles accumulate in GitHub Actions artifact storage.
+# The separate release packaging workflow may still upload an artifact when
+# explicitly invoked for distributing a changed native engine.

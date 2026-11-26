@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { currentMember, sameOrigin } from "../../member-session";
+import { readJson, ApiError } from "../../../server/http.ts";
 
 const headers = { "Cache-Control": "no-store" };
 const maxBytes = 48_000;
@@ -42,10 +43,14 @@ export async function PUT(request: Request) {
   try {
     const member = await authenticate(request);
     if (!member) return Response.json({ error: "请重新登录当前成员身份。" }, { status: 401, headers });
-    const raw = await request.text();
-    if (new TextEncoder().encode(raw).length > maxBytes) return Response.json({ error: "存档过大。" }, { status: 413, headers });
     let payload: { revision?: unknown; state?: unknown };
-    try { payload = JSON.parse(raw); } catch { return Response.json({ error: "存档格式不正确。" }, { status: 400, headers }); }
+    try { payload = await readJson(request, maxBytes); }
+    catch (error) {
+      if (error instanceof ApiError) return Response.json({
+        error: error.status === 413 ? "存档过大。" : "存档格式不正确。",
+      }, { status: error.status, headers });
+      throw error;
+    }
     if (!payload || !Number.isSafeInteger(payload.revision) || Number(payload.revision) < 0 || !validState(payload.state)) {
       return Response.json({ error: "存档数据无效。" }, { status: 400, headers });
     }

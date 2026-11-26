@@ -63,6 +63,47 @@ async function act(cookie, action, payload = {}, status = 200) {
 function deadline() { const date = new Date(Date.now() + 2 * 86400000); date.setUTCHours(21, 7, 0, 0); return date.toISOString(); }
 async function election(cookie) { return act(cookie, "configure_speaker_election", { speakerElectionDeadline: deadline() }); }
 
+test("archived text survives official edits and accepted amendments, with ballot version checks", async () => {
+  const sqlite = setup("amendment");
+  try {
+    const owner = await login("amberina");
+    const voter = await login("zxy");
+    const documents = "/api/parliament?scope=documents&itemId=speaker-test";
+    const get = (query, cookie) => parliament.GET(request(documents + query, { cookie }));
+    assert.equal((await get("&version=1")).status, 401);
+    assert.equal((await get("&version=0", voter)).status, 400);
+    await act(owner, "update_item", {
+      title: "Missing version", summary: "Missing version", body: "Must not overwrite",
+    }, 409);
+    await act(owner, "update_item", {
+      expectedVersion: 1, title: "Second title", summary: "Second summary", body: "Second text",
+    });
+    await act(owner, "update_item", {
+      expectedVersion: 1, title: "Stale title", summary: "Stale summary", body: "Stale text",
+    }, 409);
+    await act(voter, "submit_amendment", {
+      targetQuote: "Second text", proposedText: "Amended text", reason: "Isolated test amendment",
+    });
+    const { id: amendmentId } = sqlite.prepare("SELECT id FROM parliament_amendments WHERE item_id='speaker-test'").get();
+    await act(owner, "decide_amendment", { amendmentId, decision: "accepted" });
+    await act(owner, "decide_amendment", { amendmentId, decision: "accepted" }, 409);
+    const versions = await (await get("", voter)).json();
+    assert.deepEqual(versions.documents.map(row => row.version), [3, 2, 1]);
+    for (const [version, text] of [[1, "Original text"], [2, "Second text"], [3, "Amended text"]]) {
+      const result = await get("&version=" + version, voter);
+      assert.equal(result.status, 200);
+      assert.match(result.headers.get("cache-control"), /no-store/);
+      assert.equal((await result.json()).document.body, text);
+    }
+    assert.equal((await get("&version=4", voter)).status, 404);
+    sqlite.exec("UPDATE parliament_items SET stage='voting', voting_version=version WHERE id='speaker-test'");
+    await act(voter, "cast_vote", { choice: "support" }, 409);
+    await act(voter, "cast_vote", { choice: "support", documentVersion: 2 }, 409);
+    await act(voter, "cast_vote", { choice: "support", documentVersion: 3 });
+    assert.equal(sqlite.prepare("SELECT document_version FROM parliament_votes WHERE item_id='speaker-test'").get().document_version, 3);
+  } finally { sqlite.close(); }
+});
+
 test("the three authenticated committee members manage elections without acquiring unrelated stage powers", async () => {
   for (const id of ["amberina", "zxy", "truth"]) {
     const sqlite = setup();
@@ -184,5 +225,48 @@ test("direct appointment enters debate, supports immediate start or seating firs
       for (const action of ["assign_speaker", "revoke_speaker_election", "close_speaker_election"]) await act(owner, action, { candidateCitizenId: "zxy" }, 409);
       assert.equal(sqlite.prepare("SELECT speaker_citizen_id FROM parliament_meeting_sessions WHERE item_id='speaker-test'").get().speaker_citizen_id, "amberina");
     }
+  } finally { sqlite.close(); }
+});
+
+
+test("votes freeze when resolved; tally, official comment and audit commit atomically", async () => {
+  const sqlite = setup("voting");
+  try {
+    sqlite.exec("UPDATE parliament_items SET voting_version=version WHERE id='speaker-test'");
+    const owner = await login("amberina"), voter = await login("truth");
+    await act(voter, "cast_vote", { choice: "support", documentVersion: 1 });
+    await act(owner, "transition_stage", { stage: "resolved", reason: "Votes counted and frozen" });
+    const final = sqlite.prepare("SELECT stage,outcome FROM parliament_items WHERE id='speaker-test'").get();
+    assert.deepEqual({ ...final }, { stage: "resolved", outcome: "passed" });
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_comments WHERE item_id='speaker-test' AND comment_type='system'").get().n, 1);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_audit_events WHERE item_id='speaker-test' AND event_type='stage_transition'").get().n, 1);
+    await act(voter, "cast_vote", { choice: "oppose" }, 409);
+    assert.equal(sqlite.prepare("SELECT choice FROM parliament_votes WHERE item_id='speaker-test'").get().choice,"support");
+  } finally { sqlite.close(); }
+});
+
+test("injected audit failure rolls back a staged resolution and its system comment", async () => {
+  const sqlite = setup("voting");
+  try {
+    sqlite.exec("UPDATE parliament_items SET voting_version=version WHERE id='speaker-test'");
+    const owner = await login("amberina"), originalBatch = env.DB.batch;
+    env.DB.batch = async (statements) => {
+      sqlite.exec("BEGIN");
+      try {
+        await statements[0].run();
+        await statements[1].run();
+        throw new Error("isolated audit write failure");
+      } catch (error) {
+        sqlite.exec("ROLLBACK");
+        throw error;
+      }
+    };
+    try {
+      const failed = await visit({method:"POST", cookie:owner, body:{itemId:"speaker-test",action:"transition_stage",stage:"resolved",reason:"Must roll back atomically"}});
+      assert.ok(failed.status >= 500);
+    } finally { env.DB.batch = originalBatch; }
+    assert.equal(sqlite.prepare("SELECT stage FROM parliament_items WHERE id='speaker-test'").get().stage, "voting");
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_comments WHERE item_id='speaker-test' AND comment_type='system'").get().n, 0);
+    assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM parliament_audit_events WHERE item_id='speaker-test' AND event_type='stage_transition'").get().n, 0);
   } finally { sqlite.close(); }
 });

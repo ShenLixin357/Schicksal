@@ -1,5 +1,5 @@
 /* The right-hand room is the containing block for its fixed game overlays. */
-.system { --sidebar-width: 248px; grid-template-columns: var(--sidebar-width) minmax(0,1fr); }
+.system { --sidebar-width: 224px; grid-template-columns: var(--sidebar-width) minmax(0,1fr); }
 .sidebar { min-width: 0; }
 .side-brand { position: relative; gap: 10px; padding-right: 27px; }
 .sidebar-toggle { position: absolute; right: 0; top: 7px; display: grid; place-items: center; width: 27px; height: 30px; border: 1px solid var(--line-strong); border-radius: 7px; background: transparent; color: inherit; font: 24px/1 var(--serif); cursor: pointer; }
@@ -75,7 +75,7 @@
 .member-access-settings .member-password-note,.member-access-settings [role="status"] { grid-column: 1/-1; margin: 0; }.member-access-settings [role="status"] { font-size: 13px; line-height: 1.7; color: #7c5719; }
 @container (max-width: 1200px) { .club-main .solitaire-header { grid-template-columns: auto minmax(0,1fr) auto; }.club-main .solitaire-actions { grid-column: 1/-1; justify-content: flex-end; flex-wrap: wrap; }.club-main .solitaire-title small { font-size: 9px; letter-spacing: .08em; } }
 @container (max-width: 680px) { .club-main .solitaire-header { grid-template-columns: auto minmax(0,1fr); min-height: 0; padding: 12px; }.club-main .solitaire-title .fate-emblem { display: none; }.club-main .solitaire-title h1 { font-size: 1.05rem; }.club-main .solitaire-title small,.club-main .solitaire-title p { display: none; }.club-main .solitaire-stats { grid-column: 1/-1; justify-content: center; }.club-main .solitaire-actions { grid-row: auto; justify-content: center; flex-wrap: wrap; overflow: visible; }.club-main .solitaire-rules { flex-wrap: wrap; font-size: 10px; gap: 7px; }.club-main .solitaire-status { font-size: 11px; }.club-main .fate-card { font-size: 10px; } }
-@media (max-width:1100px) { .system { --sidebar-width: 200px; } }
+@media (max-width:1100px) { .system { --sidebar-width: 192px; } }
 @media (max-width:760px) {
   .system { display: block; }
   .sidebar .side-brand { min-height: 44px; padding-right: 45px; }

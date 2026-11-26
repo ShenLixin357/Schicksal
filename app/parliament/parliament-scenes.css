@@ -1,0 +1,112 @@
+/* Parliament v13 — one case, one stage, one scene. */
+.parliament-stage-rail { margin-top: 28px !important; padding: 7px; border: 1px solid var(--line); background: rgba(255,255,255,.5); display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; }
+.parliament-stage-rail button { min-width: 0; min-height: 72px; padding: 10px 9px; border: 0; background: transparent; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 3px 8px; text-align: left; cursor: pointer; transition: background .16s ease,color .16s ease; }
+.parliament-stage-rail button:hover { background: rgba(255,255,255,.82); }
+.parliament-stage-rail button.active { background: #fffdf8; color: #805e21; box-shadow: inset 0 -2px var(--gold); }
+.parliament-stage-rail small { color: #8793a0; font-size: 5px; letter-spacing: .12em; }
+.parliament-stage-rail strong { font: 400 .78rem var(--serif); }
+.parliament-stage-rail b { grid-column: 2; grid-row: 1/3; align-self: center; color: #758493; font: 400 1rem var(--serif); }
+.parliament-toolbar.streamlined { margin-top: 10px !important; min-height: 68px; }
+.parliament-toolbar.streamlined > div { display: grid; gap: 4px; }
+.parliament-toolbar.streamlined > div strong { font: 400 1rem var(--serif); }
+
+.parliament-library-grid.overview-open { display: block; }
+.streamlined-docket { position: static; max-height: none; border: 0; background: transparent; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; overflow: visible; }
+.streamlined-docket > header { grid-column: 1/-1; min-height: 86px; padding: 16px 2px; border: 0; border-bottom: 1px solid var(--line); background: transparent; }
+.streamlined-docket .docket-card { border: 1px solid var(--line); background: rgba(255,255,255,.62); box-shadow: 0 9px 22px rgba(48,72,88,.035); transition: border-color .16s ease,box-shadow .16s ease; }
+.streamlined-docket .docket-card:hover { border-color: rgba(183,132,40,.3); box-shadow: 0 14px 28px rgba(48,72,88,.065); }
+.streamlined-docket .docket-card.active { border-color: var(--line); box-shadow: none; }
+.streamlined-docket .docket-open { min-height: 205px; }
+
+.parliament-library-grid.workspace-open { display: block; }
+.parliament-case { width: 100%; padding: clamp(24px,4.2vw,54px); animation: parliamentSceneIn .24s ease both; }
+.casebar { min-height: 48px; margin: calc(clamp(24px,4.2vw,54px) * -1) calc(clamp(24px,4.2vw,54px) * -1) 28px; padding: 0 clamp(18px,3vw,32px); border-bottom: 1px solid var(--line); background: rgba(242,246,244,.82); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 18px; }
+.casebar button { width: max-content; padding: 0; border: 0; background: none; color: #516d62; font-size: .7rem; cursor: pointer; }
+.casebar span { color: #9a6b1f; font: 400 .76rem var(--serif); letter-spacing: .12em; }
+.casebar small { justify-self: end; color: #748599; font-size: 6px; letter-spacing: .1em; }
+.case-journey { margin: 0 0 32px; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(5,1fr); }
+.case-journey li { position: relative; min-width: 0; display: grid; justify-items: center; gap: 8px; color: #98a1a9; font-size: .66rem; }
+.case-journey li::before { content: ""; position: absolute; top: 13px; right: 50%; width: 100%; height: 1px; background: #d4d9d8; }
+.case-journey li:first-child::before,.case-journey li.deferred::before { display: none; }
+.case-journey i { position: relative; z-index: 1; width: 27px; height: 27px; border: 1px solid #cad1d0; border-radius: 50%; background: #f8f6ef; display: grid; place-items: center; font: 400 .68rem var(--serif); font-style: normal; }
+.case-journey li.complete { color: #52745f; }.case-journey li.complete::before { background: #7b9a86; }.case-journey li.complete i { border-color: #5f846c; background: #e8f0e9; }
+.case-journey li.current { color: #7a5720; font-weight: 600; }.case-journey li.current i { border-color: var(--gold); background: #f2dfb7; box-shadow: 0 0 0 5px rgba(183,132,40,.08); }
+.case-journey li.future { color: #a6adb1; }
+.case-journey li.deferred { grid-column: 1/-1; margin-top: 9px; }
+.parliament-case .document-title { max-width: 850px; padding-top: 42px; }
+.parliament-case .document-title h2 { font-size: clamp(2.4rem,5vw,4.7rem); }
+.parliament-case.stage-debate .document-head,.parliament-case.stage-amendment .document-head,.parliament-case.stage-voting .document-head,.parliament-case.stage-resolved .document-head,.parliament-case.stage-deferred .document-head { display: none; }
+.parliament-case.stage-debate .document-title,.parliament-case.stage-amendment .document-title,.parliament-case.stage-voting .document-title,.parliament-case.stage-resolved .document-title,.parliament-case.stage-deferred .document-title { max-width: 960px; padding-top: 8px; }
+.parliament-case.stage-debate .document-title h2,.parliament-case.stage-amendment .document-title h2,.parliament-case.stage-voting .document-title h2,.parliament-case.stage-resolved .document-title h2,.parliament-case.stage-deferred .document-title h2 { font-size: clamp(2rem,3.8vw,3.5rem); }
+.case-panel-nav { margin: 32px 0 0; padding: 6px; border: 1px solid var(--line); background: rgba(244,246,243,.72); display: flex; gap: 5px; overflow-x: auto; }
+.case-panel-nav button { flex: 1 0 115px; min-height: 40px; padding: 0 13px; border: 0; background: transparent; color: #718093; font-size: .69rem; cursor: pointer; }
+.case-panel-nav button.active { background: #fffdf8; color: #6f5525; box-shadow: 0 4px 13px rgba(47,70,82,.06); }
+.focused-document,.parliament-case .procedure-dossier,.parliament-case .stage-manager,.parliament-case .audit-log,.parliament-case .async-proposal-discussion,.parliament-case .division-public,.parliament-case .result-proclamation,.parliament-case .deferred-notice { animation: parliamentSceneIn .2s ease both; }
+.focused-document { margin-top: 20px; min-height: 280px; padding: clamp(24px,4vw,45px); background: #fffdf8; }
+
+/* The chamber is the only intentionally dark, theatrical room in the site. */
+.meeting-workspace { animation: parliamentSceneIn .22s ease both; }
+.meeting-workspace.chamber-ready { margin: 24px calc(clamp(24px,4.2vw,54px) * -.48) 0; padding: clamp(22px,3vw,36px); border: 1px solid #674b2e; background: linear-gradient(180deg,#163a2b 0,#0f3023 54%,#10281e 100%); box-shadow: 0 25px 55px rgba(20,48,35,.2),inset 0 1px rgba(242,216,161,.14); color: #f8f1dd; overflow: hidden; }
+.meeting-workspace.chamber-ready > header { padding-bottom: 18px; border-bottom: 1px solid rgba(235,211,160,.17); }
+.meeting-workspace.chamber-ready > header .eyebrow,.meeting-workspace.chamber-ready > header > span { color: #d5b977; }
+.meeting-workspace.chamber-ready > header h3 { color: #fff8e8; }
+.schicksal-chamber { position: relative; min-height: 520px; margin-top: 18px; padding: 34px 28px; border: 8px solid #4a3020; outline: 1px solid #b28b4c; background: radial-gradient(ellipse at 50% 15%,rgba(222,184,104,.18),transparent 30%),linear-gradient(90deg,#153b2b,#1b5038 14%,#113423 41%,#103020 59%,#1b5038 86%,#153b2b); grid-template-columns: minmax(0,1fr) minmax(145px,180px) minmax(0,1fr); gap: clamp(14px,2vw,27px); align-items: stretch; box-shadow: inset 0 0 0 1px rgba(255,236,189,.14),inset 0 -40px 70px rgba(0,0,0,.18),0 18px 34px rgba(0,0,0,.22); }
+.schicksal-chamber::after { content: ""; position: absolute; left: 50%; top: 33px; bottom: 31px; width: 1px; background: linear-gradient(transparent,rgba(221,190,126,.36) 18%,rgba(221,190,126,.36) 82%,transparent); pointer-events: none; }
+.chamber-side { position: relative; z-index: 1; align-self: center; }
+.chamber-side > header { margin-bottom: 13px; padding: 0 3px 9px; border-bottom: 1px solid rgba(226,203,153,.21); color: #e7d5aa; }
+.chamber-side > header small { color: #ad9b74; }
+.chamber-side > div { grid-template-columns: 1fr; gap: 8px; }
+.chamber-side button,.question-side button { min-height: 68px; padding: 10px 13px; border: 1px solid rgba(235,215,171,.2); border-left: 4px solid #c4a15b; border-right: 1px solid rgba(235,215,171,.2); background: linear-gradient(180deg,#235f43,#194a34); color: #fff7e4; box-shadow: inset 0 -6px 0 rgba(6,29,19,.25),0 5px 10px rgba(0,0,0,.16); flex-direction: row; text-align: left; transition: transform .15s ease,border-color .15s ease,background .15s ease; }
+.question-side button { border-right: 4px solid #c4a15b; border-left: 1px solid rgba(235,215,171,.2); flex-direction: row-reverse; text-align: right; }
+.chamber-side button:not(:disabled):hover { transform: translateY(-1px); background: linear-gradient(180deg,#2a6d4d,#1d523a); }
+.chamber-side button.mine { border-color: #f0ce7b; background: linear-gradient(180deg,#2e7452,#20583e); box-shadow: 0 0 0 2px rgba(240,206,123,.16),inset 0 -6px rgba(6,29,19,.22); }
+.chamber-side button.floor { border-color: #fff0bd; box-shadow: 0 0 24px rgba(238,207,133,.3),inset 0 -6px rgba(6,29,19,.2); }
+.chamber-side button.empty { color: #d6c69f; }.chamber-side button.empty:disabled { opacity: .38; }
+.chamber-side button small { color: #b8b096; }.chamber-side button > b { color: #edcf8d; }
+.chamber-side .citizen-mark { background-color: #f8f1dd; box-shadow: 0 3px 8px rgba(0,0,0,.2); }
+.chamber-centre { position: relative; z-index: 2; align-self: center; }
+.chamber-centre > article { min-height: 182px; border: 1px solid #c6a45e; border-top: 6px solid #d5b86e; background: linear-gradient(160deg,#65452d,#40291d); color: #fff6df; box-shadow: 0 15px 26px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,237,194,.1); }
+.chamber-centre > article small,.dispatch-box small { color: #dfc987; }.chamber-centre > article span { color: #c3b99f; }.chamber-centre > article .citizen-mark { background-color: #f8f1dd; }
+.dispatch-box { min-height: 125px; border: 2px solid #d1ae5f; background: linear-gradient(145deg,#d9bc73,#9d712f); color: #35220d; box-shadow: 0 10px 18px rgba(0,0,0,.24); }
+.dispatch-box small { color: #513714; }
+.seating-status { min-height: 58px; padding: 13px 16px; border: 1px solid #674b2e; border-top: 0; background: #f1e4c7; color: #4c5e50; }
+.seating-status button { background: #244e38; border-color: #244e38; }
+.meeting-workspace.chamber-ready .live-floor { margin-top: 18px; padding: clamp(17px,2.5vw,26px); border: 1px solid rgba(225,204,157,.22); background: #f6efdd; color: #273d32; box-shadow: inset 0 1px #fff; }
+.meeting-workspace.chamber-ready .live-floor .eyebrow { color: #8a682c; }
+.floor-request-actions button { transition: transform .14s ease,background .14s ease; }
+.floor-request-actions button:hover { transform: translateY(-1px); }
+.chamber-record { margin-top: 15px; border-top: 1px solid rgba(63,99,75,.18); }
+.chamber-record > button { width: 100%; min-height: 48px; padding: 0 4px; border: 0; background: transparent; display: flex; align-items: center; justify-content: space-between; color: #41634f; cursor: pointer; }
+.chamber-record > button span { font: 400 .82rem var(--serif); }.chamber-record > button small { color: #7b897f; font-size: 6px; letter-spacing: .1em; }
+
+.division-public { margin-top: 22px; padding: clamp(26px,4vw,46px); border: 1px solid var(--line); background: linear-gradient(145deg,#f7f1e4,#fffdf8); }
+.division-public-grid { gap: 13px; }
+.division-public-grid > article { min-height: 310px; padding: 24px; box-shadow: 0 10px 24px rgba(49,69,78,.045); }
+.division-public-grid article > header strong { font-size: 1.25rem; }.division-public-grid article > header small { font-size: 7px; }
+.division-public-grid article > button { min-height: 46px; }
+.result-proclamation { margin-top: 22px; padding: clamp(27px,4vw,48px); border: 1px solid rgba(183,132,40,.25); background: #fffdf8; }
+
+.parliament-case .audit-log { margin-top: 20px; padding: clamp(20px,3vw,32px); border: 1px solid var(--line); background: rgba(255,255,255,.62); }
+.parliament-status { position: sticky; z-index: 4; bottom: 14px; max-width: 620px !important; margin-left: auto !important; margin-right: 0 !important; box-shadow: 0 10px 28px rgba(47,70,82,.1); }
+
+@keyframes parliamentSceneIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 980px) {
+  .parliament-stage-rail { display: flex; overflow-x: auto; }.parliament-stage-rail button { flex: 0 0 118px; }
+  .streamlined-docket { grid-template-columns: 1fr; }
+  .schicksal-chamber { grid-template-columns: minmax(0,1fr) 140px minmax(0,1fr); padding: 22px 16px; gap: 12px; }
+}
+
+@media (max-width: 760px) {
+  .parliament-stage-rail { margin-top: 20px !important; }
+  .casebar { grid-template-columns: 1fr auto; margin-bottom: 21px; }.casebar small { display: none; }
+  .case-journey { display: flex; overflow-x: auto; padding: 5px 2px 10px; }.case-journey li { flex: 0 0 96px; }.parliament-case { overflow-x: hidden; }
+  .case-panel-nav { margin-top: 23px; }
+  .meeting-workspace.chamber-ready { margin-left: -10px; margin-right: -10px; padding: 16px 11px; }
+  .schicksal-chamber { min-height: 0; grid-template-columns: 1fr; padding: 16px 12px; border-width: 5px; }
+  .schicksal-chamber::after { display: none; }.chamber-centre { grid-row: 1; grid-template-columns: 1fr 1fr; }.chamber-centre > article,.dispatch-box { min-height: 130px; }
+  .chamber-side > div { grid-template-columns: 1fr 1fr; }.question-side > header { flex-direction: row; }.question-side button { flex-direction: row; text-align: left; border-right-width: 1px; border-left: 4px solid #c4a15b; }
+  .division-public { padding: 21px 16px; }.division-public-grid > article { min-height: 190px; }
+  .parliament-status { position: static; max-width: none !important; }
+}
+

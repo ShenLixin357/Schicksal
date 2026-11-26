@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { readPrivateJson } from "./input.mjs";
 
-export const OMIT_TABLES = new Set(["member_sessions", "member_login_windows", "member_credentials"]);
+export const OMIT_TABLES = new Set(["member_sessions", "member_login_windows", "member_credentials", "technology_direct_credentials"]);
 const identifier = (name) => { if (!/^[a-z][a-z0-9_]*$/.test(name)) throw new Error("Unexpected SQL identifier"); return `\"${name}\"`; };
 export function sqlValue(value) {
   if (value === null) return "NULL";
@@ -16,7 +16,20 @@ export function sqlValue(value) {
 }
 export async function schemaSql(root) {
   const files = (await readdir(resolve(root, "drizzle"))).filter((file) => file.endsWith(".sql")).sort();
-  return (await Promise.all(files.map((file) => readFile(resolve(root, "drizzle", file), "utf8")))).join("\n");
+  const database = new DatabaseSync(":memory:");
+  try {
+    for (const file of files) database.exec(await readFile(resolve(root, "drizzle", file), "utf8"));
+    // Applied migrations may contain one-time seed/backfill DML. Reconstruct only
+    // the final schema so importing a snapshot cannot silently keep its seed rows
+    // instead of the actual, possibly edited, member-owned records.
+    const statements = database.prepare(`SELECT sql FROM sqlite_master
+      WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'
+      ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 WHEN 'trigger' THEN 2 ELSE 3 END, rowid`)
+      .all().map(({ sql }) => sql.endsWith(";") ? sql : `${sql};`);
+    return statements.join("\n") + "\n";
+  } finally {
+    database.close();
+  }
 }
 export async function validateSnapshot(snapshot, root) {
   assert.equal(snapshot.version, 1); assert.ok(Array.isArray(snapshot.tables));

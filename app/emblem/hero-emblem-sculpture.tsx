@@ -38,6 +38,9 @@ export function HeroEmblemSculpture({ blades }: { blades: readonly EmblemBladeSp
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let animationFrame = 0;
     let startedAt = performance.now();
+    let pausedAt: number | null = null;
+    let inViewport = true;
+    let disposed = false;
 
     const renderFrame = (now: number) => {
       const u = ((now - startedAt) % MOTION.cycleMs) / MOTION.cycleMs;
@@ -81,21 +84,61 @@ export function HeroEmblemSculpture({ blades }: { blades: readonly EmblemBladeSp
         );
       });
 
-      if (!reduceMotion.matches) animationFrame = window.requestAnimationFrame(renderFrame);
     };
 
-    const restart = () => {
-      window.cancelAnimationFrame(animationFrame);
-      startedAt = performance.now();
-      if (reduceMotion.matches) renderFrame(startedAt + MOTION.cycleMs * 0.18);
-      else animationFrame = window.requestAnimationFrame(renderFrame);
+    // The identical renderFrame mathematics is used when the sculpture is
+    // visible. Stopping its RAF while hidden or scrolled out of view reduces
+    // CPU/GPU demand without reducing model geometry, texture or frame quality.
+    // Resume at the same animation phase instead of fast-forwarding through
+    // an unseen segment or resetting the user-approved helical choreography.
+    const tick = (now: number) => {
+      animationFrame = 0;
+      renderFrame(now);
+      if (!disposed && inViewport && document.visibilityState === "visible" && !reduceMotion.matches) {
+        animationFrame = window.requestAnimationFrame(tick);
+      }
     };
+    const syncPlayback = () => {
+      if (animationFrame !== 0) {
+        window.cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+      }
+      const now = performance.now();
+      if (disposed || !inViewport || document.visibilityState !== "visible") {
+        if (pausedAt === null) pausedAt = now;
+        return;
+      }
+      if (pausedAt !== null) {
+        startedAt += now - pausedAt;
+        pausedAt = null;
+      }
+      if (reduceMotion.matches) {
+        // Preserve the existing deterministic still frame for motion-sensitive users.
+        renderFrame(startedAt + MOTION.cycleMs * 0.18);
+      } else {
+        animationFrame = window.requestAnimationFrame(tick);
+      }
+    };
+    const onVisibilityChange = () => syncPlayback();
+    const onMotionChange = () => syncPlayback();
+    const observer = typeof IntersectionObserver !== "undefined"
+      ? new IntersectionObserver(entries => {
+          inViewport = entries.some(entry => entry.isIntersecting);
+          syncPlayback();
+        }, { rootMargin: "32px 0px" })
+      : null;
 
-    restart();
-    reduceMotion.addEventListener("change", restart);
+    observer?.observe(scene);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    reduceMotion.addEventListener("change", onMotionChange);
+    syncPlayback();
+
     return () => {
-      window.cancelAnimationFrame(animationFrame);
-      reduceMotion.removeEventListener("change", restart);
+      disposed = true;
+      if (animationFrame !== 0) window.cancelAnimationFrame(animationFrame);
+      observer?.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      reduceMotion.removeEventListener("change", onMotionChange);
     };
   }, [blades]);
 

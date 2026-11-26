@@ -8,8 +8,9 @@ import {
  atlasCodename, atlasColor, atlasName, atlasOfficesForCitizen
 } from "./atlas-data";
 import "./atlas.css";
+import { ATLAS_DECORATIVE_FACETS } from "../identity/visual-registry";
 
-const sharedColors=["#f4d269","#91c9f4","#e8787d","#7acb91","#c3e9f0","#e7b1cf","#e9a866","#b897df"];
+const sharedColors = ATLAS_DECORATIVE_FACETS;
 
 /** A real replaceable emblem component; the main screenshot is only the decorative scene. */
 export function AtlasGemGlyph({ colors=sharedColors, size=38, className="" }: {colors?:readonly string[],size?:number,className?:string}) {

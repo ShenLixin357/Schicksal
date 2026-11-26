@@ -108,15 +108,18 @@ test("real authenticated messenger keeps self notes and direct messages isolated
   } finally { sqlite.close(); }
 });
 
-test("member badge gesture contracts and standalone navigation remain discoverable", () => {
+test("member badges use simple clicks; the top phone reaches the correspondence placeholder", () => {
   const src = path => readFileSync(new URL(path, import.meta.url), "utf8");
   const badge = src("../app/briefing/sidebar-presence.tsx");
+  const sidebar = src("../app/shell/imperial-sidebar.tsx");
   const page = src("../app/page.tsx");
-  assert.match(badge, /}, 600\);/);
-  assert.match(badge, /suppressClick.current = true/);
-  assert.match(badge, /onOpenIndex\(\)/);
-  assert.match(page, /\{ id: "messenger", label: "帝国通讯"/);
-  assert.match(page, /onMember=\{\(memberId\) => openMessenger\(memberId\)\}/);
-  assert.match(page, /onOpenIndex=\{\(\) => openMessenger\(null\)\}/);
+  assert.match(badge, /onClick=\{\(\) => clickSelf\(member.id\)\}/);
+  assert.match(badge, /setPanelOpen\(false\); onMember\(memberId\);/);
+  assert.match(badge, /onSelfLongPress/);
+  assert.doesNotMatch(badge, /suppressClick|onOpenIndex|600\)/);
+  assert.match(badge, /onPointerDown/);
+  assert.match(sidebar, /className="imperial-phone"/);
+  assert.match(sidebar, /onClick=\{\(\) => onNavigate\("messenger"\)\}/);
+  assert.match(page, /case "messenger": content = <ShellPlaceholder/);
   assert.doesNotMatch(page, /className="side-user"/);
 });

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const memberCredentials = sqliteTable("member_credentials", {
   citizenId: text("citizen_id").primaryKey(),
@@ -13,7 +13,30 @@ export const memberSessions = sqliteTable("member_sessions", {
   tokenHash: text("token_hash").primaryKey(),
   citizenId: text("citizen_id").notNull(),
   expiresAt: integer("expires_at").notNull(),
+  accountMode: text("account_mode", { enum: ["citizen", "technology"] }).notNull().default("citizen"),
+  ministerGrantExpiresAt: integer("minister_grant_expires_at").notNull().default(0),
+  authSource: text("auth_source",{enum:["personal","ministry-direct"]}).notNull().default("personal"),
 }, (table) => [index("member_sessions_expiry_idx").on(table.expiresAt)]);
+
+export const currentOfficeHolders = sqliteTable("current_office_holders", {
+  officeId: text("office_id").notNull(),
+  citizenId: text("citizen_id").notNull(),
+  termId: text("term_id").notNull().default("founding-2026"),
+  updatedAt: integer("updated_at").notNull().default(0),
+}, (table) => [
+  primaryKey({columns:[table.officeId,table.citizenId]}),
+  index("current_office_holders_citizen_idx").on(table.citizenId),
+]);
+
+export const technologyDirectCredentials = sqliteTable("technology_direct_credentials", {
+  officeId: text("office_id").primaryKey(),
+  citizenId: text("citizen_id").notNull().default(""),
+  termId: text("term_id").notNull().default(""),
+  passwordHash: text("password_hash").notNull(),
+  passwordSalt: text("password_salt").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull(),
+});
 
 export const memberLoginWindows = sqliteTable("member_login_windows", {
   windowKey: text("window_key").primaryKey(),
@@ -44,8 +67,11 @@ export const archivePhotos = sqliteTable(
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    deletedAt: text("deleted_at"),
+    deletedByCitizenId: text("deleted_by_citizen_id"),
   },
   (table) => [
+    index("archive_photos_deleted_at_idx").on(table.deletedAt),
     index("archive_photos_subject_key_idx").on(table.subjectKey),
     index("archive_photos_created_at_idx").on(table.createdAt),
   ],
@@ -68,6 +94,7 @@ export const parliamentItems = sqliteTable(
     recusalRequested: integer("recusal_requested").notNull().default(0),
     stageReason: text("stage_reason").notNull().default(""),
     votingVersion: integer("voting_version"),
+    transitionToken: text("transition_token").notNull().default(""),
     deadline: text("deadline").notNull().default(""),
     createdByCitizenId: text("created_by_citizen_id").notNull(),
     version: integer("version").notNull().default(1),
@@ -77,6 +104,24 @@ export const parliamentItems = sqliteTable(
   (table) => [
     index("parliament_items_stage_idx").on(table.stage),
     index("parliament_items_updated_at_idx").on(table.updatedAt),
+  ],
+);
+
+export const parliamentDocumentVersions = sqliteTable(
+  "parliament_document_versions",
+  {
+    itemId: text("item_id").notNull().references(() => parliamentItems.id, { onDelete: "restrict" }),
+    version: integer("version").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    body: text("body").notNull(),
+    recordedAt: text("recorded_at").notNull(),
+    source: text("source", { enum: ["baseline", "revision"] }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.itemId, table.version] }),
+    check("parliament_document_version_positive", sql`${table.version} >= 1`),
+    check("parliament_document_version_source", sql`${table.source} IN ('baseline', 'revision')`),
   ],
 );
 
@@ -331,3 +376,46 @@ export const memberInsaniquariumSaves = sqliteTable("member_insaniquarium_saves"
   updatedAt: text("updated_at").notNull(),
 });
 
+
+// Query models for existing 0010 SQL; ordered SQL is deployment authority.
+export const emeraldMusicEditors = sqliteTable("emerald_music_editors", {
+    citizenId: text("citizen_id").primaryKey(), grantedBy: text("granted_by").notNull(), updatedAt: text("updated_at").notNull(),
+}, t => [check("emerald_music_editor_member", sql `${t.citizenId} IN ('truth')`)]);
+export const emeraldMusicScores = sqliteTable("emerald_music_scores", {
+    id: text("id").primaryKey(), title: text("title").notNull(), composer: text("composer").notNull().default(""), content: text("content").notNull().default(""), privateNote: text("private_note").notNull().default(""), revision: integer("revision").notNull().default(1), writeToken: text("write_token").notNull(), createdBy: text("created_by").notNull(), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(), deletedAt: text("deleted_at"),
+});
+export const emeraldMusicAssets = sqliteTable("emerald_music_assets", {
+    id: text("id").primaryKey(), scoreId: text("score_id").notNull().references(() => emeraldMusicScores.id, { onDelete: "cascade" }), kind: text("kind").notNull(), objectKey: text("object_key").notNull().unique(), originalName: text("original_name").notNull(), mime: text("mime").notNull(), size: integer("size").notNull(), createdAt: text("created_at").notNull(), deletedAt: text("deleted_at"),
+}, t => [index("emerald_music_assets_score").on(t.scoreId, t.deletedAt), check("emerald_music_asset_kind", sql `${t.kind} IN ('image','audio')`)]);
+export const emeraldMusicMelodies = sqliteTable("emerald_music_melodies", {
+    id: text("id").primaryKey(), creatorId: text("creator_id").notNull(), clientId: text("client_id").notNull(), notesJson: text("notes_json").notNull(), tempo: integer("tempo").notNull(), message: text("message").notNull().default(""), createdAt: text("created_at").notNull(),
+}, t => [uniqueIndex("emerald_music_melody_creator_client").on(t.creatorId, t.clientId), index("emerald_music_melodies_time").on(t.createdAt, t.id), check("emerald_music_melody_member", sql `${t.creatorId} IN ('amberina','zxy','truth')`)]);
+
+/** Private correspondence, introduced by migration 0012. Keep it in schema drift checks. */
+export const memberDirectMessages = sqliteTable("member_direct_messages", {
+  seq: integer("seq").primaryKey({ autoIncrement: true }),
+  id: text("id").notNull().unique(),
+  senderId: text("sender_id").notNull(),
+  recipientId: text("recipient_id").notNull(),
+  body: text("body").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
+}, (table) => [
+  index("member_direct_messages_sender_recent").on(table.senderId, table.seq),
+  index("member_direct_messages_recipient_recent").on(table.recipientId, table.seq),
+]);
+
+/** Additive 0014 tables, previously created by Briefing request handlers. */
+export const briefingArchives = sqliteTable("briefing_archives", {
+  citizenId: text("citizen_id").notNull(),
+  taskId: text("task_id").notNull(),
+  archivedAt: text("archived_at").notNull(),
+}, table => [
+  primaryKey({ columns: [table.citizenId, table.taskId] }),
+]);
+export const memberPresence = sqliteTable("member_presence", {
+  sessionHash: text("session_hash").primaryKey().notNull(),
+  citizenId: text("citizen_id").notNull(),
+  lastSeenMs: integer("last_seen_ms").notNull(),
+}, table => [
+  index("member_presence_recent_idx").on(table.lastSeenMs),
+]);

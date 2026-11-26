@@ -3,14 +3,11 @@
 import Image from "next/image";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { MafraerMechanisms, MAFRAER_MECHANISM_ASSETS } from "./mafraer-mechanisms";
+import { MAFRAER_ROOM_ASSETS } from "./mafraer-assets";
 
 const StarObservatory = lazy(() => import("./observatory/star-observatory").then((module) => ({ default: module.StarObservatory })));
 
-export const MAFRAER_ROOM_ASSETS = {
-  moonlit: "/mafraer-ice-bedroom-moonlit-v4.png",
-  lit: "/mafraer-ice-bedroom-lit-v4.png",
-} as const;
-
+export { MAFRAER_ROOM_ASSETS } from "./mafraer-assets";
 // Percent anchors measured against the final artwork. The whole stage, including
 // art, hit areas and effects, shares one 1600 × 900 coordinate system while zooming.
 const ANCHORS = {

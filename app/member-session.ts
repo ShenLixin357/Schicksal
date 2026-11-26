@@ -1,15 +1,59 @@
 import { env } from "cloudflare:workers";
 import { cookieToken, digest } from "./member-session-core";
 import { matchesMemberPassword } from "./member-passwords";
+import { isIncumbentTechnologyMinister } from "../server/auth/offices.ts";
 export { cookieToken, digest, MEMBER_SESSION_SECONDS, sameOrigin, sessionCookie } from "./member-session-core";
 const MEMBER_IDS = new Set(["amberina", "zxy", "truth", "kaito", "harry"]);
 const LEGACY_SITE_PASSWORD = "";
 
-export async function currentMember(request: Request): Promise<string | null> {
+export type AccountMode = "citizen" | "technology";
+export type AuthSource = "personal" | "ministry-direct";
+export const MINISTRY_GRANT_MS = 20 * 60 * 1000;
+export async function currentSession(request: Request): Promise<{
+  citizenId: string; accountMode: AccountMode; ministerGrantExpiresAt: number; authSource: AuthSource;
+} | null> {
   const token = cookieToken(request); if (!token) return null;
-  const row = await env.DB.prepare("SELECT citizen_id AS citizenId FROM member_sessions WHERE token_hash = ? AND expires_at > ?").bind(await digest(token), Date.now()).first<{ citizenId: string }>();
-  return row && MEMBER_IDS.has(row.citizenId) ? row.citizenId : null;
+  const now = Date.now();
+  const row = await env.DB.prepare(`SELECT citizen_id AS citizenId, account_mode AS accountMode,
+    minister_grant_expires_at AS ministerGrantExpiresAt, auth_source AS authSource
+    FROM member_sessions WHERE token_hash = ? AND expires_at > ?`)
+    .bind(await digest(token), now)
+    .first<{ citizenId: string; accountMode: string; ministerGrantExpiresAt: number; authSource: string }>();
+  if (!row || !MEMBER_IDS.has(row.citizenId)) return null;
+  const ministerGrantExpiresAt = Number(row.ministerGrantExpiresAt) || 0;
+  const permitted = row.accountMode === "technology" && ministerGrantExpiresAt > now
+    && await isIncumbentTechnologyMinister(row.citizenId);
+  const authSource: AuthSource = row.authSource === "ministry-direct" ? "ministry-direct" : "personal";
+  // Office-only login never silently becomes a personal citizen session
+  // on timeout or after a ministerial succession.
+  if(authSource === "ministry-direct" && !permitted) return null;
+  const accountMode: AccountMode = permitted ? "technology" : "citizen";
+  return { citizenId:row.citizenId, accountMode, ministerGrantExpiresAt, authSource };
 }
+export async function currentMember(request: Request): Promise<string | null> {
+  return (await currentSession(request))?.citizenId ?? null;
+}
+/** Direct minister login uses an independent *server secret* and never
+ * accepts any personal account password. Do not commit or expose that secret.
+ * A currently logged-in officeholder switches modes by session authorization
+ * instead, so no password is requested for a long hold.
+ */
+export async function verifyTechnologyPassword(citizenId: string, password: string): Promise<boolean> {
+  if (!await isIncumbentTechnologyMinister(citizenId) || !password || password.length > 1024) return false;
+  // The direct entry NEVER accepts the current minister's personal password,
+  // even if someone accidentally configures the two secrets identically.
+  if (await verifyMemberPassword(citizenId, password)) return false;
+  const stored = await env.DB.prepare(
+    "SELECT password_hash AS hash,password_salt AS salt,citizen_id AS citizenId,term_id AS termId FROM technology_direct_credentials WHERE office_id='technology'"
+  ).first<{hash:string;salt:string;citizenId:string;termId:string}>();
+  if(!stored) return false;
+  const appointment=await env.DB.prepare(
+    "SELECT term_id AS termId FROM current_office_holders WHERE office_id='technology' AND citizen_id=?"
+  ).bind(citizenId).first<{termId:string}>();
+  if(!appointment || stored.citizenId !== citizenId || stored.termId !== appointment.termId) return false;
+  return matchesMemberPassword(password,stored.salt,stored.hash);
+}
+
 export async function verifyMemberPassword(citizenId: string, password: string) {
   if (!MEMBER_IDS.has(citizenId) || !password || password.length > 1024) return false;
   const settings = env as unknown as { SCHICKSAL_HOSTING?: string; SCHICKSAL_MEMBER_PASSWORDS?: string; SCHICKSAL_SITE_PASSWORD?: string };

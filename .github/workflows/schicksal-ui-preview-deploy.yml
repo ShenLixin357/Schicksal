@@ -1,0 +1,379 @@
+name: Deploy isolated Schicksal UI preview
+# Manual QA release after the repository visibility was changed to public.
+# This workflow targets only the isolated preview Worker and preview D1.
+# Acceptance request: No.2 Garnet Red assets and all representative-colour placements.
+
+# This workflow NEVER runs on a normal push. A connected coding agent can
+# trigger it only with an explicit [preview-deploy] commit message, after the
+# site owner has set the required GitHub repository secrets.
+on:
+  push:
+    branches:
+      - "preview/sidebar-lounge-v4-20261120"
+      - "feature/minister-dual-account-switch-20261121"
+      - "feature/no2-garnet-identity-20261122"
+      - "fix/parliament-history-transitions"
+    paths:
+      - ".github/workflows/schicksal-ui-preview-deploy.yml"
+      - "scripts/cloudflare/prepare-ui-preview.mjs"
+      - "app/**"
+      - "public/no2-personal-*.png"
+      - "tests/**"
+      - "scripts/qa/**"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: schicksal-ui-preview-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy-preview:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[preview-deploy]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: briefing-preview
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+      SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Verify exact preview source commit
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Verify preview-only authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing SCHICKSAL_PREVIEW_CF_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing SCHICKSAL_PREVIEW_CF_ACCOUNT_ID"; exit 1; }
+          test -n "$SCHICKSAL_PREVIEW_PASSWORDS" || { echo "::error::Missing SCHICKSAL_PREVIEW_PASSWORDS"; exit 1; }
+          node --input-type=module - <<'NODE'
+          const account = process.env.CLOUDFLARE_ACCOUNT_ID ?? "";
+          if (!/^[a-f0-9]{32}$/i.test(account)) throw new Error("Invalid preview Cloudflare account ID");
+          const passwords = JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS ?? "{}");
+          if (typeof passwords.amberina !== "string" || passwords.amberina.length < 12) {
+            throw new Error("Preview passwords JSON must provide a distinct 12+ character password for amberina");
+          }
+          if (Object.keys(passwords).some(k => !["amberina","zxy","truth","kaito","harry"].includes(k))) {
+            throw new Error("Preview password list contains unknown member identity");
+          }
+          NODE
+      - name: Install and build the real React website
+        run: |
+          npm ci
+          npm run test:identity-architecture
+          npm run test:mark-placements
+          npm run build
+          bash scripts/validate-artifact.sh
+      - name: Full release-candidate regression before any remote changes
+        if: github.ref_name == 'fix/parliament-history-transitions'
+        run: npm test
+      - name: Identify production D1 by name, provision only separate preview D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > "$RUNNER_TEMP/schicksal-d1-inventory.json"
+          node --input-type=module - "$RUNNER_TEMP/schicksal-d1-inventory.json" <<'NODE'
+          import { readFileSync } from "node:fs";
+          import { appendFileSync } from "node:fs";
+          const databases = JSON.parse(readFileSync(process.argv[2], "utf8"));
+          if (!Array.isArray(databases)) throw new Error("Unexpected D1 inventory format");
+          const production = databases.filter(d => d.name === "schicksal-db");
+          if (production.length !== 1 || !production[0].uuid) {
+            throw new Error("Production schicksal-db could not be uniquely identified. Stop; do not deploy.");
+          }
+          const preview = databases.filter(d => d.name === "schicksal-ui-preview-db");
+          if (preview.length > 1) throw new Error("Ambiguous preview DB. Stop.");
+          appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PROD_D1_ID=" + production[0].uuid + "\n");
+          if (preview[0]) appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PREVIEW_D1_ID=" + preview[0].uuid + "\n");
+          NODE
+          # Entries written to GITHUB_ENV are available in the next step.
+      - name: Create isolated preview D1 if it does not already exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SCHICKSAL_PREVIEW_D1_ID:-}" ]; then
+            npx wrangler d1 create schicksal-ui-preview-db --no-update-config
+            npx wrangler d1 list --json > "$RUNNER_TEMP/schicksal-d1-inventory-after.json"
+            node --input-type=module - "$RUNNER_TEMP/schicksal-d1-inventory-after.json" <<'NODE'
+          import { readFileSync, appendFileSync } from "node:fs";
+          const dbs = JSON.parse(readFileSync(process.argv[2], "utf8"));
+          const preview = dbs.filter(d => d.name === "schicksal-ui-preview-db");
+          if (preview.length !== 1 || !preview[0].uuid) throw new Error("Preview database creation could not be verified");
+          if (preview[0].uuid === process.env.SCHICKSAL_PROD_D1_ID) throw new Error("Preview D1 matches production. Stop.");
+          appendFileSync(process.env.GITHUB_ENV, "SCHICKSAL_PREVIEW_D1_ID=" + preview[0].uuid + "\n");
+          NODE
+          fi
+      - name: Provide separate PREVIEW-ONLY R2 for photo review when available
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUCKET_NAME="schicksal-ui-preview-photos"
+          # The Wrangler R2 bucket list command does not support --json.
+          # Probe our exact isolated bucket by name; never enumerate, mutate
+          # or bind any production bucket.
+          if npx wrangler r2 bucket info "$BUCKET_NAME" --json > "$RUNNER_TEMP/schicksal-preview-r2.json" 2>/dev/null; then
+            echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
+            echo "Isolated R2 already available."
+          else
+            if npx wrangler r2 bucket create "$BUCKET_NAME"; then
+              npx wrangler r2 bucket info "$BUCKET_NAME" --json > "$RUNNER_TEMP/schicksal-preview-r2.json"
+              echo "SCHICKSAL_PREVIEW_R2_READY=true" >> "$GITHUB_ENV"
+              echo "Isolated preview photo R2 provisioned."
+            else
+              echo "::warning::Cannot provision isolated R2. Preview image upload remains unavailable; other routes are functional."
+            fi
+          fi
+      - name: Prepare and verify preview-only Worker artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          node --input-type=module - <<'NODE'
+          import { writeFileSync } from "node:fs";
+          writeFileSync("work/briefing-preview-target.json", JSON.stringify({
+            accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+            previewDatabaseId: process.env.SCHICKSAL_PREVIEW_D1_ID,
+            productionDatabaseId: process.env.SCHICKSAL_PROD_D1_ID,
+            previewDatabaseName: "schicksal-ui-preview-db"
+          }, null, 2));
+          NODE
+          node scripts/cloudflare/prepare-ui-preview.mjs work/briefing-preview-target.json
+          node --input-type=module - <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const path = "work/ui-preview-dist/server/wrangler.json";
+          const config = JSON.parse(readFileSync(path, "utf8"));
+          // Runtime SHA must identify exactly the acceptance commit.
+          config.vars.SCHICKSAL_PREVIEW_COMMIT = process.env.GITHUB_SHA;
+          if (process.env.SCHICKSAL_PREVIEW_R2_READY === "true") config.r2_buckets = [{ binding: "BUCKET", bucket_name: "schicksal-ui-preview-photos" }];
+          if (!/^[a-f0-9]{40}$/i.test(config.vars.SCHICKSAL_PREVIEW_COMMIT)) throw Error("Invalid preview SHA");
+          writeFileSync(path, JSON.stringify(config,null,2));
+          NODE
+          npx wrangler deploy --dry-run --config work/ui-preview-dist/server/wrangler.json
+      - name: Apply migrations ONLY to the isolated preview D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 migrations apply DB --remote --config work/ui-preview-dist/server/wrangler.json
+      - name: Inspect preview-only D1 schema used by briefing (no member data)
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG="work/ui-preview-dist/server/wrangler.json"
+          npx wrangler d1 execute DB --remote --config "$CONFIG" --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('parliament_items','parliament_votes','parliament_meeting_sessions','parliament_speaker_candidates','parliament_speaker_votes','parliament_audit_events','briefing_archives','member_presence') ORDER BY name;"
+          for table in parliament_items parliament_votes parliament_meeting_sessions parliament_speaker_candidates parliament_speaker_votes parliament_audit_events briefing_archives; do
+            echo "Columns for $table"
+            npx wrangler d1 execute DB --remote --config "$CONFIG" --command "SELECT name, type FROM pragma_table_info('$table') ORDER BY cid;"
+          done
+      - name: Read-only parliament schema diagnostics on PREVIEW D1 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG=work/ui-preview-dist/server/wrangler.json
+          # Names/column definitions only. No member rows or secrets are printed.
+          npx wrangler d1 execute DB --remote --config "$CONFIG" --command "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'parliament_%' ORDER BY name"
+          for table in parliament_items parliament_votes parliament_speaker_candidates parliament_speaker_votes parliament_meeting_sessions parliament_audit_events; do
+            echo "Preview schema: $table"
+            npx wrangler d1 execute DB --remote --config "$CONFIG" --command "SELECT name FROM pragma_table_info('$table')"
+          done
+      - name: Verify current parliament document snapshots on isolated preview D1
+        if: github.ref_name == 'fix/parliament-history-transitions'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --json --command "SELECT COUNT(*) AS mismatch FROM parliament_items i LEFT JOIN parliament_document_versions d ON d.item_id=i.id AND d.version=i.version WHERE d.item_id IS NULL OR d.title IS NOT i.title OR d.summary IS NOT i.summary OR d.body IS NOT i.body" > "$RUNNER_TEMP/parliament-preview-integrity.json"
+          node --input-type=module - "$RUNNER_TEMP/parliament-preview-integrity.json" <<'NODE'
+          import { readFileSync } from "node:fs";
+          const results=JSON.parse(readFileSync(process.argv[2],"utf8"));
+          if (results?.[0]?.results?.[0]?.mismatch !== 0) throw Error("Preview document snapshot integrity failed; do not deploy");
+          console.log("All current proposal snapshots match; no proposal contents printed.");
+          NODE
+      - name: Publish separate briefing preview Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --config work/ui-preview-dist/server/wrangler.json
+      - name: Set separate PREVIEW-ONLY login secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf "%s" "$SCHICKSAL_PREVIEW_PASSWORDS" | npx wrangler secret put SCHICKSAL_MEMBER_PASSWORDS --config work/ui-preview-dist/server/wrangler.json
+      - name: Authenticated preview briefing smoke check (no tokens printed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          const root = "https://schicksal-ui-preview.m17686100216.workers.dev";
+          const passwords = JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS || "{}");
+          // The first-login UI is a separate server-rendered entry page, not
+          // the authenticated React login. Check its actual deployed HTML.
+          const anonymous = await fetch(root + "/?entry-qa=" + process.env.GITHUB_SHA, {
+            headers:{"Cache-Control":"no-cache"}, cache:"no-store"
+          });
+          const entryHtml = await anonymous.text();
+          if (anonymous.status !== 401 || !entryHtml.includes('id="identity-technology"') ||
+              !entryHtml.includes("05 / 08 CITIZENS · 01 OFFICE") ||
+              !entryHtml.includes("MINISTRY OF TECHNOLOGY · OFFICIAL ENTRY"))
+            throw Error("Deployed anonymous login page lacks the ministry entry (HTTP " + anonymous.status + ")");
+          console.log("REAL anonymous entry page ministry card present.");
+          const login = await fetch(root + "/api/member-session", {
+            method: "POST", headers: {"Content-Type":"application/json", Origin:root},
+            body:JSON.stringify({ citizenId:"amberina", password:passwords.amberina }),
+          });
+          if (!login.ok) {
+            const safeDiagnostic = await login.text();
+            // This endpoint returns only public-facing JSON/HTML error messages.
+            console.error("Preview login diagnostic:", safeDiagnostic.slice(0, 500));
+            throw new Error("Preview member login failed: HTTP " + login.status);
+          }
+          const cookie = login.headers.get("set-cookie")?.split(";")[0];
+          if (!cookie) throw new Error("Preview login did not return a session cookie");
+          const version = await fetch(root + "/api/preview-version", {headers:{Cookie:cookie}, cache:"no-store"});
+          if (!version.ok) throw new Error("Preview version endpoint returned HTTP " + version.status);
+          const v = await version.json();
+          if (v.sourceSha !== process.env.GITHUB_SHA || v.preview !== true) {
+            throw new Error("PREVIEW SHA MISMATCH: expected source commit was not deployed");
+          }
+          console.log("Cumulative PR #9–23 acceptance SHA verified:", v.sourceSha);
+          const ordinaryOfficeGate = await fetch(root + "/api/technology/direct-password", {headers:{Cookie:cookie}});
+          if (ordinaryOfficeGate.status !== 403) throw Error("Ordinary citizen session exposed ministry credential management");
+          const personalDenied = await fetch(root + "/api/member-session", {
+            method:"POST", headers:{"Content-Type":"application/json",Origin:root},
+            body:JSON.stringify({citizenId:"technology",accountMode:"technology",password:passwords.amberina})
+          });
+          if (personalDenied.status !== 401) throw Error("Personal password incorrectly accepted at direct ministry entrance");
+          const switched = await fetch(root + "/api/member-session/switch", {
+            method:"POST", headers:{"Content-Type":"application/json",Origin:root,Cookie:cookie},
+            body:JSON.stringify({target:"technology"})
+          });
+          if (!switched.ok) throw Error("Incumbent direct long-hold API failed");
+          const officeAccess = await fetch(root + "/api/technology",{headers:{Cookie:cookie}});
+          if (!officeAccess.ok) throw Error("Switched incumbent session failed ministry authorization");
+          const officePassword = await fetch(root + "/api/technology/direct-password",{headers:{Cookie:cookie}});
+          if (!officePassword.ok) throw Error("Ministry dashboard cannot access office-only password settings");
+          const credentialState = await officePassword.json();
+          if (typeof credentialState.configured !== "boolean") throw Error("Ministry password status malformed");
+          const switchedBack = await fetch(root + "/api/member-session/switch",{
+            method:"POST",headers:{"Content-Type":"application/json",Origin:root,Cookie:cookie},
+            body:JSON.stringify({target:"citizen"})
+          });
+          if (!switchedBack.ok) throw Error("Incumbent cannot instantly switch back");
+          console.log("Personal->minister->personal switch and protected password settings: OK.");
+          console.log(credentialState.configured
+            ? "Direct office password is configured for the current term."
+            : "Direct office password not yet enrolled; use the minister dashboard to set it privately.");
+          const offices = await fetch(root + "/api/offices/current", {headers:{Cookie:cookie}, cache:"no-store"});
+          if (!offices.ok) throw new Error("Office role registry not available on deployed preview");
+          const officeData = await offices.json();
+          if (!officeData.offices?.some(o => o.id === "technology" && o.holderIds?.includes("amberina")))
+            throw new Error("Current Technology Minister office is missing in preview D1");
+          const briefing = await fetch(root + "/api/briefing", {headers:{Cookie:cookie}, cache:"no-store"});
+          const payload = await briefing.json();
+          if (!briefing.ok) throw new Error("Preview briefing sync failed: HTTP " + briefing.status + ", " + (payload.error || "no message"));
+          if (!Array.isArray(payload.tasks) || !payload.views || !Array.isArray(payload.views.pending)) throw new Error("Briefing returned malformed inbox view");
+          console.log("Real authenticated preview briefing OK: HTTP " + briefing.status +
+            "; pending=" + payload.views.pending.length + ", archived=" + payload.views.archived.length);
+          await fetch(root + "/api/member-session",{method:"DELETE",headers:{Cookie:cookie,Origin:root}});
+          NODE
+      - name: Authenticated PREVIEW-ONLY briefing smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          const base = "https://schicksal-ui-preview.m17686100216.workers.dev";
+          const password = JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS || "{}").amberina;
+          const login = await fetch(base + "/api/member-session", {
+            method: "POST", headers: {"Content-Type": "application/json", Origin: base},
+            body: JSON.stringify({ citizenId:"amberina", password }),
+          });
+          if (login.status !== 200) throw new Error("Preview smoke: login returned " + login.status);
+          const cookie = login.headers.get("set-cookie")?.split(";")[0];
+          if (!cookie) throw new Error("Preview smoke: no signed-in cookie");
+          for (const name of ["briefing","presence"]) {
+            const response = await fetch(base + "/api/" + name, { headers: { Cookie: cookie } });
+            const result = await response.json().catch(() => ({}));
+            console.log("Preview authenticated /api/" + name + ": HTTP " + response.status +
+              (name === "briefing" && response.ok ? ", tasks=" + (result.tasks?.length ?? "invalid") : ""));
+            if (!response.ok) {
+              console.error("Diagnostic category:", result.diagnosticCode || result.error || "unknown");
+              process.exitCode = 1;
+            }
+          }
+          await fetch(base + "/api/member-session", {method:"DELETE",
+            headers:{Cookie:cookie,Origin:base}});
+          NODE
+      - name: Confirm actual deployed No.2 Garnet Red entry and eight-ray colour
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          const root = "https://schicksal-ui-preview.m17686100216.workers.dev";
+          const response = await fetch(root + "/?no2-garnet-qa=" + process.env.GITHUB_SHA, {
+            headers: {"Cache-Control":"no-cache"}, cache:"no-store",
+          });
+          const html = await response.text();
+          if (response.status !== 401) throw Error("Expected anonymous entry HTTP 401");
+          const required = [
+            'class="citizen-mark personal-simple no2-symbol mark-zxy"',
+            '.ray-1{--ray:1;--ray-color:#D7263D}',
+            '#identity-zxy{--citizen:#D7263D}',
+            '.mark-zxy{--mark:#D7263D}',
+            '.mark-zxy .citizen-simple-image{background-image:url("data:image/png;base64,',
+          ];
+          for (const marker of required) {
+            if (!html.includes(marker)) throw Error("No.2 preview display mismatch: " + marker.slice(0, 80));
+          }
+          console.log("Verified actual preview: No.2 original responsive PNG, shared ray #D7263D and all identity colours #D7263D.");
+          NODE
+      - name: Final summary
+        shell: bash
+        run: |
+          {
+            echo "### Schicksal isolated UI preview deployment"
+            echo '- Worker name: `schicksal-ui-preview`'
+            echo '- Database: `schicksal-ui-preview-db` (separate from production)'
+            echo "- Version: $GITHUB_SHA"
+            echo "- Source: cumulative unmerged PR #9–23, with PR #4 foundations integrated by #12; production remains unchanged"
+            echo "- Preview URL: https://schicksal-ui-preview.m17686100216.workers.dev"
+            echo "- Verified deployment SHA: $GITHUB_SHA"
+            echo "- Photo uploads require separately created preview R2; check R2 provisioning step output."
+            echo "- Ministry direct login is set exclusively in the authenticated minister dashboard; no environment secret required."
+            echo "- Accepted UX: personal long-hold toggles directly; minister dashboard replaces profile; dedicated login uses a term-bound D1 hash."
+            echo "- Check login, daily news and responsive layout manually before claiming acceptance."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  browser-qa:
+    name: Real Chromium and WebKit preview acceptance
+    needs: deploy-preview
+    if: github.ref_name == 'fix/parliament-history-transitions'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: briefing-preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install pinned browser test tools in temporary directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mkdir -p "$RUNNER_TEMP/schicksal-browser"
+          npm install --prefix "$RUNNER_TEMP/schicksal-browser" --no-save --package-lock=false playwright@1.56.1
+          "$RUNNER_TEMP/schicksal-browser/node_modules/.bin/playwright" install --with-deps chromium webkit
+          cp scripts/qa/parliament-preview-browser.mjs "$RUNNER_TEMP/schicksal-browser/"
+      - name: Browser acceptance on the exact isolated preview
+        env:
+          SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+        run: node "$RUNNER_TEMP/schicksal-browser/parliament-preview-browser.mjs"

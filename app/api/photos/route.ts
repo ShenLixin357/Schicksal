@@ -1,9 +1,11 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { ensurePhotoSchema } from "../../../db/photo-schema";
 import { archivePhotos } from "../../../db/schema";
-import { standaloneMember } from "../../standalone-access";
+import { requireMember, requireTechnologyMinister } from "../../../server/auth/member.ts";
+import { currentSession } from "../../member-session.ts";
+import { readJson, apiFailure, ApiError } from "../../../server/http.ts";
 import { getPhotoStorage, PhotoStorageError, type PhotoStorage } from "../../photo-storage";
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
@@ -57,33 +59,38 @@ function publicPhoto(row: typeof archivePhotos.$inferSelect) {
     mimeType: row.mimeType,
     sizeBytes: row.sizeBytes,
     createdAt: row.createdAt,
+    deletedAt: row.deletedAt,
+    deletedByCitizenId: row.deletedByCitizenId,
     imageUrl: `/api/photos/image?id=${encodeURIComponent(row.id)}`,
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const member = await requireMember(request);
     await ensurePhotoSchema();
+    const trash = new URL(request.url).searchParams.get("trash") === "1";
+    if (trash && (await currentSession(request))?.accountMode !== "technology") return Response.json({ error: "仅管理员可以查看回收站。" }, { status: 403 });
     const rows = await getDb()
       .select()
       .from(archivePhotos)
+      .where(trash ? isNotNull(archivePhotos.deletedAt) : isNull(archivePhotos.deletedAt))
       .orderBy(desc(archivePhotos.createdAt), desc(archivePhotos.id))
       .limit(250);
-    return Response.json({ photos: rows.map(publicPhoto) });
+    return Response.json({ photos: rows.map(publicPhoto) }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "影像馆暂时无法读取。" },
-      { status: 500 },
-    );
+    return apiFailure(error, "影像馆暂时无法读取。");
   }
 }
 
 export async function POST(request: Request) {
   let objectKey = "";
   let storage: PhotoStorage | null = null;
+  let databaseCommitted = false;
   try {
+    const uploaderCitizenId = await requireMember(request);
     storage = getPhotoStorage(env);
-    const payload = await request.json() as {
+    const payload = await readJson<{
       dataBase64?: unknown;
       originalName?: unknown;
       mimeType?: unknown;
@@ -94,12 +101,11 @@ export async function POST(request: Request) {
       capturedAt?: unknown;
       uploaderCitizenId?: unknown;
       subjects?: unknown;
-    };
+    }>(request, 17_000_000);
     const title = cleanText(payload.title, 120);
     const description = cleanText(payload.description, 800);
     const era = cleanText(payload.era, 80);
     const capturedAt = cleanText(payload.capturedAt, 24);
-    const uploaderCitizenId = standaloneMember(request, env) || cleanText(payload.uploaderCitizenId, 40);
     const originalName = cleanText(payload.originalName, 180);
     const mimeType = cleanText(payload.mimeType, 80);
     const subjects = normaliseSubjects(payload.subjects);
@@ -150,37 +156,93 @@ export async function POST(request: Request) {
         capturedAt,
         subjectsJson: JSON.stringify(subjects),
         subjectKey: subjects.join("+"),
-        uploaderCitizenId: SUBJECT_IDS.has(uploaderCitizenId) ? uploaderCitizenId : "amberina",
+        uploaderCitizenId, // Authenticated session is authoritative; ignore client-supplied identity.
         mimeType,
         sizeBytes: bytes.byteLength,
       })
       .returning();
+    databaseCommitted = true;
 
     return Response.json({ photo: publicPhoto(row) }, { status: 201 });
   } catch (error) {
-    if (objectKey) await storage?.delete(objectKey).catch(() => undefined);
-    return Response.json(
-      { error: error instanceof Error ? error.message : "照片上传失败，请稍后重试。" },
-      { status: error instanceof PhotoStorageError ? error.status : 500 },
-    );
+    // Never delete an object once its DB row has committed: a later response
+    // failure must not create a dangling photo reference.
+    if (objectKey && !databaseCommitted) await storage?.delete(objectKey).catch(() => undefined);
+    return apiFailure(error instanceof PhotoStorageError ? new ApiError(error.message, error.status) : error, "照片上传失败，请稍后重试。");
   }
 }
 
+/** Every member may edit only their own active photos; the confirmed Technology Minister may edit all. */
+export async function PATCH(request: Request) {
+  try {
+    const member = await requireMember(request);
+    await ensurePhotoSchema();
+    const id = new URL(request.url).searchParams.get("id")?.trim();
+    if (!id) return Response.json({ error: "缺少照片编号。" }, { status: 400 });
+    const [existing] = await getDb().select().from(archivePhotos).where(eq(archivePhotos.id, id)).limit(1);
+    if (!existing || existing.deletedAt) return Response.json({ error: "照片不存在或已进入回收站。" }, { status: 404 });
+    if ((await currentSession(request))?.accountMode !== "technology" && member !== existing.uploaderCitizenId) return Response.json({ error: "只能编辑自己上传的照片。" }, { status: 403 });
+    const payload = await readJson<{ title?: unknown; description?: unknown; era?: unknown; capturedAt?: unknown; subjects?: unknown }>(request, 4096);
+    const changes: Partial<typeof archivePhotos.$inferInsert> = {};
+    if ("title" in payload) {
+      changes.title = cleanText(payload.title, 120);
+      if (!changes.title) return Response.json({ error: "照片标题不能为空。" }, { status: 400 });
+    }
+    for (const [key, max] of [["description", 800], ["era", 80], ["capturedAt", 24]] as const) {
+      if (key in payload) changes[key] = cleanText(payload[key], max);
+    }
+    if ("subjects" in payload) {
+      const subjects = normaliseSubjects(payload.subjects);
+      if (!subjects.length) return Response.json({ error: "请至少选择一个人物标志。" }, { status: 400 });
+      changes.subjectsJson = JSON.stringify(subjects);
+      changes.subjectKey = subjects.join("+");
+    }
+    if (!Object.keys(changes).length) return Response.json({ error: "没有可更新的字段。" }, { status: 400 });
+    const [updated] = await getDb().update(archivePhotos).set(changes)
+      .where(and(eq(archivePhotos.id, id), isNull(archivePhotos.deletedAt))).returning();
+    if (!updated) return Response.json({ error: "照片状态已变化，请刷新。" }, { status: 409 });
+    return Response.json({ photo: publicPhoto(updated) }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) { return apiFailure(error, "无法编辑照片。"); }
+}
+
+/** Move to trash atomically in D1; NEVER delete bytes before a reversible step. */
 export async function DELETE(request: Request) {
   try {
-    const storage = getPhotoStorage(env);
+    const member = await requireMember(request);
     await ensurePhotoSchema();
     const id = new URL(request.url).searchParams.get("id")?.trim();
     if (!id) return Response.json({ error: "缺少照片编号。" }, { status: 400 });
     const [row] = await getDb().select().from(archivePhotos).where(eq(archivePhotos.id, id)).limit(1);
     if (!row) return Response.json({ error: "找不到这张照片。" }, { status: 404 });
-    await storage.delete(row.objectKey);
-    await getDb().delete(archivePhotos).where(eq(archivePhotos.id, id));
-    return Response.json({ deleted: true });
-  } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "无法删除照片。" },
-      { status: error instanceof PhotoStorageError ? error.status : 500 },
-    );
-  }
+    if ((await currentSession(request))?.accountMode !== "technology" && member !== row.uploaderCitizenId) return Response.json({ error: "只能删除自己上传的照片。" }, { status: 403 });
+    if (row.deletedAt) return Response.json({ deleted: true, alreadyInTrash: true });
+    const [updated] = await getDb().update(archivePhotos)
+      .set({ deletedAt: new Date().toISOString(), deletedByCitizenId: member })
+      .where(and(eq(archivePhotos.id, id), isNull(archivePhotos.deletedAt))).returning();
+    if (!updated) return Response.json({ error: "照片状态已变化，请刷新。" }, { status: 409 });
+    return Response.json({ deleted: true, recoverable: true }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) { return apiFailure(error, "无法将照片移入回收站。"); }
+}
+
+/** Only the authenticated Technology Minister may restore trashed photos; original storage key is untouched. */
+export async function PUT(request: Request) {
+  try {
+    await requireTechnologyMinister(request);
+    await ensurePhotoSchema();
+    const id = new URL(request.url).searchParams.get("id")?.trim();
+    if (!id) return Response.json({ error: "缺少照片编号。" }, { status: 400 });
+    const [row] = await getDb().select().from(archivePhotos).where(eq(archivePhotos.id, id)).limit(1);
+    if (!row) return Response.json({ error: "找不到这张照片。" }, { status: 404 });
+    if (!row.deletedAt) return Response.json({ photo: publicPhoto(row), alreadyRestored: true });
+    // Prevent restoring an orphaned metadata row if storage has been lost externally.
+    const storage = getPhotoStorage(env);
+    const object = await storage.get(row.objectKey);
+    if (!object) return Response.json({ error: "原图缺失，请先从备份恢复文件。" }, { status: 409 });
+    if (object.body instanceof ReadableStream) await object.body.cancel();
+    const [updated] = await getDb().update(archivePhotos)
+      .set({ deletedAt: null, deletedByCitizenId: null })
+      .where(and(eq(archivePhotos.id, id), isNotNull(archivePhotos.deletedAt))).returning();
+    if (!updated) return Response.json({ error: "照片状态已变化，请刷新。" }, { status: 409 });
+    return Response.json({ photo: publicPhoto(updated), restored: true }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) { return apiFailure(error instanceof PhotoStorageError ? new ApiError(error.message, error.status) : error, "无法恢复照片。"); }
 }

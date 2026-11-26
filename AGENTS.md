@@ -26,13 +26,13 @@ scores, parliament insignia, or official colours.
   不加深用官方原色 #F3ED87；加深用 #EECF58。" Do not decide from background,
   code defaults, visual aesthetics, or previous approval for a different
   context. Do not make up a third intermediate colour.
-- Current *already-approved* display exceptions: on existing beige/light
-  standard website surfaces use `#EECF58` for her Simple emblem + its
-  own circle/leader decorations; on the parliament (including all seat,
-  candidate, commenter and Speaker insignia) and other non-beige/dark
-  surfaces use the exact **original `#F3ED87`** art and matching rings.
-  A dark Committee Lounge sidebar likewise uses the official original.
-  Other members' original colours are unaffected.
+- **OWNER'S REVISED 2026-11-21 APPROVAL OVERRIDES ALL EARLIER BEIGE/WEB DEFAULTS:** The user reviewed 22 places individually. ALL use original `#F3ED87` Simple artwork except **04 — the logged-in Amberina's own avatar in the ordinary MAIN sidebar**, where the original two-tone strong version `#EECF58` is allowed. That same avatar in the dark Lounge sidebar is original, NOT strong.
+- The source of truth for this per-location decision is `app/identity/mark-placements.ts`; every `PublicCitizenMark` call must supply an approved `placement`. Adding a new placement is blocked until the user specifically approves its original/strong treatment. Do not use `web` as an implicit synonym for strong, do not infer from beige backgrounds, and do not silently inherit another location's approval.
+- The first public login HTML screen is independently rendered by `app/entry-screen.ts` and MUST use the official `/amberina-personal-simple-official.png`; the old bundled strong login PNG is history only. `Citizen.markColor` is now the official representative colour. Authenticated React views use explicit placements.
+- The owner requested **one single 4.236:1 / 61.8%-shoulder personal crystal** in the citizen self-profile, coloured with the citizen's official representative colour, alongside the original Simple mark — NEVER the shared eight-ray emblem.
+- The President office dots were accidentally stranded inside lazy Lounge CSS in PR #16. They now live in **always-loaded** `app/identity/office-insignia.css`, imported by `app/layout.tsx`; do not move shared identity/office visuals back into lazy private-room CSS.
+- The enchanted vase must remain clickable by clicking anywhere on its visible illustrated bounding box. Its portal hotspot sits directly under `.club-room-stage` and matches the approved original artwork dimensions; never compress it to an invisible 48px center spot.
+- The **Schicksal Atlas art is not approved**, regardless of asset filenames containing "approved". Show a text-only "天命图谱" navigation item and a non-interactive "美术设计中 · 暂未开放" placeholder, but keep its actual art route gated off pending explicit art approval; preserve source/art for further private revision.
 - Preserve Simple master source art, two-tone structure, original Alpha,
   orientation and official PNG. Never AI-redraw, recolour or overwrite the
   two master `.procreate` files. FullSimple-Parhelia is used **only after
@@ -49,3 +49,13 @@ Keep unapproved changes on an isolated preview branch/Worker with its own
 preview D1. Never merge into `main`, touch production D1, or overwrite
 production secrets without separate, explicit user approval. Prefer a
 single consolidated commit for related changes.
+
+## Architecture contract for any NEW public feature (Library, Gallery, government, homepage)
+
+- **Read `docs/architecture/site-audit-2026-11-20.md` and `docs/architecture/lounge-isolation.md`** before adding a new module. Do not clone member colors, personal mark SVG code, approved PNG paths, official titles, or the eight-blade palette into that module.
+- **Public identity data:** import `CITIZENS`, `getPublicMemberVisual`, `EMBLEM_BLADES`, `officeHolders`, and `isCurrentPresident` through `app/identity/public.ts` or its lightweight owner files. Approved appearance variants live in `app/identity/visual-registry.ts`.
+- **Public mark UI:** use `app/identity/public-mark.tsx` / `PublicCitizenMark` and `app/emblem/compact-emblem.tsx` / `CompactEmpireEmblem` where appropriate. Home's 3D sculpture and Atlas's illustrated emblem are **distinct renderers**: do not silently redraw or recolor those while changing a compact mark. Coordinate all intended variants and obtain separate visual approval.
+- **Offices, Presidency and elections:** a current president is determined by a **verified office assignment**, never by `citizen.id === "amberina"`, array index zero, display alias, a member's color, or Lounge mask. In this Draft stage `office-registry.ts` is a static baseline; a live election is **not** implemented. Do not interpret Parliament Speaker elections as Presidential elections, and do not automatically grant site-admin permissions to the elected office holder.
+- **Lounge is a different identity domain.** `app/club/lounge-access.ts`, `app/club/mystic-marks.tsx`, private pseudonyms and avatar palettes remain independent from public identity rebrands and office changes. Do not import public marks into private magic art as a shortcut.
+- **Module state and resources:** keep new scenes isolated/lazy, preserve authored camera/lighting/animation and CSS source order, use authenticated member-scoped APIs rather than trusting client identity claims. Keep full Gallery originals and art variants outside an ever-growing public Git directory where practicable, with D1 metadata and verified object-store backups.
+- **Migrations:** never CREATE/ALTER tables on HTTP request. The additive `0014_briefing_presence.sql` is pending isolated-D1 rehearsal; applying it or publishing its dependent runtime to production needs explicit owner approval. Do not edit old sealed migration bytes.

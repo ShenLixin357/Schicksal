@@ -63,7 +63,7 @@ test("real briefing API enforces signed-in identity and never trusts a spoofed c
     assert.equal((await briefing.GET(request("/api/briefing?citizenId=amberina"))).status, 401);
     const amberCookie = await login("amberina");
     // Member presence and briefing fire concurrently on the first page load.
-    // They must share schema creation safely rather than racing one another.
+    // They must share read-only schema readiness checks safely.
     const [firstBriefing, firstHeartbeat] = await Promise.all([
       briefing.GET(request("/api/briefing", amberCookie)),
       presence.POST(new Request("https://test.schicksal.invalid/api/presence", {
@@ -73,7 +73,10 @@ test("real briefing API enforces signed-in identity and never trusts a spoofed c
     assert.equal(firstBriefing.status, 200);
     assert.equal(firstHeartbeat.status, 200);
     sqlite.exec("UPDATE parliament_items SET stage='voting', version=2, voting_version=2, deadline='2026-11-22' WHERE id='lesson-1-state'");
+    // Exercise the actual migration's sequential history contract, never jump over v2.
+    sqlite.exec("UPDATE parliament_items SET version=2 WHERE id='lesson-2-citizenship'");
     sqlite.exec("UPDATE parliament_items SET stage='voting', version=3, voting_version=3, deadline='2026-11-23' WHERE id='lesson-2-citizenship'");
+    assert.deepEqual(sqlite.prepare("SELECT version FROM parliament_document_versions WHERE item_id='lesson-2-citizenship' ORDER BY version").all().map(row => row.version), [1, 2, 3]);
     sqlite.prepare("INSERT INTO parliament_votes (id,item_id,citizen_id,choice,document_version,created_at,updated_at) VALUES (?,?,?,?,?,?,?)")
       .run("vote-amber", "lesson-1-state", "amberina", "support", 2, "2026-11-18", "2026-11-18");
     sqlite.prepare("INSERT INTO parliament_votes (id,item_id,citizen_id,choice,document_version,created_at,updated_at) VALUES (?,?,?,?,?,?,?)")
