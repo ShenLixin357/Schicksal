@@ -83,5 +83,5 @@ test("module chunk errors return to signed-in shell instead of forcing re-login"
     assert.ok(page.includes('<FeatureSuspense label="'+label+'" onExit={() => setSection("home")}>'), label+" must recover locally");
   }
   assert.match(page, /<FeatureSuspense label="委员会 Lounge" onExit=\{\(\) => setSection\("home"\)\} lounge>/);
-  assert.match(page, /<FeatureSuspense label="政务手册" onExit=\{\(\)=>setAtlasHandbookOpen\(false\)\}>/);
+  assert.match(page, /<FeatureSuspense label="政务手册" onExit=\{\(\) => setSection\("home"\)\}>/);
 });
