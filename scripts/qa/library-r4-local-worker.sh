@@ -44,7 +44,11 @@ assert.equal((await fetch(root+"/api/member-session",{method:"DELETE",headers}))
 console.log("PASS real local authentication, debug 403/200 and distinct local-only office password");
 NODE
 status=0
-for engine in chromium webkit; do
+# Each CI matrix runner uses a separate local Worker and D1.
+ENGINE="${1:-both}"
+case "$ENGINE" in chromium|webkit|both) ;; *) exit 2;; esac
+if [ "$ENGINE" = both ]; then engines="chromium webkit"; else engines="$ENGINE"; fi
+for engine in $engines; do
   python "$PKG/tests/browser-main.py" --engine "$engine" --full-motion 2>&1 | tee "$REPORT/main-$engine.log" || status=1
 done
 exit "$status"
