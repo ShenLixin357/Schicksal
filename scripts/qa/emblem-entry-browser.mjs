@@ -28,6 +28,9 @@ try{
       await page.addInitScript(()=>{
         window.__orbitPeak=0;
         window.__orbitFrames=[];
+        window.__openingDraws=0;
+        const draw=CanvasRenderingContext2D.prototype.drawImage;
+        CanvasRenderingContext2D.prototype.drawImage=function(...args){const result=draw.apply(this,args);if(this.canvas.matches?.('#opening canvas'))window.__openingDraws++;return result;};
         const capture=()=>{
           const orbit=document.querySelector("#opening .opening-orbit-v10");
           if(orbit && !document.getElementById("opening").hidden){
@@ -44,12 +47,13 @@ try{
       await opening.waitFor({state:"visible"});
       // Poll the actual rendered alpha during the active reveal, rather than a single timing-sensitive sample.
       const waitForPaint=async selector=>{await page.waitForFunction(sel=>{const el=document.querySelector(sel);if(!el||!el.getBoundingClientRect().width)return false;const c=el.getContext("2d");return c.getImageData(0,0,el.width,el.height).data.some((v,i)=>i%4===3&&v>0);},selector,{polling:50,timeout:3500});};
-      try{await waitForPaint("#opening canvas");}catch(e){console.log(name+" render diagnostic: "+JSON.stringify(await opening.evaluate(el=>({w:el.width,h:el.height,rect:el.getBoundingClientRect().toJSON(),visible:document.visibilityState,path2d:typeof Path2D,raf:typeof requestAnimationFrame,openingHidden:document.getElementById("opening").hidden}))));throw e;}
+      // Do not force a synchronous GPU readback during the short reveal: it can stall headless WebKit. Observe actual drawImage calls and all orbit poses instead.
       assert.deepEqual(errors,[]);
       const orbit=page.locator("#opening .opening-orbit-v10");
       assert.equal(await orbit.count(),1);
       assert.ok(await opening.evaluate(el=>el.getBoundingClientRect().width>=245),"desktop opening should be enlarged");
       await page.locator("#login").waitFor({state:"visible",timeout:10000});
+      assert.ok(await page.evaluate(()=>window.__openingDraws)>2,"Opening canvas must render multiple actual frames");
       const orbitPeak=await page.evaluate(()=>window.__orbitPeak);
       console.log(name+" opening orbit peak opacity: "+orbitPeak);
       assert.ok(orbitPeak>.5,"Opening orbit must visibly appear during the full opening sequence");

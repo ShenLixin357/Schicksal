@@ -9,3 +9,7 @@ Native Cloudflare build `0b646a03-1a1e-41a4-bb0d-908fe68b0ad2` compiled successf
 ## V10 public visual release
 
 Owner approved the V10 standalone motion laboratory. Public 2D marks use shared supersampled canvas, opening 420/230/3/350/900, Loading 4300 ms / 15 beats / 30% white-mixed opaque facets, four-orbit ministry mark 2.5/13; Lounge and both passage directions are excluded. Homepage helical motion is retained with the revised geometry. No migrations, credential changes, or preview data transfer. Postmerge verification uses the proven read-only D1 SELECT API instead of the failing Wrangler execute wrapper.
+
+## Synchronized orbit scatter release
+
+Owner approved the opening orbit starting with blade eight at 1970 ms, preserving the original 650 ms fade and 800 ms scale ease. At the first scatter beat (3290 ms), the ring expands to 140% and fades over 360 ms, fully invisible by 3650 ms. Opening still ends at 4200 ms. Only opening visuals change. This documentation update triggers the production-only read-only release marker and original D1 verification; no preview data is transferred.
