@@ -202,6 +202,8 @@ test("Cloudflare pre-auth login actually renders a ministry card and submits ind
     const html=await (await visit("/")).text();
     assert.match(html,/id="identity-technology"[^>]*data-member="technology"/);
     assert.match(html,/MINISTRY OF TECHNOLOGY · OFFICIAL ENTRY/);
+    assert.match(html,/id="identity-technology"[^>]*>[\s\S]*?technology-orbits/);
+    assert.match(html,/id="entry-loading" hidden/);
     assert.match(html,/05 \/ 08 CITIZENS · 01 OFFICE/);
     assert.doesNotMatch(html,/05 \/ 08 IDENTIFIED/);
     const script=html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)?.[1];

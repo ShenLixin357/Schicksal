@@ -708,6 +708,6 @@ export function PersistentParliamentSection({ citizen, requestedItemId = "", req
         </>}
       </section>}
     </section>
-    <p className={`parliament-status ${status || busy ? "visible" : ""}`} role="status">{busy && <ImperialLoading size={24}/>} {busy ? "正在处理议会操作…" : status || "议会系统在线：提案、评论、阶段与选票均会保存。"}</p>
+    <p className={`parliament-status ${status || busy || loading ? "visible" : ""}`} role="status">{(busy || loading) && <ImperialLoading size={24}/>} {busy ? "正在处理议会操作…" : loading ? "正在读取议会记录…" : status || "议会系统在线：提案、评论、阶段与选票均会保存。"}</p>
   </>;
 }

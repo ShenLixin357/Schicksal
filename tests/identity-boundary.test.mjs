@@ -117,7 +117,7 @@ test("technology ministry admin is authorized by real minister office and not a 
         });
     } finally {db.close();}
 });
-test("minister portal retains the shared emblem, with separate account mode", async () => {
+test("minister portal uses the distinct four-orbit emblem, with separate account mode", async () => {
     const { isCurrentTechnologyMinister, ATLAS_OFFICES } = await import("../app/identity/office-registry.ts");
     assert.equal(isCurrentTechnologyMinister("amberina"), true);
     assert.equal(isCurrentTechnologyMinister("truth"), false);
@@ -133,7 +133,7 @@ test("minister portal retains the shared emblem, with separate account mode", as
     assert.match(code,/switchAccountImmediately/);
     assert.doesNotMatch(code,/AccountModeSwitcher|technology-ministry-entry|setSwitcherOpen/);
     assert.match(code,/case "profile":[^]*?accountMode === "technology"/);
-    assert.match(code,/<Emblem compact\s*\/>/);
+    assert.match(code,/<TechnologyEmblem compact\s*\/>/);
     assert.match(hub,/sharedMark/);
     assert.doesNotMatch(hub,/PublicCitizenMark|CitizenMark/);
 });

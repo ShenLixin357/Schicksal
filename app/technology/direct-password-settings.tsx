@@ -53,7 +53,7 @@ export function TechnologyDirectPasswordSettings() {
     <h3>部长登录密码</h3>
     <p>此密码仅用于登录页的「科技部部长」专用身份卡，不会取代或修改个人账号密码。
       站内长按自己的标志切换管理模式不需要输入密码。</p>
-    <p className="technology-password-status" role="status">{configured===null
+    <p className="technology-password-status" role="status">{configured===null&&!error&&<ImperialLoading size={24}/>} {configured===null
       ? "正在核验设置状态…" : configured ? "已设置独立部长登录密码" : "尚未设置独立部长登录密码"}</p>
     <form onSubmit={submit}>
       <label>确认本人个人账号密码
