@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-      - name: Read-only production binding and local migration rehearsal
+      - name: Read-only actual production release status
         shell: bash
         run: |
           set -euo pipefail
@@ -33,4 +33,4 @@ jobs:
           [[ "$CLOUDFLARE_ACCOUNT_ID" =~ ^[a-f0-9]{32}$ ]]
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           npm ci
-          node scripts/qa/production-d1-rehearsal.mjs
+          node scripts/qa/production-live-status.mjs
