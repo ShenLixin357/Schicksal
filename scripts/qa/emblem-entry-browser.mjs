@@ -23,6 +23,18 @@ try{
     try{
       const page=await browser.newPage({viewport:{width:1440,height:900}});
       const errors=[];page.on("pageerror",e=>{errors.push(e.message);console.log(name+" page error: "+e.message);});
+      // Observe the complete animation from document creation, not just the
+      // short interval after the potentially slow canvas pixel readback.
+      await page.addInitScript(()=>{
+        window.__orbitPeak=0;
+        const capture=()=>{
+          const orbit=document.querySelector("#opening .opening-orbit-v10");
+          if(orbit && !document.getElementById("opening").hidden){
+            window.__orbitPeak=Math.max(window.__orbitPeak,Number(orbit.style.opacity)||0);
+          }
+        };
+        new MutationObserver(capture).observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:["style","hidden"]});
+      });
       await page.bringToFront();
       assert.equal((await page.goto(root,{waitUntil:"domcontentloaded"})).status(),401);
       const opening=page.locator("#opening canvas");
@@ -34,9 +46,10 @@ try{
       const orbit=page.locator("#opening .opening-orbit-v10");
       assert.equal(await orbit.count(),1);
       assert.ok(await opening.evaluate(el=>el.getBoundingClientRect().width>=245),"desktop opening should be enlarged");
-      await page.waitForFunction(()=>Number(document.querySelector("#opening .opening-orbit-v10").style.opacity)>.5,null,{polling:30,timeout:4000});
-      await page.locator("#skip").click();
-      await page.locator("#login").waitFor({state:"visible"});
+      await page.locator("#login").waitFor({state:"visible",timeout:10000});
+      const orbitPeak=await page.evaluate(()=>window.__orbitPeak);
+      console.log(name+" opening orbit peak opacity: "+orbitPeak);
+      assert.ok(orbitPeak>.5,"Opening orbit must visibly appear during the full opening sequence");
       await waitForPaint("#login .brand canvas");
       assert.equal(await page.locator("#login .opening-orbit-v10").count(),0);
       assert.equal(await page.locator("#identity-technology .technology-orbits path").count(),8);
