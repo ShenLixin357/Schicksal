@@ -60,3 +60,14 @@ test("public nonce script serialization parses; the V10 engine is isolated from 
   assert.match(read("app/entry-screen.ts"),/technologyMark\(\)/);
   assert.match(page,/accountMode==="technology"\?<TechnologyEmblem/);
 });
+
+test("opening-only orbit retains original styling and begins after all blades settle",()=>{
+  const css=read("app/entry.css"),entry=read("app/entry-screen.ts"),compact=read("app/emblem/compact-emblem.tsx");
+  assert.match(css,/width:clamp\(188px,32vmin,250px\)/);
+  assert.match(css,/inset:13%; border:1px solid rgba\(62,102,130,\.2\)/);
+  assert.match(css,/animation:openingOrbitV10 1250ms 2390ms both/);
+  assert.equal(EMBLEM_MOTION.openingDelay+7*EMBLEM_MOTION.interval+EMBLEM_MOTION.grow,2390);
+  assert.match(entry,/compact \? "" : '<span class="opening-orbit-v10"/);
+  assert.match(compact,/\{ceremonial && <span className="opening-orbit-v10"/);
+  assert.doesNotMatch(read("app/emblem/imperial-loading.tsx"),/opening-orbit-v10/);
+});

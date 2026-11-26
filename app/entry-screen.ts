@@ -20,7 +20,7 @@ const mark = (member: Citizen) => member.id === "amberina"
   : member.id === "zxy"
   ? `<span class="citizen-mark personal-simple no2-symbol mark-zxy" aria-hidden="true"><span class="citizen-simple-image"></span></span>`
   : `<span class="citizen-mark ${member.motif} mark-${member.id}" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${sigils[member.motif] ?? sigils.sealed}</svg></span>`;
-const emblem = (compact = false) => `<div class="emblem ${compact ? "compact complete" : "ceremonial"}" role="img" aria-label="天命第一帝国八棱主标志"><canvas class="empire-emblem-canvas" data-emblem-mode="${compact ? "static" : "opening"}" aria-hidden="true"></canvas></div>`;
+const emblem = (compact = false) => `<div class="emblem ${compact ? "compact complete" : "ceremonial"}" role="img" aria-label="天命第一帝国八棱主标志">${compact ? "" : '<span class="opening-orbit-v10" aria-hidden="true"></span>'}<canvas class="empire-emblem-canvas" data-emblem-mode="${compact ? "static" : "opening"}" aria-hidden="true"></canvas></div>`;
 const technologyMark = () => `<div class="emblem compact technology-orbits" role="img" aria-label="科技部长四环徽记">${technologyRingSvg(CITIZENS.map(member=>member.accent))}</div>`;
 
 // Only the original entry design is public; no private app bundle or room assets

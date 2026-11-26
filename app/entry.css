@@ -219,3 +219,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 
 .radial-emblem > .emblem {width:100%;height:100%;filter:none}
 .welcome-mark > .technology-orbits {transform:rotate(-45deg)}
+
+/* Opening only: enlarge the emblem without altering compact/static/loading sizes.
+ * Retain the original orbit (13% inset, 1px blue-grey line) behind the blades.
+ * Last blade finishes at 360 + 7*230 + 420 = 2390ms.
+ * Full emblem holds 900ms; orbit fades with the 350ms scatter. */
+.opening .emblem-reveal > .emblem.ceremonial {
+  width:clamp(188px,32vmin,250px); height:auto; aspect-ratio:1; transform:none;
+}
+.opening .emblem-reveal > .emblem.ceremonial .empire-emblem-canvas {
+  position:relative; z-index:1;
+}
+.opening .emblem-reveal > .emblem.ceremonial > .opening-orbit-v10 {
+  position:absolute; z-index:0; inset:13%; border:1px solid rgba(62,102,130,.2);
+  border-radius:50%; pointer-events:none; opacity:0;
+  animation:openingOrbitV10 1250ms 2390ms both;
+}
+@keyframes openingOrbitV10 {
+  0% {opacity:0; transform:scale(.72); animation-timing-function:ease;}
+  52% {opacity:1; transform:scale(1); }
+  72% {opacity:1; transform:scale(1); animation-timing-function:ease-in;}
+  100% {opacity:0; transform:scale(1.12);}
+}
+@media(max-height:540px) {
+  .opening .emblem-reveal > .emblem.ceremonial {width:clamp(140px,34vh,188px);}
+}
+@media(prefers-reduced-motion:reduce) {
+  .opening .emblem-reveal > .emblem.ceremonial > .opening-orbit-v10 {animation:none;opacity:1;transform:none;}
+}

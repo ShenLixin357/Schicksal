@@ -12,6 +12,7 @@ export function EmblemCanvas({mode="static",revealed=8}:{mode?:MotionMode;reveal
 }
 export function CompactEmpireEmblem({compact=false,revealed=8,ceremonial=false}: {compact?:boolean;highlight?:number;revealed?:number;ceremonial?:boolean}) {
   return <div className={"emblem "+(compact?"compact ":"")+(ceremonial?"ceremonial ":"")+(revealed>=8?"complete":"")} role="img" aria-label="天命第一帝国八棱主标志，正式名称待定">
+    {ceremonial && <span className="opening-orbit-v10" aria-hidden="true"/>}
     <EmblemCanvas mode={ceremonial?"opening":"static"} revealed={ceremonial?8:revealed}/>
   </div>;
 }
