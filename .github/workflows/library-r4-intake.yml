@@ -1,0 +1,231 @@
+name: Library R4 isolated integration and acceptance
+on:
+  push:
+    branches: ["intake/library-r4-20261127"]
+    paths: ["Schicksal_Library_Integration_Candidate_R4_2026-11-27*.zip"]
+permissions:
+  contents: read
+concurrency:
+  group: schicksal-library-r4-intake
+  cancel-in-progress: false
+jobs:
+  integration:
+    if: github.event.repository.private == true && github.ref_name == 'intake/library-r4-20261127'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    permissions:
+      contents: write
+    outputs:
+      candidate_sha: ${{ steps.apply.outputs.candidate_sha }}
+    env:
+      R4_BASE: e31fe637aeb629bb0a2cf42223041f2c0755871a
+      R4_BRANCH: feature/library-integration-20261127
+      R4_ZIP_SHA: 70686764664fd6f328717612437fe824319ab801a2380fe3bfb9045b7be7c646
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: intake
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: site
+          ref: e31fe637aeb629bb0a2cf42223041f2c0755871a
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify private repository and extract exactly the approved R4
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq '.private')" = true
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')" = "$R4_BASE"
+          mkdir -p "$RUNNER_TEMP/library-r4-report" "$RUNNER_TEMP/library-r4"
+          python3 - <<'PY'
+          import hashlib, pathlib, zipfile, os
+          files=list(pathlib.Path("intake").glob("Schicksal_Library_Integration_Candidate_R4_2026-11-27*.zip"))
+          assert len(files)==1, "Upload exactly one original R4 ZIP, not the tar.gz or V1.1"
+          archive=files[0]
+          assert hashlib.sha256(archive.read_bytes()).hexdigest()==os.environ["R4_ZIP_SHA"], "Wrong or altered R4 ZIP"
+          target=pathlib.Path(os.environ["RUNNER_TEMP"])/"library-r4"
+          with zipfile.ZipFile(archive) as z:
+            assert len(z.infolist())==161
+            assert sum(x.file_size for x in z.infolist())==12119581
+            for item in z.infolist():
+              p=pathlib.PurePosixPath(item.filename)
+              assert not p.is_absolute() and ".." not in p.parts and p.parts[0]=="library-candidate"
+              assert (item.external_attr>>16)&0o170000 != 0o120000
+            z.extractall(target)
+          print("PASS exact R4 archive and private main baseline")
+          PY
+      - name: Execute original apply-local.py on real clean main and preserve candidate
+        id: apply
+        working-directory: site
+        run: |
+          set -euo pipefail
+          PKG="$RUNNER_TEMP/library-r4/library-candidate"
+          REPORT="$RUNNER_TEMP/library-r4-report"
+          test "$(git rev-parse HEAD)" = "$R4_BASE"
+          python3 "$PKG/apply-local.py" "$PWD" --check | tee "$REPORT/apply-check.log"
+          python3 "$PKG/apply-local.py" "$PWD" | tee "$REPORT/apply.log"
+          mkdir -p docs/library/r4-handoff
+          cp "$PKG/README.md" docs/library/r4-handoff/README.md
+          cp "$PKG/docs/"{ROUND4.md,FINAL_BOOK_CONFIG.md,MAIN_SITE_HANDOFF.md,HANDOFF_MANIFEST.json,BASELINE_R4.json} docs/library/r4-handoff/
+          git add -A
+          git diff --cached --check
+          python3 - "$PKG" <<'PY'
+          import pathlib, subprocess, sys, hashlib, json
+          pkg=pathlib.Path(sys.argv[1]); overlay=pkg/"overlay"
+          assets=json.loads((pkg/"docs/runtime-assets.json").read_text())
+          for x in assets:
+            p=pathlib.Path("public/library")/x["path"]
+            assert p.stat().st_size==x["size"] and hashlib.sha256(p.read_bytes()).hexdigest()==x["sha256"],p
+          allowed={str(p.relative_to(overlay)) for p in overlay.rglob("*") if p.is_file()}
+          for p in allowed: assert pathlib.Path(p).read_bytes()==(overlay/p).read_bytes(),p
+          allowed.update(["app/page.tsx","app/archives/archive-section.tsx","app/technology/technology-ministry.tsx","tests/shell-preview.test.mjs","tests/identity-boundary.test.mjs","scripts/architecture/check-boundaries.mjs","tests/architecture-phase1.test.mjs","tests/private-site.test.mjs","package.json"])
+          allowed.update(str(p) for p in pathlib.Path("docs/library/r4-handoff").glob("*") if p.is_file())
+          actual=set(subprocess.check_output(["git","diff","--cached","--name-only"],text=True).splitlines())
+          assert actual<=allowed,actual-allowed
+          assert hashlib.sha256(pathlib.Path("public/library/library/book/multi/routes.js").read_bytes()).hexdigest()=="8660ae65f1109f766c38cb5bff0d7f476e514ed3d8f3b656288a439a68afb79e"
+          print("PASS all overlay bytes, 58 assets, frozen route hash and changed-path allowlist")
+          PY
+          git diff --cached --name-status > "$REPORT/changed-files.txt"
+          git config user.name "Schicksal library integration"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Integrate exact Library R4 on pinned main; no persistence or production changes"
+          REMOTE="$(git ls-remote origin "refs/heads/$R4_BRANCH" | cut -f1)"
+          test -n "$REMOTE"
+          if test "$REMOTE" = "$R4_BASE"; then
+            git push origin "HEAD:refs/heads/$R4_BRANCH"
+          else
+            git fetch origin "refs/heads/$R4_BRANCH"
+            test "$(git rev-parse HEAD^{tree})" = "$(git rev-parse FETCH_HEAD^{tree})" || { echo "::error::Existing integration branch differs; preserving it without overwrite"; exit 1; }
+            git checkout --detach FETCH_HEAD
+          fi
+          CANDIDATE="$(git rev-parse HEAD)"
+          echo "candidate_sha=$CANDIDATE" >> "$GITHUB_OUTPUT"
+          echo "SCHICKSAL_LOCAL_SHA=$CANDIDATE" >> "$GITHUB_ENV"
+          printf "Base: %s\nCandidate: %s\nBranch: %s\n" "$R4_BASE" "$CANDIDATE" "$R4_BRANCH" | tee "$REPORT/candidate.txt"
+      - name: Install exact locked dependencies
+        working-directory: site
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/library-r4-report/npm-ci.log"
+      - name: Real complete main-site build
+        id: build
+        working-directory: site
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee "$RUNNER_TEMP/library-r4-report/build.log"
+          npm run validate:artifact 2>&1 | tee "$RUNNER_TEMP/library-r4-report/artifact-validation.log"
+      - name: Full regression and actual installed permission route
+        id: regression
+        if: steps.build.outcome == 'success'
+        working-directory: site
+        run: |
+          set -euo pipefail
+          PKG="$RUNNER_TEMP/library-r4/library-candidate"
+          npm test 2>&1 | tee "$RUNNER_TEMP/library-r4-report/full-regression.log"
+          AUTH_SOURCE_ROOT="$PWD" node --experimental-transform-types --test "$PKG/tests/permissions-local.mjs" 2>&1 | tee "$RUNNER_TEMP/library-r4-report/permissions.log"
+      - name: Render frozen animation trajectories and lifecycle on native Canvas
+        id: native
+        if: always() && steps.apply.outcome == 'success'
+        run: |
+          set -euo pipefail
+          PKG="$RUNNER_TEMP/library-r4/library-candidate"
+          REPORT="$RUNNER_TEMP/library-r4-report"
+          npm install --prefix "$RUNNER_TEMP/library-native" --no-save --package-lock=false skia-canvas
+          export SKIA_CANVAS_MODULE="$RUNNER_TEMP/library-native/node_modules/skia-canvas"
+          node --experimental-default-type=module "$PKG/tests/render-r4-lifecycle.mjs" 2>&1 | tee "$REPORT/native-lifecycle.log"
+          node --experimental-default-type=module "$PKG/tests/render-dense.mjs" "$REPORT/occlusion-frames" 2>&1 | tee "$REPORT/native-dense.log"
+      - name: Install real Chromium and WebKit
+        id: browsers
+        if: always() && steps.build.outcome == 'success'
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium webkit
+      - name: Full supplied fixture and original debugger / teardown checks
+        id: fixture
+        if: always() && steps.browsers.outcome == 'success'
+        run: |
+          set -uo pipefail
+          PKG="$RUNNER_TEMP/library-r4/library-candidate"
+          REPORT="$RUNNER_TEMP/library-r4-report"
+          status=0
+          for engine in chromium webkit; do
+            python "$PKG/tests/browser-local.py" --engine "$engine" 2>&1 | tee "$REPORT/fixture-$engine.log" || status=1
+            python intake/scripts/qa/library-r4-extra.py "$PKG" "$REPORT" "$engine" 2>&1 | tee "$REPORT/debug-lifecycle-$engine.log" || status=1
+          done
+          exit "$status"
+      - name: Real built Worker with isolated LOCAL D1 and full browser interaction
+        id: main_browsers
+        if: always() && steps.browsers.outcome == 'success'
+        working-directory: site
+        run: bash ../intake/scripts/qa/library-r4-local-worker.sh
+      - name: Upload private QA evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-r4-integration-report
+          path: ${{ runner.temp }}/library-r4-report/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Record integration gates
+        if: always()
+        run: |
+          {
+            echo "### Library R4 integration"
+            echo "Candidate: ${{ steps.apply.outputs.candidate_sha }}"
+            echo "- Apply: ${{ steps.apply.outcome }}"
+            echo "- Full build: ${{ steps.build.outcome }}"
+            echo "- Regression/permissions: ${{ steps.regression.outcome }}"
+            echo "- Native continuous frames: ${{ steps.native.outcome }}"
+            echo "- Browser fixture/debug/lifecycle: ${{ steps.fixture.outcome }}"
+            echo "- Real main browser suite: ${{ steps.main_browsers.outcome }}"
+            echo "- Visual inspection of occlusion evidence and native Safari manual acceptance remain separate."
+            echo "- No main merge, production deployment, production D1 mutation, R2, or V1.1."
+          } >> "$GITHUB_STEP_SUMMARY"
+  isolated_preview:
+    name: Publish dedicated library preview only after automated gates pass
+    needs: integration
+    if: needs.integration.result == 'success' && github.event.repository.private == true && github.ref_name == 'intake/library-r4-20261127'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: briefing-preview
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: intake
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: site
+          ref: ${{ needs.integration.outputs.candidate_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Build exact accepted candidate
+        working-directory: site
+        env:
+          CANDIDATE_SHA: ${{ needs.integration.outputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          npm ci
+          npm run build
+          npm run validate:artifact
+      - name: Deploy only isolated library Worker with isolated D1, no R2
+        working-directory: site
+        env:
+          CANDIDATE_SHA: ${{ needs.integration.outputs.candidate_sha }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+          SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash ../intake/scripts/qa/library-r4-deploy-preview.sh
