@@ -240,7 +240,7 @@ function Welcome({ citizen, accountMode, offices, enter, preloadStatus, retry }:
 }
 
 function CitizenEmblem({ large = false }: { large?: boolean }) {
-  return <div className={"radial-emblem "+(large?"large":"")} data-blade-order={EMBLEM_BLADES.map(blade=>blade.citizenId).join("|")}><Emblem /></div>;
+  return <div className={"radial-emblem "+(large?"large":"")} data-blade-order={EMBLEM_BLADES.map(blade=>blade.citizenId).join("|")}><Emblem />{EMBLEM_BLADES.map(blade=><span key={blade.citizenId} className={`emblem-slot ${isCurrentPresident(blade.citizenId)?"leader":""}`} style={{"--slot":blade.index,"--citizen":blade.color} as CSSProperties}><b>{blade.index+1}</b></span>)}</div>;
 }
 
 

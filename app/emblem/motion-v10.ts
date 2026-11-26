@@ -62,8 +62,8 @@ export function mountEmblem(canvas:HTMLCanvasElement,mode:MotionMode,pathSource:
     }
     output.setTransform(1,0,0,1,0,0);output.clearRect(0,0,size,size);output.imageSmoothingEnabled=true;output.imageSmoothingQuality="high";output.drawImage(buffer,0,0,size,size);
   };
-  const tick=(now:number)=>{frame=0;if(disposed)return;paint(now);if(!reduce.matches&&(mode==="loading"||mode==="opening"&&now-started<4200))frame=requestAnimationFrame(tick);};
-  const resume=()=>{if(frame)cancelAnimationFrame(frame);frame=0;tick(performance.now());};
+  const tick=()=>{frame=0;if(disposed)return;const now=performance.now();paint(now);if(!reduce.matches&&(mode==="loading"||mode==="opening"&&now-started<4200))frame=requestAnimationFrame(tick);};
+  const resume=()=>{if(frame)cancelAnimationFrame(frame);frame=0;tick();};
   const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(()=>{
     const size=Math.max(1,Math.min(768,Math.round(canvas.getBoundingClientRect().width*(window.devicePixelRatio||1))));
     if(size!==lastSize)paint(performance.now());
