@@ -23,10 +23,17 @@ report("LIVE deployment unchanged from pre-release: "+(latest?.id==="2c9a522c-d8
 report("LIVE deployment created: "+(latest?.created_on??latest?.createdOn??"unknown"));
 report("LIVE release marker matches approved main: "+(marker===expected));
 report("LIVE release marker present: "+Boolean(marker));
-const migrations=wrangler(["d1","execute","schicksal-db","--remote","--json","--command","SELECT name FROM d1_migrations ORDER BY id"])[0].results;
+async function query(sql){
+  assert.match(sql,/^SELECT /i);
+  const res=await fetch("https://api.cloudflare.com/client/v4/accounts/"+account+"/d1/database/"+prod[0].uuid+"/query",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({sql}),signal:AbortSignal.timeout(30000)});
+  const body=await res.json();
+  if(!res.ok||!body.success)throw Error("D1 SELECT failed: HTTP "+res.status+" codes "+JSON.stringify(body.errors?.map(e=>e.code)));
+  assert.ok(body.result?.[0]?.success);return body.result[0].results;
+}
+const migrations=await query("SELECT name FROM d1_migrations ORDER BY id");
 report("LIVE D1 last migration: "+migrations.at(-1)?.name+"; total: "+migrations.length);
-const count=wrangler(["d1","execute","schicksal-db","--remote","--json","--command","SELECT (SELECT count(*) FROM committee_vase_history) AS vase_history, (SELECT count(*) FROM member_credentials) AS credentials, (SELECT count(*) FROM parliament_items) AS items"])[0].results[0];
+const count=(await query("SELECT (SELECT count(*) FROM committee_vase_history) AS vase_history, (SELECT count(*) FROM member_credentials) AS credentials, (SELECT count(*) FROM parliament_items) AS items"))[0];
 report("LIVE D1 existing rows: "+JSON.stringify(count));assert.ok(count.vase_history>=47&&count.credentials>=5&&count.items>=4);
-if(migrations.at(-1)?.name==="0020_parliament_document_versions.sql"){const m=wrangler(["d1","execute","schicksal-db","--remote","--json","--command","SELECT count(*) n FROM parliament_items i LEFT JOIN parliament_document_versions d ON d.item_id=i.id AND d.version=i.version WHERE d.item_id IS NULL OR d.title IS NOT i.title OR d.summary IS NOT i.summary OR d.body IS NOT i.body"])[0].results[0];report("LIVE document history mismatches: "+m.n);assert.equal(m.n,0);}
+if(migrations.at(-1)?.name==="0020_parliament_document_versions.sql"){const m=(await query("SELECT count(*) n FROM parliament_items i LEFT JOIN parliament_document_versions d ON d.item_id=i.id AND d.version=i.version WHERE d.item_id IS NULL OR d.title IS NOT i.title OR d.summary IS NOT i.summary OR d.body IS NOT i.body"))[0];report("LIVE document history mismatches: "+m.n);assert.equal(m.n,0);}
 for(const path of ["/","/api/briefing","/api/parliament"]){const r=await fetch("https://schicksal.m17686100216.workers.dev"+path,{redirect:"manual",signal:AbortSignal.timeout(15000)});report("LIVE HTTP "+path+": "+r.status);assert.equal(r.status,401);await r.body?.cancel();}
-report("Live production DB identity and privacy confirmed; exact release active: "+(marker===expected&&migrations.at(-1)?.name==="0020_parliament_document_versions.sql"));
+assert.equal(marker,expected,"Live release marker mismatch");assert.equal(migrations.at(-1)?.name,"0020_parliament_document_versions.sql");report("PASS: exact production release, original database, latest migrations, privacy gates verified.");

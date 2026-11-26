@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-      - name: Verify real Wrangler D1 lookup and live release
+      - name: Verify deployed production directly using Cloudflare read-only queries
         shell: bash
         run: |
           set -euo pipefail
