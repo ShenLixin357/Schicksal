@@ -95,6 +95,6 @@ test("public mark/compact emblem renderers are reusable without copying Lounge m
   assert.match(mark, /<Image src=\{markAsset\}/);
   assert.match(compact, /export function CompactEmpireEmblem/);
   assert.match(compact, /EMBLEM_BLADES\.map/);
-  assert.match(compact, /className=\{`emblem /);
+  assert.match(compact, /className=\{"emblem "/);
   assert.doesNotMatch(compact, /mafraer|LOUNGE_IDENTITIES|MysticSigil/);
 });

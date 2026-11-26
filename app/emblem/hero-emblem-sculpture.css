@@ -355,3 +355,8 @@
 @media (prefers-reduced-motion: reduce) {
   .emblem-3d-core { animation: none; }
 }
+
+/* V10 exact single-contour blade, no outline or old decorative cutouts. */
+.emblem-3d-blade.v10-sculpture-blade { width:10.55%; height:44.69%; top:3.73%; clip-path:none; border-radius:0; background:none; box-shadow:none; filter:none; }
+.emblem-3d-blade.v10-sculpture-blade::before,.emblem-3d-blade.v10-sculpture-blade::after { content:none; }
+.v10-sculpture-blade svg { width:100%; height:100%; display:block; overflow:visible; }

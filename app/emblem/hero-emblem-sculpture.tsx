@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useId, useRef, type CSSProperties } from "react";
+import { bladeOutline, emblemFacets } from "./motion-v10";
 
 export type EmblemBladeSpec = {
   index: number;
@@ -29,6 +30,7 @@ const smoothStep = (value: number) => value * value * (3 - 2 * value);
 
 export function HeroEmblemSculpture({ blades }: { blades: readonly EmblemBladeSpec[] }) {
   const sceneRef = useRef<HTMLDivElement>(null);
+  const gradientPrefix = useId();
 
   useEffect(() => {
     const scene = sceneRef.current;
@@ -173,15 +175,17 @@ export function HeroEmblemSculpture({ blades }: { blades: readonly EmblemBladeSp
                   "--blade-index": blade.index,
                 } as CSSProperties}
               >
-                <i className="emblem-3d-blade">
-                  <span className="blade-facet blade-facet-left" />
-                  <span className="blade-facet blade-facet-right" />
-                  <span className="blade-ridge" />
+                <i className="emblem-3d-blade v10-sculpture-blade">
+                  <svg viewBox="-10 -87.72 20 84.72" preserveAspectRatio="xMidYMid meet">
+                    <defs><linearGradient id={gradientPrefix+"-blade-"+blade.index} x1="0%" x2="100%" y1="0%" y2="0%">
+                      {emblemFacets([blade.color])[0].flatMap((color,i)=>[<stop key={i+"a"} offset={i===0?"0%":"50%"} stopColor={color}/>,<stop key={i+"b"} offset={i===0?"50%":"100%"} stopColor={color}/>])}
+                    </linearGradient></defs>
+                    <path d={bladeOutline()} fill={"url(#"+gradientPrefix+"-blade-"+blade.index+")"} />
+                  </svg>
                 </i>
               </span>
             ))}
-            <span className="emblem-3d-hub-ring" />
-            <span className="emblem-3d-core"><i /><b /><em /></span>
+            {/* V10: retain the helical motion, no center hub or square. */}
           </div>
         </div>
       </div>

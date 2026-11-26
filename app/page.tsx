@@ -12,6 +12,7 @@ import { PublicCitizenMark as CitizenMark } from "./identity/public-mark";
 import { ATLAS_VISUAL_APPROVED } from "./shell/navigation";
 import { CompactEmpireEmblem as Emblem } from "./emblem/compact-emblem";
 import { TechnologyEmblem } from "./emblem/compact-emblem";
+import { EMBLEM_BLADES } from "./emblem/blade-spec";
 import { ImperialLoading, ImperialLoadingScope } from "./emblem/imperial-loading";
 
 import { atlasName, atlasCodename } from "./atlas/atlas-data";
@@ -239,7 +240,7 @@ function Welcome({ citizen, accountMode, offices, enter, preloadStatus, retry }:
 }
 
 function CitizenEmblem({ large = false }: { large?: boolean }) {
-  return <div className={"radial-emblem "+(large?"large":"")}><Emblem /></div>;
+  return <div className={"radial-emblem "+(large?"large":"")} data-blade-order={EMBLEM_BLADES.map(blade=>blade.citizenId).join("|")}><Emblem /></div>;
 }
 
 
