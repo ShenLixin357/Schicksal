@@ -69,7 +69,7 @@ test("opening-only orbit retains original styling and starts with the eighth bla
   const engine=read("app/emblem/motion-v10.ts");
   assert.match(engine,/ease\(\(age-1970\)\/650\)/);
   assert.match(engine,/ease\(\(age-1970\)\/800\)/);
-  assert.match(engine,/clamp\(\(age-3836\)\/360\)/);
+  assert.match(engine,/clamp\(\(age-3290\)\/360\)/);
   assert.equal(EMBLEM_MOTION.openingDelay+7*EMBLEM_MOTION.interval,1970);
   assert.equal(EMBLEM_MOTION.openingDelay+7*EMBLEM_MOTION.interval+EMBLEM_MOTION.grow,2390);
   assert.doesNotMatch(engine,/\.12\*fall/);
@@ -79,7 +79,7 @@ test("opening-only orbit retains original styling and starts with the eighth bla
 });
 
 
-test("single orbit remains at full size until all blades vanish, then expands to 140% and fades",()=>{
+test("single orbit expands to 140% and fades simultaneously with the first blade scatter",()=>{
   // Exercise the real self-contained browser renderer at exact time points.
   let age=0,next;
   const orbit={style:{},dataset:{}};
@@ -98,14 +98,17 @@ test("single orbit remains at full size until all blades vanish, then expands to
   assert.deepEqual(frameAt(1969),{opacity:0,scale:.72});
   assert.ok(frameAt(2100).opacity>0);
   assert.deepEqual(frameAt(2770),{opacity:1,scale:1});
-  assert.deepEqual(frameAt(3835),{opacity:1,scale:1});
-  assert.ok(sampleEmblem("opening",3835).length>0);
-  assert.equal(sampleEmblem("opening",3836).length,0);
-  assert.deepEqual(frameAt(3836),{opacity:1,scale:1});
-  const half=frameAt(4016);
+  assert.deepEqual(frameAt(3289),{opacity:1,scale:1});
+  assert.deepEqual(frameAt(3290),{opacity:1,scale:1});
+  assert.ok(sampleEmblem("opening",3291).some(p=>p.dy<0));
+  const first=frameAt(3291);
+  assert.ok(first.scale>1&&first.opacity<1);
+  const half=frameAt(3470);
   assert.ok(Math.abs(half.opacity-.5)<1e-10);
   assert.ok(Math.abs(half.scale-1.3)<1e-10);
-  assert.deepEqual(frameAt(4196),{opacity:0,scale:1.4});
+  assert.deepEqual(frameAt(3650),{opacity:0,scale:1.4});
+  assert.ok(sampleEmblem("opening",3650).length>0);
+  assert.deepEqual(frameAt(3836),{opacity:0,scale:1.4});
   assert.deepEqual(frameAt(4200),{opacity:0,scale:1.4});
   dispose();
 });

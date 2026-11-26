@@ -73,10 +73,9 @@ export function mountEmblem(canvas:HTMLCanvasElement,mode:MotionMode,pathSource:
       const ease=(p:number)=>bezier(p,.25,.1,.25,1);
       const rise=reduce.matches?1:ease((age-1970)/650);
       const grow=reduce.matches?1:ease((age-1970)/800);
-      // A: hold until the LAST blade has finished scattering
-      // (3290 + 7*28 + 350 = 3836ms), then a single expanding wave.
-      // Fade to zero over 360ms, ending at 4196ms before login at 4200ms.
-      const release=reduce.matches?0:clamp((age-3836)/360);
+      // A revised: release on the FIRST blade's scatter beat (3290ms).
+      // The single ring expands immediately and vanishes within 360ms.
+      const release=reduce.matches?0:clamp((age-3290)/360);
       const expansion=1-Math.pow(1-release,2);
       orbit.style.opacity=String(rise*(1-release));
       orbit.style.transform="scale("+(.72+.28*grow+.4*expansion)+") rotate("+(-16*(1-grow))+"deg)";

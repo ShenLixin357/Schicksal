@@ -57,9 +57,10 @@ try{
       assert.ok(orbitFrames.every(f=>f.age>=1970||f.opacity===0),"No orbit before the eighth blade starts");
       assert.ok(orbitFrames.some(f=>f.age>=1970&&f.age<2390&&f.opacity>0),"Orbit must appear while the eighth blade is still moving");
       const orbitScale=f=>Number(f.transform.match(/scale\(([^)]+)\)/)?.[1]);
-      assert.ok(orbitFrames.some(f=>f.age>=2770&&f.age<=3836&&f.opacity>.99&&Math.abs(orbitScale(f)-1)<1e-6),"Orbit holds at original size during the completed emblem");
-      assert.ok(orbitFrames.filter(f=>f.age>=2770&&f.age<=3836).every(f=>Math.abs(orbitScale(f)-1)<1e-6&&f.opacity>.999),"Orbit stays still and opaque until the last blade vanishes");
-      assert.ok(orbitFrames.some(f=>f.age>3836&&f.age<4196&&orbitScale(f)>1&&orbitScale(f)<1.4&&f.opacity>0&&f.opacity<1),"Orbit expands and fades only after all blades disappear");
+      assert.ok(orbitFrames.some(f=>f.age>=2770&&f.age<=3290&&f.opacity>.99&&Math.abs(orbitScale(f)-1)<1e-6),"Orbit holds at original size before scatter");
+      assert.ok(orbitFrames.filter(f=>f.age>=2770&&f.age<=3290).every(f=>Math.abs(orbitScale(f)-1)<1e-6&&f.opacity>.999),"Orbit stays still until scatter begins");
+      assert.ok(orbitFrames.some(f=>f.age>3290&&f.age<3650&&orbitScale(f)>1&&orbitScale(f)<1.4&&f.opacity>0&&f.opacity<1),"Orbit expands and fades during blade scatter");
+      assert.ok(orbitFrames.some(f=>f.age>=3650&&f.age<3836&&f.opacity===0&&Math.abs(orbitScale(f)-1.4)<1e-6),"Orbit disappears before the final blade finishes");
       await waitForPaint("#login .brand canvas");
       assert.equal(await page.locator("#login .opening-orbit-v10").count(),0);
       assert.equal(await page.locator("#identity-technology .technology-orbits path").count(),8);
