@@ -73,6 +73,9 @@ test("archived text survives official edits and accepted amendments, with ballot
     assert.equal((await get("&version=1")).status, 401);
     assert.equal((await get("&version=0", voter)).status, 400);
     await act(owner, "update_item", {
+      title: "Missing version", summary: "Missing version", body: "Must not overwrite",
+    }, 409);
+    await act(owner, "update_item", {
       expectedVersion: 1, title: "Second title", summary: "Second summary", body: "Second text",
     });
     await act(owner, "update_item", {
@@ -94,6 +97,7 @@ test("archived text survives official edits and accepted amendments, with ballot
     }
     assert.equal((await get("&version=4", voter)).status, 404);
     sqlite.exec("UPDATE parliament_items SET stage='voting', voting_version=version WHERE id='speaker-test'");
+    await act(voter, "cast_vote", { choice: "support" }, 409);
     await act(voter, "cast_vote", { choice: "support", documentVersion: 2 }, 409);
     await act(voter, "cast_vote", { choice: "support", documentVersion: 3 });
     assert.equal(sqlite.prepare("SELECT document_version FROM parliament_votes WHERE item_id='speaker-test'").get().document_version, 3);
@@ -230,7 +234,7 @@ test("votes freeze when resolved; tally, official comment and audit commit atomi
   try {
     sqlite.exec("UPDATE parliament_items SET voting_version=version WHERE id='speaker-test'");
     const owner = await login("amberina"), voter = await login("truth");
-    await act(voter, "cast_vote", { choice: "support" });
+    await act(voter, "cast_vote", { choice: "support", documentVersion: 1 });
     await act(owner, "transition_stage", { stage: "resolved", reason: "Votes counted and frozen" });
     const final = sqlite.prepare("SELECT stage,outcome FROM parliament_items WHERE id='speaker-test'").get();
     assert.deepEqual({ ...final }, { stage: "resolved", outcome: "passed" });

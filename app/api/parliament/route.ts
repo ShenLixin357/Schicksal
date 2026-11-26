@@ -280,7 +280,7 @@ export async function POST(request: Request) {
       const [existing] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
       if (!existing) return Response.json({ error: "找不到这项议案。" }, { status: 404 });
       if (existing.stage === "voting" || existing.stage === "resolved") return Response.json({ error: "投票中或已结案的文本已冻结；请先正式重开议案。" }, { status: 409 });
-      if (payload.expectedVersion !== undefined && payload.expectedVersion !== existing.version) return Response.json({ error: "议案正文已更新，请刷新后再编辑。" }, { status: 409 });
+      if (payload.expectedVersion !== existing.version) return Response.json({ error: "议案正文已更新，请刷新后再编辑。" }, { status: 409 });
       const nextVersion = existing.version + 1;
       const token = crypto.randomUUID();
       const note = `正式文稿更新至 v${nextVersion}。`;
@@ -530,7 +530,7 @@ export async function POST(request: Request) {
       const [existing] = await db.select().from(parliamentItems).where(eq(parliamentItems.id, itemId)).limit(1);
       if (!existing) return Response.json({ error: "找不到这项议案。" }, { status: 404 });
       if (existing.stage !== "voting" || !existing.votingVersion || existing.votingVersion !== existing.version) return Response.json({ error: "投票尚未开放，或表决文本版本已失效。" }, { status: 409 });
-      if (payload.documentVersion !== undefined && payload.documentVersion !== existing.votingVersion) return Response.json({ error: "表决正文已变化，请刷新后重新确认。" }, { status: 409 });
+      if (payload.documentVersion !== existing.votingVersion) return Response.json({ error: "表决正文已变化，请刷新后重新确认。" }, { status: 409 });
       // Vote and stage check happen in one SQL statement. No late vote can land.
       const voted = await env.DB.prepare(`INSERT INTO parliament_votes
         (id, item_id, citizen_id, choice, document_version, created_at, updated_at)
