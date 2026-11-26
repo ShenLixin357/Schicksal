@@ -93,3 +93,17 @@ test("anonymous login embeds approved image without making private static files 
   assert.match(privacy, /img-src data:/);
   assert.doesNotMatch(boundary, /path === "\/amberina-personal-simple/);
 });
+
+test("welcome automatically advances after verified briefing readiness without needing ENTER NOW", () => {
+  const page=source("../app/page.tsx");
+  const welcome=page.slice(page.indexOf("function Welcome("),page.indexOf("function CitizenEmblem("));
+  assert.match(welcome,/if \(preloadStatus !== "ready"\)/);
+  assert.match(welcome,/Math\.max\(\(startedAt\.current \?\? now\) \+ 3900, now\)/);
+  assert.match(welcome,/const enterAt = fadeAt \+ 800/);
+  assert.match(welcome,/window\.setTimeout\(finish, Math\.max\(0, enterAt - performance\.now\(\)\)\)/);
+  assert.match(welcome,/enterRef\.current\(\)/);
+  assert.match(welcome,/\}, \[preloadStatus\]\)/);
+  assert.match(welcome,/visibilitychange/);
+  assert.match(welcome,/onClick=\{enter\}/);
+  assert.match(page,/preloadStatus=\{readyForMandatoryBriefing\(preload, citizen\.id\) \? "ready"/);
+});

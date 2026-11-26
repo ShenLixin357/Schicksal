@@ -34,12 +34,13 @@ try{
       const orbit=page.locator("#opening .opening-orbit-v10");
       assert.equal(await orbit.count(),1);
       assert.ok(await opening.evaluate(el=>el.getBoundingClientRect().width>=245),"desktop opening should be enlarged");
-      await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector("#opening .opening-orbit-v10")).opacity)>.5,null,{polling:50,timeout:3500});
+      await page.waitForFunction(()=>Number(document.querySelector("#opening .opening-orbit-v10").style.opacity)>.5,null,{polling:30,timeout:4000});
       await page.locator("#skip").click();
       await page.locator("#login").waitFor({state:"visible"});
       await waitForPaint("#login .brand canvas");
       assert.equal(await page.locator("#login .opening-orbit-v10").count(),0);
       assert.equal(await page.locator("#identity-technology .technology-orbits path").count(),8);
+      assert.equal(await page.locator("#identity-technology .technology-orbits g[stroke-width='2.875']").count(),4);
       await page.locator("#replay").click();
       await page.locator("#skip").click();
       await page.locator("#login").waitFor({state:"visible"});

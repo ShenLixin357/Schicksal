@@ -205,18 +205,34 @@ function Welcome({ citizen, accountMode, offices, enter, preloadStatus, retry }:
   retry: () => void;
 }) {
   const [leaving, setLeaving] = useState(false);
-  const [introFinished, setIntroFinished] = useState(false);
+  const startedAt = useRef<number | null>(null);
+  const enterRef = useRef(enter);
+  useEffect(() => { startedAt.current ??= performance.now(); }, []);
+  useEffect(() => { enterRef.current = enter; }, [enter]);
   useEffect(() => {
-    const timer = window.setTimeout(() => setIntroFinished(true), 3900);
-    return () => window.clearTimeout(timer);
-  }, []);
-  useEffect(() => {
-    if (!introFinished || preloadStatus !== "ready") return;
-    // Do not fade the welcome screen until the latest briefing is ready.
-    const fadeTimer = window.setTimeout(() => setLeaving(true), 0);
-    const enterTimer = window.setTimeout(enter, 800);
-    return () => { window.clearTimeout(fadeTimer); window.clearTimeout(enterTimer); };
-  }, [introFinished, preloadStatus, enter]);
+    if (preloadStatus !== "ready") { setLeaving(false); return; }
+    // One deadline after verified readiness; unrelated rerenders must not reset
+    // it. Preserve the 3.9s welcome and 0.8s exit, even if the feed is late.
+    const now = performance.now();
+    const fadeAt = Math.max((startedAt.current ?? now) + 3900, now);
+    const enterAt = fadeAt + 800;
+    let finished = false;
+    const finish = () => { if (!finished) { finished = true; enterRef.current(); } };
+    const advance = () => {
+      if (performance.now() >= enterAt) finish();
+      else if (performance.now() >= fadeAt) setLeaving(true);
+    };
+    const fadeTimer = window.setTimeout(() => setLeaving(true), Math.max(0, fadeAt - performance.now()));
+    const enterTimer = window.setTimeout(finish, Math.max(0, enterAt - performance.now()));
+    document.addEventListener("visibilitychange", advance);
+    window.addEventListener("focus", advance);
+    return () => {
+      finished = true;
+      window.clearTimeout(fadeTimer); window.clearTimeout(enterTimer);
+      document.removeEventListener("visibilitychange", advance);
+      window.removeEventListener("focus", advance);
+    };
+  }, [preloadStatus]);
   return (
     <main className={`welcome ${leaving ? "leaving" : ""}`} style={{ "--citizen": citizenRepresentativeColor(citizen), "--identity-mark": citizen.markColor } as CSSProperties}>
       <div className="welcome-rings" aria-hidden="true"><i /><i /><i /></div>
@@ -626,7 +642,7 @@ export default function Home() {
   // A phase transition alone never grants site access. If its live feed
   // is missing, keep the authenticated member on the Welcome gate.
   if (phase === "welcome" || !systemBriefing) return <Welcome citizen={citizen} accountMode={accountMode} offices={offices} enter={enterSystem}
-    preloadStatus={preload.citizenId && preload.citizenId !== citizen.id ? "loading" : preload.status}
+    preloadStatus={readyForMandatoryBriefing(preload, citizen.id) ? "ready" : preload.status === "error" && preload.citizenId === citizen.id ? "error" : "loading"}
     retry={retryPreload} />;
   return <System citizen={citizen} accountMode={accountMode} authSource={authSource} offices={offices} onAccountModeChange={setAccountMode} initialBriefing={systemBriefing.feed}
     logout={() => { void logoutMember(); }} />;

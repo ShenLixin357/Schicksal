@@ -378,3 +378,28 @@ jobs:
         env:
           SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
         run: node "$RUNNER_TEMP/schicksal-browser/parliament-preview-browser.mjs"
+
+  welcome-auto-qa:
+    name: Verified automatic Welcome entry
+    needs: deploy-preview
+    if: github.ref_name == 'preview/emblem-v10-20261127'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    environment:
+      name: briefing-preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install isolated browser runner
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mkdir -p "$RUNNER_TEMP/schicksal-browser"
+          npm install --prefix "$RUNNER_TEMP/schicksal-browser" --no-save --package-lock=false playwright@1.56.1
+          "$RUNNER_TEMP/schicksal-browser/node_modules/.bin/playwright" install --with-deps chromium webkit
+          cp scripts/qa/welcome-auto-preview.mjs "$RUNNER_TEMP/schicksal-browser/"
+      - name: Auto-enter without pressing ENTER NOW
+        env:
+          SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+        run: node "$RUNNER_TEMP/schicksal-browser/welcome-auto-preview.mjs"

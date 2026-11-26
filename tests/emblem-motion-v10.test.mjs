@@ -8,7 +8,7 @@ const colors=CITIZENS.map(c=>c.accent);
 const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 test("V10 exact approved defaults, palette and single refined contour",()=>{
   assert.deepEqual(colors,["#F3ED87","#D7263D","#eecf58","#65cae9","#a99ce6","#48ad83","#ef9148","#e982ad"]);
-  assert.deepEqual(Object.values(EMBLEM_MOTION),[20,4.236,.618,3,.01,420,230,900,350,28,360,4200,4300,15,.3,2.5,13,86]);
+  assert.deepEqual(Object.values(EMBLEM_MOTION),[20,4.236,.618,3,.01,420,230,900,350,28,360,4200,4300,15,.3,2.875,13,86]);
   assert.equal((bladeOutline().match(/Q/g)||[]).length,2);
   assert.match(bladeOutline(),/^M 0 -87\.72/);
   assert.match(bladeOutline(),/L 0 -3 /);
@@ -17,6 +17,7 @@ test("V10 exact approved defaults, palette and single refined contour",()=>{
   const ring=technologyRingSvg(colors);
   assert.equal((ring.match(/<g transform=/g)||[]).length,4);
   assert.equal((ring.match(/<path /g)||[]).length,8);
+  assert.equal((ring.match(/stroke-width="2\.875"/g)||[]).length,4);
   for(const color of colors)assert.ok(ring.includes('stroke="'+color+'"'));
 });
 test("15 equal beats; no transparency, early ghosts or blank frames; exact yellow wrap",()=>{
@@ -65,7 +66,9 @@ test("opening-only orbit retains original styling and begins after all blades se
   const css=read("app/entry.css"),entry=read("app/entry-screen.ts"),compact=read("app/emblem/compact-emblem.tsx");
   assert.match(css,/width:clamp\(188px,32vmin,250px\)/);
   assert.match(css,/inset:13%; border:1px solid rgba\(62,102,130,\.2\)/);
-  assert.match(css,/animation:openingOrbitV10 1250ms 2390ms both/);
+  const engine=read("app/emblem/motion-v10.ts");
+  assert.match(engine,/clamp\(\(age-2390\)\/650\)/);
+  assert.match(engine,/clamp\(\(age-3290\)\/350\)/);
   assert.equal(EMBLEM_MOTION.openingDelay+7*EMBLEM_MOTION.interval+EMBLEM_MOTION.grow,2390);
   assert.match(entry,/compact \? "" : '<span class="opening-orbit-v10"/);
   assert.match(compact,/\{ceremonial && <span className="opening-orbit-v10"/);
