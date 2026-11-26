@@ -223,8 +223,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* Opening only: enlarge the emblem without altering compact/static/loading sizes.
  * Retain the original orbit (13% inset, 1px blue-grey line) behind the blades.
  * Original React .complete activates when the eighth blade begins, now
- * at 360 + 7*230 = 1970ms; fade 650ms, grow 800ms, hold through scatter.
- * At 3836ms (last blade gone), expand once to 140% and fade over 360ms. */
+ * at 360 + 7*230 = 1970ms; fade 650ms, grow 800ms, hold until scatter.
+ * At 3290ms (first blade releases), expand once to 140% and fade over 360ms. */
 .opening .emblem-reveal > .emblem.ceremonial {
   width:clamp(188px,32vmin,250px); height:auto; aspect-ratio:1; transform:none;
 }
