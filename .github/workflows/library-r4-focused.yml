@@ -1,0 +1,90 @@
+name: Library R4 focused diagnostic (reuse accepted build)
+on:
+  push:
+    branches: ["intake/library-r4-20261127"]
+    paths: [".github/workflows/library-r4-focused.yml", "scripts/qa/r4-focused-browser.py"]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: library-r4-focused
+  cancel-in-progress: false
+env:
+  R4_BASE: e31fe637aeb629bb0a2cf42223041f2c0755871a
+  CANDIDATE_SHA: ed8bdf3b02a802a49ba7b96b61485576c2609c15
+  SCHICKSAL_LOCAL_SHA: ed8bdf3b02a802a49ba7b96b61485576c2609c15
+  R4_ZIP_SHA: 70686764664fd6f328717612437fe824319ab801a2380fe3bfb9045b7be7c646
+jobs:
+  focused:
+    name: Focused ${{ matrix.engine }}
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'intake/library-r4-20261127'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: intake
+          persist-credentials: false
+      - name: Extract exact approved R4
+        run: bash intake/scripts/qa/library-r4-extract.sh
+      - uses: actions/checkout@v4
+        with:
+          path: site
+          ref: ${{ env.CANDIDATE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install only this browser
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps ${{ matrix.engine }}
+      - name: Focused real pointer, fullscreen, touch (independent contexts)
+        run: |
+          set -o pipefail
+          python -u intake/scripts/qa/r4-focused-browser.py fixture --engine ${{ matrix.engine }} 2>&1 | tee "$RUNNER_TEMP/library-r4-report/focused-fixture.log"
+      - name: Install locked Worker dependencies
+        if: always()
+        working-directory: site
+        run: npm ci
+      - uses: actions/download-artifact@v4
+        if: always()
+        with:
+          name: library-r4-built-worker-${{ env.CANDIDATE_SHA }}
+          run-id: 45912492565
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/library-r4-built
+      - name: Reuse exact already-verified build
+        if: always()
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/library-r4-built"
+          sha256sum -c dist.tar.sha256
+          test "$(cat candidate.sha)" = "$CANDIDATE_SHA"
+          tar -xf dist.tar -C "$GITHUB_WORKSPACE/site"
+      - name: Diagnose actual login and briefing, no auth bypass
+        if: always()
+        working-directory: site
+        run: |
+          set -euo pipefail
+          PKG="$RUNNER_TEMP/library-r4/library-candidate"
+          # Replace ONLY the ephemeral test entry point. Never change the site or R4 archive.
+          cp ../intake/scripts/qa/r4-focused-browser.py "$PKG/tests/browser-main.py"
+          # Keep the original local Worker harness, including real authentication checks.
+          bash ../intake/scripts/qa/library-r4-local-worker.sh ${{ matrix.engine }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: library-r4-focused-${{ matrix.engine }}
+          path: ${{ runner.temp }}/library-r4-report/
+          retention-days: 7
+          if-no-files-found: warn
