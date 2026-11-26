@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-      - name: Read-only failed native build diagnostics
+      - name: Verify real Wrangler D1 lookup and live release
         shell: bash
         run: |
           set -euo pipefail
@@ -33,14 +33,4 @@ jobs:
           [[ "$CLOUDFLARE_ACCOUNT_ID" =~ ^[a-f0-9]{32}$ ]]
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           npm ci
-          node --input-type=module - <<'NODE'
-          const account=process.env.CLOUDFLARE_ACCOUNT_ID,token=process.env.CLOUDFLARE_API_TOKEN;
-          const base="https://api.cloudflare.com/client/v4/accounts/"+account+"/builds/builds/0b646a03-1a1e-41a4-bb0d-908fe68b0ad2";
-          const headers={Authorization:"Bearer "+token};
-          let cursor,lines=[];
-          for(let i=0;i<30;i++){const res=await fetch(base+"/logs"+(cursor?"?cursor="+encodeURIComponent(cursor):""),{headers,signal:AbortSignal.timeout(20000)});const j=await res.json();console.log("Build log API HTTP "+res.status+"; success "+j.success+"; codes "+JSON.stringify(j.errors?.map(e=>e.code)??[]));if(!res.ok||!j.success)break;for(const l of j.result?.lines??[])lines.push(l.filter(x=>typeof x==="string").join(" "));const next=j.result?.cursor;if(!next||next===cursor)break;cursor=next;}
-          const allow=[/AssertionError[^\n]{0,200}/i,/Production (?:build requires[^\n]{0,120}|must use[^\n]{0,120})/i,/Cannot verify live production Worker settings/i,/Native production deploy is allowed only from main/i,/Missing native build commit/i,/D1 name differs from the reviewed binding/i,/D1 identity differs/i,/Built database differs from live production/i,/Environment database differs from live production/i,/Set the existing Cloudflare account ID/i,/Set SCHICKSAL_D1_DATABASE_ID[^\n]{0,120}/i,/No such file or directory[^\n]{0,120}/i,/ERR_[A-Z_]+/g,/error code:?\s*\d+/i,/exceeded (?:the )?(?:memory|time)[^\n]{0,100}/i,/build command failed/i,/deploy command failed/i,/exit (?:code|status)\s*\d+/i,/Authentication error/i,/permission denied/i,/npm ERR! code [A-Z0-9_]+/i,/Cannot find module[^\n]{0,120}/i,/Expected exactly one live production D1/i,/Missing live production DB identity/i];
-          console.log("Build lines examined: "+lines.length);
-          for(const line of lines){for(const re of allow){const m=line.match(re);if(m){let safe=m[0].replace(/(?:[a-f0-9]{24,}|[A-Za-z0-9_-]{32,})/g,"[redacted]").replaceAll(token,"[redacted]");console.log("Diagnostic: "+safe.slice(0,240));break;}}}
-          const phases=lines.filter(l=>/running (?:build|deploy) command|executing (?:build|deploy) command|build completed|build succeeded|deploying worker/i.test(l)).map(l=>l.match(/running (?:build|deploy) command|executing (?:build|deploy) command|build completed|build succeeded|deploying worker/i)?.[0]);console.log("Build phases: "+JSON.stringify(phases));
-          NODE
+          node scripts/qa/production-live-status.mjs

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
-const expected="83ce009837e212a2730bbb484fe130da889d94b0";
+const expected="89169ae7777586ecdb8991a0c017b357338de520";
 const account=process.env.CLOUDFLARE_ACCOUNT_ID,token=process.env.CLOUDFLARE_API_TOKEN;
 assert.match(account||"",/^[a-f0-9]{32}$/);assert.ok(token);
 const report=(s)=>{console.log(s);if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,s+"\n");};
@@ -10,6 +10,8 @@ function wrangler(args){const r=spawnSync(process.execPath,["node_modules/wrangl
 const inventory=wrangler(["d1","list","--json"]);
 const prod=inventory.filter(x=>x.name==="schicksal-db"),preview=inventory.filter(x=>x.name==="schicksal-ui-preview-db"||x.name==="schicksal-briefing-preview-db");
 assert.equal(prod.length,1);assert.ok(preview.length>0&&preview.every(x=>x.uuid!==prod[0].uuid));
+const info=wrangler(["d1","info","schicksal-db","--json"]);
+assert.equal(info.uuid??info.id,prod[0].uuid,"Wrangler info UUID mismatch");assert.equal(info.name,"schicksal-db");report("Actual Wrangler D1 name lookup and UUID validation: PASS");
 const settings=await get("/workers/scripts/schicksal/settings");
 const bindings=settings.bindings||[],db=bindings.filter(x=>x.type==="d1");
 assert.equal(db.length,1);assert.equal(db[0].name,"DB");assert.equal(db[0].id??db[0].database_id,prod[0].uuid);
