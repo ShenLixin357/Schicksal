@@ -241,6 +241,7 @@ export function PersistentParliamentSection({ citizen, requestedItemId = "", req
   const [classificationReason, setClassificationReason] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState("");
+  const [editVersion, setEditVersion] = useState(0);
   const [editSummary, setEditSummary] = useState("");
   const [editBody, setEditBody] = useState("");
   const [floorRequestBody, setFloorRequestBody] = useState("");
@@ -434,7 +435,7 @@ export function PersistentParliamentSection({ citizen, requestedItemId = "", req
     const previousVotes = votes;
     const now = new Date().toISOString();
     setVotes((current) => [...current.filter((vote) => vote.citizenId !== citizen.id), { id: `${activeItem.id}:${citizen.id}`, itemId: activeItem.id, citizenId: citizen.id, choice, documentVersion: activeItem.votingVersion ?? activeItem.version, createdAt: now, updatedAt: now }]);
-    const ok = await sendAction({ action: "cast_vote", itemId: activeItem.id, choice }, "你的选票已经保存；再次选择可以改票。");
+    const ok = await sendAction({ action: "cast_vote", itemId: activeItem.id, documentVersion: activeItem.votingVersion ?? activeItem.version, choice }, "你的选票已经保存；再次选择可以改票。");
     if (!ok) setVotes(previousVotes);
   };
 
@@ -460,10 +461,20 @@ export function PersistentParliamentSection({ citizen, requestedItemId = "", req
     await sendAction({ action: "decide_amendment", itemId: activeItem.id, amendmentId, decision }, decision === "accepted" ? "修正案已并入新版本正文。" : "修正案已否决，原文保持不变。");
   };
 
+  const toggleDocumentEditor = () => {
+    if (!editOpen && activeItem) {
+      setEditTitle(activeItem.title);
+      setEditSummary(activeItem.summary);
+      setEditBody(activeItem.body);
+      setEditVersion(activeItem.version);
+    }
+    setEditOpen(!editOpen);
+  };
+
   const updateItem = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!activeItem) return;
-    const ok = await sendAction({ action: "update_item", itemId: activeItem.id, title: editTitle, summary: editSummary, body: editBody }, "议案正文与版本记录已经更新。");
+    const ok = await sendAction({ action: "update_item", itemId: activeItem.id, expectedVersion: editVersion, title: editTitle, summary: editSummary, body: editBody }, "议案正文与版本记录已经更新。");
     if (ok) setEditOpen(false);
   };
 
@@ -619,7 +630,7 @@ export function PersistentParliamentSection({ citizen, requestedItemId = "", req
             <div className="procedure-facts"><article><small>议案性质</small><strong>{CLASSIFICATION_META[activeItem.classification]}</strong></article><article><small>程序路线</small><strong>{ROUTING_META[activeItem.routing]}</strong></article><article><small>提案人年龄组</small><strong>{AGE_BAND_META[activeItem.proposerAgeBand]}</strong></article><article><small>回避请求 / 期限</small><strong>{activeItem.recusalRequested ? "已请求 12+ 回避" : "未请求回避"}{activeItem.deadline ? ` · ${activeItem.deadline}` : ""}</strong></article></div>
             {session.stageManager ? <div className="classification-control"><label><span>分类</span><select value={classificationTarget} onChange={(event) => setClassificationTarget(event.target.value as ParliamentClassification)}>{(Object.keys(CLASSIFICATION_META) as ParliamentClassification[]).filter((value) => value !== "foundational" || activeItem.classification === "foundational").map((value) => <option key={value} value={value}>{CLASSIFICATION_META[value]}</option>)}</select></label><label><span>路线</span><select value={routingTarget} onChange={(event) => setRoutingTarget(event.target.value as ParliamentRouting)}>{(Object.keys(ROUTING_META) as ParliamentRouting[]).map((value) => <option key={value} value={value}>{ROUTING_META[value]}</option>)}</select></label><label><span>年龄组</span><select value={ageBandTarget} onChange={(event) => setAgeBandTarget(event.target.value as ProposerAgeBand)}>{(Object.keys(AGE_BAND_META) as ProposerAgeBand[]).map((value) => <option key={value} value={value}>{AGE_BAND_META[value]}</option>)}</select></label><label><span>期限</span><input type="date" value={deadlineTarget} onChange={(event) => setDeadlineTarget(event.target.value)} /></label><label className="recusal-check"><input type="checkbox" checked={recusalTarget} onChange={(event) => setRecusalTarget(event.target.checked)} /><span>记录 12+ 回避请求</span></label><label className="classification-reason"><span>确认理由 *</span><input value={classificationReason} onChange={(event) => setClassificationReason(event.target.value)} maxLength={500} placeholder="例如：涉及国家基本结构，进入宪制双重审查" /></label><button type="button" onClick={classifyItem} disabled={busy}>确认分流</button></div> : <p className="procedure-note">任何公民都可在议场提出“分流异议”；只有你的个人最高领导人账号能正式确认或更改路线。</p>}
           </section>}
-          {(casePanel === "text" || (casePanel === "stage" && activeItem.stage === "proposal")) && <article className="document-body focused-document"><header><span>议案正文 · TEXT</span>{session.stageManager && casePanel === "text" && <button type="button" onClick={() => setEditOpen(!editOpen)}>{editOpen ? "关闭编辑" : "编辑正式文稿"}</button>}</header><p>{activeItem.body}</p></article>}
+          {(casePanel === "text" || (casePanel === "stage" && activeItem.stage === "proposal")) && <article className="document-body focused-document"><header><span>议案正文 · TEXT</span>{session.stageManager && casePanel === "text" && <button type="button" onClick={toggleDocumentEditor}>{editOpen ? "关闭编辑" : "编辑正式文稿"}</button>}</header><p>{activeItem.body}</p></article>}
 
           {casePanel === "text" && editOpen && session.stageManager && <form className="document-editor" onSubmit={updateItem}><label><span>标题</span><input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} maxLength={140} /></label><label><span>摘要</span><textarea value={editSummary} onChange={(event) => setEditSummary(event.target.value)} rows={3} maxLength={500} /></label><label><span>正文与条款</span><textarea value={editBody} onChange={(event) => setEditBody(event.target.value)} rows={10} maxLength={12_000} /></label><button className="primary" type="submit" disabled={busy}>保存新版本 <span>→</span></button></form>}
 

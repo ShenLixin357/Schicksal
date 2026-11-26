@@ -25,6 +25,7 @@ import { lazy, useCallback, useEffect, useRef, useState, type CSSProperties, typ
 
 import { wantsGameRoomReturn } from "./club/game-room-return";
 import { CLUB_MEMBER_IDS, announceCommitteeLounge } from "./club/lounge-access";
+import { COMMITTEE_LOUNGE_ART } from "./club/lounge-access";
 
 
 
@@ -45,6 +46,7 @@ import { SelfProfilePage } from "./profile/profile-page";
 import { TechnologyMinistryPortal } from "./technology/technology-ministry";
 
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
+import { PASSAGE_SKIP_LABEL } from "./transitions/passage-gate";
 import type { SidebarDestination, SiteSection } from "./shell/navigation";
 
 // Only import these data-heavy sections when the user navigates to them.
@@ -53,6 +55,12 @@ const AtlasGovernmentHandbook = lazy(() => import("./atlas/government-handbook")
 const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(module => ({ default: module.PhotoArchiveSection })));
 const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
 const CommitteeLounge = lazy(() => import("./club/committee-lounge").then(module => ({ default: module.CommitteeLounge })));
+
+async function prepareLounge() {
+  const art = new window.Image();
+  art.src = COMMITTEE_LOUNGE_ART;
+  await Promise.all([import("./club/committee-lounge"), art.decode()]);
+}
 
 type AccountMode = "citizen" | "technology";
 type AuthSource = "personal" | "ministry-direct";
@@ -64,12 +72,22 @@ const PARTICLES = [[8,18,1],[17,72,2],[25,34,3],[35,84,1],[43,10,2],[54,68,3],[6
 function Opening({ done }: { done: () => void }) {
   const [leaving, setLeaving] = useState(false);
   const [revealed, setRevealed] = useState(0);
+  const completed = useRef(false);
+  const finish = useCallback(() => {
+    if (completed.current) return;
+    completed.current = true;
+    done();
+  }, [done]);
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      finish();
+      return;
+    }
     const rayTimers = Array.from({ length: 8 }, (_, index) => window.setTimeout(() => setRevealed(index + 1), 360 + index * 245));
     const openTimer = window.setTimeout(() => setLeaving(true), 4300);
-    const doneTimer = window.setTimeout(done, 5200);
+    const doneTimer = window.setTimeout(finish, 5200);
     return () => { rayTimers.forEach(window.clearTimeout); window.clearTimeout(openTimer); window.clearTimeout(doneTimer); };
-  }, [done]);
+  }, [finish]);
   return (
     <main className={`opening ${leaving ? "opening-exit" : ""}`}>
       <div className="stars" aria-hidden="true">{PARTICLES.map(([left,top,size], index) => <i key={index} style={{ left: `${left}%`, top: `${top}%`, width: `${size}px`, height: `${size}px`, animationDelay: `${index * .11}s` }} />)}</div>
@@ -81,7 +99,8 @@ function Opening({ done }: { done: () => void }) {
           <p>THE FIRST EMPIRE</p><h1>Schicksal</h1><div className="title-rule"><i /></div><h2>天命第一帝国</h2><small>EIGHT COLOURED RAYS · 八棱共同标志</small>
         </div>
       </section>
-      <button className="skip" type="button" onClick={done}>SKIP INTRO <span>→</span></button>
+      <button className="opening-skip-surface" type="button" aria-label={PASSAGE_SKIP_LABEL}
+        onClick={finish} onKeyDown={event => { if (event.key === "Escape") finish(); }} />
       <div className="intro-progress"><i /></div>
     </main>
   );
@@ -291,6 +310,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
     });
   };
   const [portal, setPortal] = useState<LoungePassageDirection | null>(null);
+  const [portalError, setPortalError] = useState(false);
   const portalReturnSection = useRef<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -340,6 +360,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
     setLoungeLanding("committee");
     setLoungeSeatingUnlocked(false);
     setBriefingOpen(false);
+    setPortalError(false);
     setPortal("enter");
     // Keep the existing personal lounge announcement without holding the
     // newly requested four-second reveal behind speech synthesis.
@@ -485,7 +506,12 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
         <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
       </section>
       {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
-        onSwap={swapPortalRoom} onFinish={() => setPortal(null)}/>}
+        prepareDestination={portal === "enter" ? prepareLounge : undefined}
+        onSwap={swapPortalRoom} onFinish={() => setPortal(null)}
+        onFailure={() => { setPortal(null); setPortalError(true); }}/>}
+      {portalError && <div className="lounge-passage-error" role="alert">
+        休息室暂时无法加载。<button type="button" onClick={enterLounge}>重试</button><button type="button" onClick={() => setPortalError(false)}>关闭</button>
+      </div>}
       {modeSwitchMessage && <div className="technology-inline-switch-status" role="alert" aria-live="assertive">{modeSwitchMessage}</div>}
 
     </main>
@@ -599,7 +625,8 @@ export default function Home() {
     setSystemBriefing({ feed: preload.feed });
     setPhase("system");
   }, [citizen.id, preload]);
-  if (phase === "opening") return <Opening done={() => setPhase(restoredCitizen.current ? "welcome" : "login")} />;
+  const finishOpening = useCallback(() => setPhase(current => current === "opening" ? (restoredCitizen.current ? "welcome" : "login") : current), []);
+  if (phase === "opening") return <Opening done={finishOpening} />;
   if (phase === "login") return <Login replay={() => setPhase("opening")} enter={(next,mode,source) => { restoreController.current?.abort(); setCitizen(next); setOffices(null); setAccountMode(mode); setAuthSource(source); setPreload({ status: "loading" }); setPhase("welcome"); }} />;
   // A phase transition alone never grants site access. If its live feed
   // is missing, keep the authenticated member on the Welcome gate.

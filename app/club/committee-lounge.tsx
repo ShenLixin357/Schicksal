@@ -8,7 +8,7 @@ import "./lounge-scenes.css";
 import Image from "next/image";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { CITIZENS, type Citizen } from "../citizens";
-import { CLUB_MEMBER_IDS, LOUNGE_IDENTITIES } from "./lounge-access";
+import { CLUB_MEMBER_IDS, COMMITTEE_LOUNGE_ART, LOUNGE_IDENTITIES } from "./lounge-access";
 import type { ClubProfile, ClubMessage, ClubData } from "./lounge-contract";
 import { fetchCommitteeRoom, fetchCommitteeHistory, postCommitteeAction } from "./lounge-api";
 import { ArticulatedFan, LaceFanDrawing } from "./articulated-fan";
@@ -350,7 +350,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
       </header>
 
       <div className="club-room-stage">
-        <Image className="club-room-art" src="/committee-lounge-word-globe-v1.png" alt="月光古堡里的 Committee Lounge，有三把专属座椅、完整壁炉、书架上的精细古金地球仪、南瓜、画像和黑猫" fill sizes="(max-width: 760px) 100vw, calc(100vw - 248px)" priority unoptimized />
+        <Image className="club-room-art" src={COMMITTEE_LOUNGE_ART} alt="月光古堡里的 Committee Lounge，有三把专属座椅、完整壁炉、书架上的精细古金地球仪、南瓜、画像和黑猫" fill sizes="(max-width: 760px) 100vw, calc(100vw - 248px)" priority unoptimized />
         <div className="club-room-shade" aria-hidden="true" />
         <div className="club-firelight" aria-hidden="true" />
         <div className="club-wisps" aria-hidden="true"><i /><i /><i /><i /></div>

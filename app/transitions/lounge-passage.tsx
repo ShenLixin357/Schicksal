@@ -1,7 +1,9 @@
 "use client";
 
+import "./lounge-passage-controls.css";
 import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPassageGate, PASSAGE_SKIP_LABEL } from "./passage-gate";
 
 export type LoungePassageDirection = "enter" | "exit";
 const ENTER_DURATION = 4000;
@@ -33,20 +35,26 @@ function fBm(x: number, y: number) {
  * A separate canvas veil, not a recolouring/filter of the approved scene.
  * It first conceals the old page, swaps the actual React view in darkness,
  * then lets the destination appear from an organically warped sigil origin.
- * Click anywhere (or press Escape) to skip with no intermediate state.
+ * Click anywhere (or press Escape) to skip. If needed, keep the source
+ * visible until the destination has decoded its scene.
  */
-export function LoungePassage({ direction, sharedMark, onSwap, onFinish }: {
+export function LoungePassage({ direction, sharedMark, prepareDestination, onSwap, onFinish, onFailure }: {
   direction: LoungePassageDirection;
   sharedMark: ReactNode;
+  prepareDestination?: () => Promise<void>;
   onSwap: () => void;
   onFinish: () => void;
+  onFailure: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<() => void>(() => {});
-  const callbacks = useRef({ onSwap, onFinish });
-  callbacks.current = { onSwap, onFinish };
-  const [point, setPoint] = useState({ x: 36, y: 49 });
+  const callbacks = useRef({ onSwap, onFinish, onFailure });
   const [fraction, setFraction] = useState(0);
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    callbacks.current = { onSwap, onFinish, onFailure };
+  }, [onSwap, onFinish, onFailure]);
   useEffect(() => {
     const mark = document.querySelector<HTMLElement>(".imperial-logo-trigger");
     const bounds = mark?.getBoundingClientRect();
@@ -54,29 +62,56 @@ export function LoungePassage({ direction, sharedMark, onSwap, onFinish }: {
       x: bounds ? bounds.left + bounds.width * .5 : 36,
       y: bounds ? bounds.top + bounds.height * .5 : 49,
     };
-    setPoint(origin);
+    surfaceRef.current?.style.setProperty("--lounge-passage-origin-x", `${origin.x}px`);
+    surfaceRef.current?.style.setProperty("--lounge-passage-origin-y", `${origin.y}px`);
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d", { alpha: true });
     const width = Math.max(140, Math.min(450, Math.round(window.innerWidth / 3.5)));
     const height = Math.max(100, Math.min(280, Math.round(window.innerHeight / 3.5)));
     if (canvas && ctx) { canvas.width = width; canvas.height = height; }
     const duration = direction === "enter" ? ENTER_DURATION : REVERSE_DURATION;
-    let swapped = false, completed = false, frame = 0;
-    const swap = () => {
-      if (!swapped) { swapped = true; callbacks.current.onSwap(); }
-    };
-    const finish = () => {
-      if (completed) return;
-      completed = true;
-      swap();
+    let motionStopped = false, frame = 0;
+    const stopMotion = () => {
+      motionStopped = true;
       window.cancelAnimationFrame(frame);
-      callbacks.current.onFinish();
+    };
+    const gate = createPassageGate({
+      onSwap: () => callbacks.current.onSwap(),
+      onFinish: () => callbacks.current.onFinish(),
+      onWait: () => setWaiting(true),
+      onFailure: () => { stopMotion(); callbacks.current.onFailure(); },
+    }, !prepareDestination);
+    const finish = () => {
+      stopMotion();
+      gate.finishMotion();
     };
     endRef.current = finish;
 
+    let timeout: number | undefined;
+    if (prepareDestination) {
+      timeout = window.setTimeout(gate.destinationFailed, 15_000);
+      void Promise.resolve().then(prepareDestination).then(gate.destinationReady, gate.destinationFailed)
+        .finally(() => window.clearTimeout(timeout));
+    }
+    const cleanup = () => {
+      stopMotion();
+      gate.cancel();
+      window.clearTimeout(timeout);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (["Escape", "Enter", " ", "Tab"].includes(event.key)) {
+        event.preventDefault();
+        if (event.key !== "Tab") finish();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    const teardown = () => {
+      cleanup();
+      window.removeEventListener("keydown", onKey);
+    };
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !ctx) {
       finish();
-      return;
+      return teardown;
     }
 
     const imageData = ctx.createImageData(width, height);
@@ -101,12 +136,13 @@ export function LoungePassage({ direction, sharedMark, onSwap, onFinish }: {
       field[i] = dist + (m - .5) * .038 + (n - .5) * .018;
       detail[i] = m * .64 + n * .36;
     }
-    let lastDraw = -1000, started = performance.now();
+    let lastDraw = -1000;
+    const started = performance.now();
     const paint = (now: number) => {
-      if (completed) return;
+      if (motionStopped) return;
       const elapsed = now - started;
       const p = clamp(elapsed / duration);
-      if (p >= SWAP_FRACTION) swap();
+      if (p >= SWAP_FRACTION && !gate.swap()) { finish(); return; }
       if (p >= 1) { finish(); return; }
       if (now - lastDraw < 28) { frame = requestAnimationFrame(paint); return; }
       lastDraw = now;
@@ -136,24 +172,21 @@ export function LoungePassage({ direction, sharedMark, onSwap, onFinish }: {
       frame = requestAnimationFrame(paint);
     };
     frame = requestAnimationFrame(paint);
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        finish();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => { completed = true; cancelAnimationFrame(frame); window.removeEventListener("keydown", onKey); };
-  }, [direction]);
+    return teardown;
+  }, [direction, prepareDestination]);
 
   const entering = direction === "enter";
   const sourceVisible = fraction < .37 ? 1 - smooth((fraction - .10) / .27) : 0;
   const targetVisible = fraction >= .36 ? smooth((fraction - .36) / .18) : 0;
-  return <div className="lounge-passage" role="button" tabIndex={0}
-    aria-label="正在切换天命与 Committee Lounge，点击任意位置跳过动画"
+  return <div ref={surfaceRef} className={`lounge-passage${waiting ? " lounge-passage-waiting" : ""}`} role="button" tabIndex={0}
+    aria-label={waiting ? "场景加载中" : PASSAGE_SKIP_LABEL}
+    aria-busy={waiting}
     onClick={() => endRef.current()}>
     <canvas ref={canvasRef} className="lounge-passage-veil" aria-hidden="true"/>
-    <div className="lounge-passage-seal" style={{ left: point.x, top: point.y }} aria-hidden="true">
+    <div className="lounge-passage-seal" style={{
+      left: "var(--lounge-passage-origin-x, 36px)",
+      top: "var(--lounge-passage-origin-y, 49px)",
+    }} aria-hidden="true">
       <span className="lounge-passage-seal-source" style={{ opacity: sourceVisible }}>
         {entering ? sharedMark : <Image src="/committee-restroom-badge.png" alt="" width={54} height={54} unoptimized/>}
       </span>
@@ -161,5 +194,6 @@ export function LoungePassage({ direction, sharedMark, onSwap, onFinish }: {
         {entering ? <Image src="/committee-restroom-badge.png" alt="" width={54} height={54} unoptimized/> : sharedMark}
       </span>
     </div>
+    {waiting && <span className="lounge-passage-status" role="status">正在加载休息室…</span>}
   </div>;
 }

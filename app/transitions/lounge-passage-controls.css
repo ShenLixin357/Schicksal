@@ -1,0 +1,7 @@
+.lounge-passage-waiting { cursor: progress; }
+.lounge-passage-waiting .lounge-passage-veil,
+.lounge-passage-waiting .lounge-passage-seal { visibility: hidden; }
+.lounge-passage-status { position: absolute; inset: auto 1rem 1rem auto; padding: .45rem .75rem; background: #f4efe3; color: #242b36; pointer-events: none; }
+.lounge-passage-error { position: fixed; z-index: 9999; inset: auto 1rem 1rem auto; max-width: calc(100vw - 2rem); padding: .8rem 1rem; background: #f4efe3; color: #242b36; box-shadow: 0 2px 12px #0003; }
+.lounge-passage-error button { margin-inline-start: .5rem; }
+@media (prefers-reduced-motion: reduce) { .lounge-passage.lounge-passage-waiting { display: block; } }
