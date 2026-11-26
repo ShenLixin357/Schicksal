@@ -62,14 +62,17 @@ test("public nonce script serialization parses; the V10 engine is isolated from 
   assert.match(page,/accountMode==="technology"\?<TechnologyEmblem/);
 });
 
-test("opening-only orbit retains original styling and begins after all blades settle",()=>{
+test("opening-only orbit retains original styling and starts with the eighth blade",()=>{
   const css=read("app/entry.css"),entry=read("app/entry-screen.ts"),compact=read("app/emblem/compact-emblem.tsx");
   assert.match(css,/width:clamp\(188px,32vmin,250px\)/);
   assert.match(css,/inset:13%; border:1px solid rgba\(62,102,130,\.2\)/);
   const engine=read("app/emblem/motion-v10.ts");
-  assert.match(engine,/clamp\(\(age-2390\)\/650\)/);
-  assert.match(engine,/clamp\(\(age-3290\)\/350\)/);
+  assert.match(engine,/ease\(\(age-1970\)\/650\)/);
+  assert.match(engine,/ease\(\(age-1970\)\/800\)/);
+  assert.match(engine,/bezier\(\(age-3290\)\/900,\.42,0,1,1\)-\.7/);
+  assert.equal(EMBLEM_MOTION.openingDelay+7*EMBLEM_MOTION.interval,1970);
   assert.equal(EMBLEM_MOTION.openingDelay+7*EMBLEM_MOTION.interval+EMBLEM_MOTION.grow,2390);
+  assert.doesNotMatch(engine,/\.12\*fall/);
   assert.match(entry,/compact \? "" : '<span class="opening-orbit-v10"/);
   assert.match(compact,/\{ceremonial && <span className="opening-orbit-v10"/);
   assert.doesNotMatch(read("app/emblem/imperial-loading.tsx"),/opening-orbit-v10/);
