@@ -27,10 +27,16 @@ try{
       // short interval after the potentially slow canvas pixel readback.
       await page.addInitScript(()=>{
         window.__orbitPeak=0;
+        window.__orbitFrames=[];
+        window.__openingDraws=0;
+        const draw=CanvasRenderingContext2D.prototype.drawImage;
+        CanvasRenderingContext2D.prototype.drawImage=function(...args){const result=draw.apply(this,args);if(this.canvas.matches?.('#opening canvas'))window.__openingDraws++;return result;};
         const capture=()=>{
           const orbit=document.querySelector("#opening .opening-orbit-v10");
           if(orbit && !document.getElementById("opening").hidden){
-            window.__orbitPeak=Math.max(window.__orbitPeak,Number(orbit.style.opacity)||0);
+            const opacity=Number(orbit.style.opacity)||0;
+            window.__orbitPeak=Math.max(window.__orbitPeak,opacity);
+            if(orbit.dataset.openingAge)window.__orbitFrames.push({age:Number(orbit.dataset.openingAge),opacity,transform:orbit.style.transform});
           }
         };
         new MutationObserver(capture).observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:["style","hidden"]});
@@ -41,15 +47,24 @@ try{
       await opening.waitFor({state:"visible"});
       // Poll the actual rendered alpha during the active reveal, rather than a single timing-sensitive sample.
       const waitForPaint=async selector=>{await page.waitForFunction(sel=>{const el=document.querySelector(sel);if(!el||!el.getBoundingClientRect().width)return false;const c=el.getContext("2d");return c.getImageData(0,0,el.width,el.height).data.some((v,i)=>i%4===3&&v>0);},selector,{polling:50,timeout:3500});};
-      try{await waitForPaint("#opening canvas");}catch(e){console.log(name+" render diagnostic: "+JSON.stringify(await opening.evaluate(el=>({w:el.width,h:el.height,rect:el.getBoundingClientRect().toJSON(),visible:document.visibilityState,path2d:typeof Path2D,raf:typeof requestAnimationFrame,openingHidden:document.getElementById("opening").hidden}))));throw e;}
+      // Do not force a synchronous GPU readback during the short reveal: it can stall headless WebKit. Observe actual drawImage calls and all orbit poses instead.
       assert.deepEqual(errors,[]);
       const orbit=page.locator("#opening .opening-orbit-v10");
       assert.equal(await orbit.count(),1);
       assert.ok(await opening.evaluate(el=>el.getBoundingClientRect().width>=245),"desktop opening should be enlarged");
       await page.locator("#login").waitFor({state:"visible",timeout:10000});
+      assert.ok(await page.evaluate(()=>window.__openingDraws)>2,"Opening canvas must render multiple actual frames");
       const orbitPeak=await page.evaluate(()=>window.__orbitPeak);
       console.log(name+" opening orbit peak opacity: "+orbitPeak);
       assert.ok(orbitPeak>.5,"Opening orbit must visibly appear during the full opening sequence");
+      const orbitFrames=await page.evaluate(()=>window.__orbitFrames);
+      assert.ok(orbitFrames.every(f=>f.age>=1970||f.opacity===0),"No orbit before the eighth blade starts");
+      assert.ok(orbitFrames.some(f=>f.age>=1970&&f.age<2390&&f.opacity>0),"Orbit must appear while the eighth blade is still moving");
+      const orbitScale=f=>Number(f.transform.match(/scale\(([^)]+)\)/)?.[1]);
+      assert.ok(orbitFrames.some(f=>f.age>=2770&&f.age<=3290&&f.opacity>.99&&Math.abs(orbitScale(f)-1)<1e-6),"Orbit holds at original size before scatter");
+      assert.ok(orbitFrames.filter(f=>f.age>=2770&&f.age<=3290).every(f=>Math.abs(orbitScale(f)-1)<1e-6&&f.opacity>.999),"Orbit stays still until scatter begins");
+      assert.ok(orbitFrames.some(f=>f.age>3290&&f.age<3650&&orbitScale(f)>1&&orbitScale(f)<1.4&&f.opacity>0&&f.opacity<1),"Orbit expands and fades during blade scatter");
+      assert.ok(orbitFrames.some(f=>f.age>=3650&&f.age<3836&&f.opacity===0&&Math.abs(orbitScale(f)-1.4)<1e-6),"Orbit disappears before the final blade finishes");
       await waitForPaint("#login .brand canvas");
       assert.equal(await page.locator("#login .opening-orbit-v10").count(),0);
       assert.equal(await page.locator("#identity-technology .technology-orbits path").count(),8);

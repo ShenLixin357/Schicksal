@@ -58,15 +58,28 @@ export function mountEmblem(canvas:HTMLCanvasElement,mode:MotionMode,pathSource:
     lastSize=size;
     ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,hi,hi);ctx.setTransform(hi/224,0,0,hi/224,hi/2,hi/2);
     const age=now-started;
-    // Keep the original opening orbit on exactly the same clock as its blades.
-    // Separate CSS animation timelines may drift during WebKit startup/replay.
+    // Original React entry switches .complete on the same beat as blade 8.
+    // Match that relative beat (360 + 7*230 = 1970ms), not its settled pose.
+    // Retain the original independent 650ms opacity / 800ms transform ease.
     if(orbit){
       const clamp=(v:number)=>Math.max(0,Math.min(1,v));
-      const rise=reduce.matches?1:clamp((age-2390)/650);
-      const fall=reduce.matches?0:clamp((age-3290)/350);
-      const eased=rise*rise*(3-2*rise);
-      orbit.style.opacity=String(eased*(1-fall*fall));
-      orbit.style.transform="scale("+(.72+.28*eased+.12*fall)+")";
+      const bezier=(p:number,x1:number,y1:number,x2:number,y2:number)=>{
+        p=clamp(p);if(p===0||p===1)return p;
+        const curve=(t:number,a:number,b:number)=>3*(1-t)*(1-t)*t*a+3*(1-t)*t*t*b+t*t*t;
+        let lo=0,hi=1;
+        for(let i=0;i<18;i++){const mid=(lo+hi)/2;if(curve(mid,x1,x2)<p)lo=mid;else hi=mid;}
+        return curve((lo+hi)/2,y1,y2);
+      };
+      const ease=(p:number)=>bezier(p,.25,.1,.25,1);
+      const rise=reduce.matches?1:ease((age-1970)/650);
+      const grow=reduce.matches?1:ease((age-1970)/800);
+      // A revised: release on the FIRST blade's scatter beat (3290ms).
+      // The single ring expands immediately and vanishes within 360ms.
+      const release=reduce.matches?0:clamp((age-3290)/360);
+      const expansion=1-Math.pow(1-release,2);
+      orbit.style.opacity=String(rise*(1-release));
+      orbit.style.transform="scale("+(.72+.28*grow+.4*expansion)+") rotate("+(-16*(1-grow))+"deg)";
+      orbit.dataset.openingAge=String(age);
     }
     for(const r of sample(reduce.matches?"static":mode,age,revealed)){
       ctx.save();ctx.rotate(r.angle*Math.PI/180);ctx.translate(0,r.dy);ctx.scale(r.scale,r.scale);ctx.globalAlpha=r.opacity;

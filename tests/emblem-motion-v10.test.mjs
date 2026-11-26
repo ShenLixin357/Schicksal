@@ -62,15 +62,53 @@ test("public nonce script serialization parses; the V10 engine is isolated from 
   assert.match(page,/accountMode==="technology"\?<TechnologyEmblem/);
 });
 
-test("opening-only orbit retains original styling and begins after all blades settle",()=>{
+test("opening-only orbit retains original styling and starts with the eighth blade",()=>{
   const css=read("app/entry.css"),entry=read("app/entry-screen.ts"),compact=read("app/emblem/compact-emblem.tsx");
   assert.match(css,/width:clamp\(188px,32vmin,250px\)/);
   assert.match(css,/inset:13%; border:1px solid rgba\(62,102,130,\.2\)/);
   const engine=read("app/emblem/motion-v10.ts");
-  assert.match(engine,/clamp\(\(age-2390\)\/650\)/);
-  assert.match(engine,/clamp\(\(age-3290\)\/350\)/);
+  assert.match(engine,/ease\(\(age-1970\)\/650\)/);
+  assert.match(engine,/ease\(\(age-1970\)\/800\)/);
+  assert.match(engine,/clamp\(\(age-3290\)\/360\)/);
+  assert.equal(EMBLEM_MOTION.openingDelay+7*EMBLEM_MOTION.interval,1970);
   assert.equal(EMBLEM_MOTION.openingDelay+7*EMBLEM_MOTION.interval+EMBLEM_MOTION.grow,2390);
+  assert.doesNotMatch(engine,/\.12\*fall/);
   assert.match(entry,/compact \? "" : '<span class="opening-orbit-v10"/);
   assert.match(compact,/\{ceremonial && <span className="opening-orbit-v10"/);
   assert.doesNotMatch(read("app/emblem/imperial-loading.tsx"),/opening-orbit-v10/);
+});
+
+
+test("single orbit expands to 140% and fades simultaneously with the first blade scatter",()=>{
+  // Exercise the real self-contained browser renderer at exact time points.
+  let age=0,next;
+  const orbit={style:{},dataset:{}};
+  const ctx=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{
+    get:(target,key)=>key in target?target[key]:()=>{}
+  });
+  const canvas={width:0,height:0,getContext:()=>ctx,getBoundingClientRect:()=>({width:250}),parentElement:{querySelector:()=>orbit}};
+  const reduced={matches:false,addEventListener(){},removeEventListener(){}};
+  const sandbox={document:{createElement:()=>({width:0,height:0,getContext:()=>ctx})},window:{devicePixelRatio:1,matchMedia:()=>reduced},Path2D:class{},performance:{now:()=>age},requestAnimationFrame:fn=>(next=fn,1),cancelAnimationFrame(){}};
+  const mount=new Script("("+mountEmblem.toString()+")").runInNewContext(sandbox);
+  const dispose=mount(canvas,"opening",bladeOutline(),emblemFacets(colors),sampleEmblem);
+  function frameAt(t){
+    age=t;next();
+    return {opacity:Number(orbit.style.opacity),scale:Number(orbit.style.transform.match(/scale\(([^)]+)\)/)[1])};
+  }
+  assert.deepEqual(frameAt(1969),{opacity:0,scale:.72});
+  assert.ok(frameAt(2100).opacity>0);
+  assert.deepEqual(frameAt(2770),{opacity:1,scale:1});
+  assert.deepEqual(frameAt(3289),{opacity:1,scale:1});
+  assert.deepEqual(frameAt(3290),{opacity:1,scale:1});
+  assert.ok(sampleEmblem("opening",3291).some(p=>p.dy<0));
+  const first=frameAt(3291);
+  assert.ok(first.scale>1&&first.opacity<1);
+  const half=frameAt(3470);
+  assert.ok(Math.abs(half.opacity-.5)<1e-10);
+  assert.ok(Math.abs(half.scale-1.3)<1e-10);
+  assert.deepEqual(frameAt(3650),{opacity:0,scale:1.4});
+  assert.ok(sampleEmblem("opening",3650).length>0);
+  assert.deepEqual(frameAt(3836),{opacity:0,scale:1.4});
+  assert.deepEqual(frameAt(4200),{opacity:0,scale:1.4});
+  dispose();
 });

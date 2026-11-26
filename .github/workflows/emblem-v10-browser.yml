@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -18,6 +18,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:emblem-motion
-      - run: npm install --no-save --package-lock=false playwright
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
       - run: npx playwright install --with-deps chromium webkit
       - run: node --import ./tests/vite-css-hook.mjs --experimental-transform-types scripts/qa/emblem-entry-browser.mjs
