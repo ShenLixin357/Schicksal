@@ -28,7 +28,7 @@ test("official colour cannot be replaced by the stronger glyph-only colour", () 
   const member=CITIZENS.find(m=>m.id==="amberina");
   assert.equal(member.markColor,"#F3ED87");
   assert.equal(citizenRepresentativeColor(member),"#F3ED87");
-  assert.equal(member.accent,"#f3c969","independent shared-emblem blade palette must remain unchanged");
+  assert.equal(member.accent,"#F3ED87","V10 explicitly adopts the official yellow for the shared emblem; glyph-only gold remains separate");
 });
 
 test("secure inlined anonymous login art is byte-identical to the locked original Simple", () => {
