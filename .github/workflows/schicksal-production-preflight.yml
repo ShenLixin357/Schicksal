@@ -1,8 +1,8 @@
 name: Production D1 safety preflight (read-only)
 on:
   push:
-    branches: ["feature/briefing-v2-shell-20261118"]
-    paths: ["docs/production-release-preflight.md"]
+    branches: ["release/production-preflight-20261127"]
+    paths: [".github/workflows/schicksal-production-preflight.yml", "scripts/qa/production-d1-rehearsal.mjs"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,50 +24,13 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-      - name: Read only D1 inventory, bookmark and verified SQL export
+      - name: Read-only production binding and local migration rehearsal
         shell: bash
         run: |
           set -euo pipefail
+          umask 077
           test -n "$CLOUDFLARE_API_TOKEN"
           [[ "$CLOUDFLARE_ACCOUNT_ID" =~ ^[a-f0-9]{32}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           npm ci
-          npx wrangler d1 list --json > "$RUNNER_TEMP/inventory.json"
-          node --input-type=module - <<'NODE'
-          import { readFileSync, appendFileSync } from "node:fs";
-          const db=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/inventory.json","utf8"));
-          const prod=db.filter(x=>x.name==="schicksal-db");
-          const preview=db.filter(x=>x.name==="schicksal-briefing-preview-db");
-          if(prod.length!==1||preview.length!==1||!prod[0].uuid||prod[0].uuid===preview[0].uuid)throw Error("Unsafe D1 identity: missing/overlap");
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY,"Production D1 UUID and independent preview verified.\n");
-          NODE
-          npx wrangler d1 time-travel info schicksal-db --json > "$RUNNER_TEMP/bookmark.json"
-          node --input-type=module - <<'NODE'
-          import { readFileSync, appendFileSync } from "node:fs";
-          const b=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/bookmark.json","utf8"));
-          const bookmark=b.bookmark??b.result?.bookmark??b.data?.bookmark;
-          if(typeof bookmark!=="string"||!/^[-a-f0-9]{16,}$/i.test(bookmark))throw Error("No recovery bookmark");
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY,"Production D1 Time Travel bookmark: "+bookmark+"\n");
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY,"Captured UTC "+new Date().toISOString()+"; Free time travel retains at most 7 days.\n");
-          NODE
-          trap 'rm -f "$RUNNER_TEMP/production-export.sql"' EXIT
-          npx wrangler d1 export schicksal-db --remote --skip-confirmation --output "$RUNNER_TEMP/production-export.sql"
-          node --input-type=module - <<'NODE'
-          import { DatabaseSync } from "node:sqlite";
-          import { readFileSync, appendFileSync } from "node:fs";
-          const sql=readFileSync(process.env.RUNNER_TEMP+"/production-export.sql","utf8");
-          if(sql.length<1024)throw Error("Empty D1 export");
-          const db=new DatabaseSync(":memory:");
-          try {
-            db.exec(sql);
-            if(db.prepare("PRAGMA integrity_check").get().integrity_check!=="ok")throw Error("Corrupt SQL export");
-            if(db.prepare("PRAGMA foreign_key_check").all().length)throw Error("Invalid foreign keys");
-            const names=new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(x=>x.name));
-            for(const table of ["member_credentials","parliament_items","parliament_votes"]){
-              if(!names.has(table))throw Error("Missing core table "+table);
-            }
-            const counts=Object.fromEntries(["member_credentials","parliament_items","parliament_votes"].map(t=>[t,db.prepare('SELECT count(*) AS n FROM "'+t+'"').get().n]));
-            appendFileSync(process.env.GITHUB_STEP_SUMMARY,"In-memory SQL restore verified; row counts: "+JSON.stringify(counts)+"\n");
-            console.log("Read-only production export integrity and core table counts OK: "+JSON.stringify(counts));
-          }finally{db.close()}
-          NODE
-          echo "Read-only preflight complete. No production migration or deployment."
+          node scripts/qa/production-d1-rehearsal.mjs
