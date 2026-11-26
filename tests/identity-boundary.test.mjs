@@ -12,6 +12,7 @@ const hooks = registerHooks({ resolve(specifier, context, next) { if (specifier 
         return { url: "data:text/javascript,export const env=globalThis.__boundaryEnv", shortCircuit: true }; if (specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier))
         return next(existsSync(new URL(`${specifier}.ts`, context.parentURL)) ? `${specifier}.ts` : `${specifier}/index.ts`, context); return next(specifier, context); } });
 const club = await import("../app/api/committee-club/route.ts"), parliament = await import("../app/api/parliament/route.ts"), photos = await import("../app/api/photos/route.ts"), image = await import("../app/api/photos/image/route.ts"), technology = await import("../app/api/technology/route.ts"), ministerPassword = await import("../app/api/technology/direct-password/route.ts"), switcher = await import("../app/api/member-session/switch/route.ts"), offices = await import("../app/api/offices/current/route.ts"), memberSessions = await import("../app/api/member-session/route.ts");
+const libraryDebug = await import("../app/api/library/debug/route.ts");
 hooks.deregister();
 after(() => { delete globalThis.__boundaryEnv; });
 function setup() {
@@ -321,4 +322,29 @@ test("JSON reader bounds actual streamed bytes and rejects malformed roots", asy
         await assert.rejects(readJson(new Request("https://test.invalid", { method: "POST", body }), 100), e => e.status === 400);
     const value = { body: "天命 🎼" };
     assert.deepEqual(await readJson(new Request("https://test.invalid", { method: "POST", body: JSON.stringify(value) }), 100), value);
+});
+
+test("library debug requires a valid elevated session and the live minister; no publication API", async () => {
+    const db = setup();
+    try {
+        const path = "/api/library/debug?citizenId=amberina&accountMode=technology";
+        const get = cookie => libraryDebug.GET(request(path, {cookie}));
+        assert.equal((await get()).status, 401);
+        assert.equal((await get(session(db,"truth"))).status, 403);
+        assert.equal((await get(session(db,"amberina"))).status, 403);
+        assert.equal((await get(session(db,"truth","technology"))).status, 403);
+        const minister = session(db,"amberina","technology");
+        const ok = await get(minister);
+        assert.equal(ok.status,200);
+        assert.equal(ok.headers.get("Cache-Control"),"private, no-store");
+        assert.deepEqual(await ok.json(),{authorized:true,mode:"local-preview-only",publish:false});
+        db.prepare("UPDATE member_sessions SET minister_grant_expires_at=0").run();
+        assert.equal((await get(minister)).status,403);
+        db.prepare("UPDATE member_sessions SET expires_at=0").run();
+        assert.equal((await get(minister)).status,401);
+        assert.equal(libraryDebug.POST,undefined);
+        assert.equal(libraryDebug.PATCH,undefined);
+        assert.equal(libraryDebug.PUT,undefined);
+        assert.equal(libraryDebug.DELETE,undefined);
+    } finally {db.close();}
 });

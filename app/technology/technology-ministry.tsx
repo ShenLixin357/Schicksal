@@ -10,9 +10,10 @@ import "./technology-ministry.css";
 /** The ministry uses the approved shared imperial mark, never a personal mark.
  * It does not create a ninth citizen; it has a separately authenticated minister identity.
  */
-export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onBack }: {
+export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onOpenLibrary, onBack }: {
   sharedMark: ReactNode;
   onOpenPhotos: () => void;
+  onOpenLibrary: () => void;
   onBack: () => void;
 }) {
   const [access, setAccess] = useState<"checking" | "authorized" | "denied">("checking");
@@ -38,6 +39,7 @@ export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onBack }: {
           <h3>档案管理</h3>
           <p>家庭影像馆的上传、照片编辑、回收与恢复仍按现有接口执行；完整隐私、历史审计及当事人权利规则尚待确认。</p>
           <button type="button" onClick={onOpenPhotos}>进入家庭影像馆管理 <span aria-hidden="true">→</span></button>
+          <button type="button" onClick={onOpenLibrary}>进入图书馆调试 <span aria-hidden="true">→</span></button>
           <MemberAccessSettings />
           <TechnologyDirectPasswordSettings />
         </section>}

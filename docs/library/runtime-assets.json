@@ -1,0 +1,292 @@
+[
+  {
+    "path": "assets/banners/v2/inner-repair.png",
+    "sha256": "a8cbe8d1ba463021c1ae6be42d72d03f8b15cb0a5f86101bf415abd53ac428eb",
+    "size": 20137
+  },
+  {
+    "path": "assets/banners/v2/left-repair.png",
+    "sha256": "4e6b98b17c773e057607b1e2d1b330eaebdd1453e0e8082c45f7eae2a78ea55c",
+    "size": 18803
+  },
+  {
+    "path": "assets/banners/v3/inner-cloth.png",
+    "sha256": "e0509096037b5080be92d8692a8d3bdb7864b5540c715c76cea1e38af708f71e",
+    "size": 18191
+  },
+  {
+    "path": "assets/banners/v3/inner-emblem.png",
+    "sha256": "8bc97d9b7c68de28b70760e5ac410a9a8c4aa0247498d35891ff97134831b719",
+    "size": 5850
+  },
+  {
+    "path": "assets/banners/v3/left-cloth.png",
+    "sha256": "e8e417f6b6820e8f0114d80cc9c2cae74894caa60e63580ca02dd7ae0414c781",
+    "size": 18045
+  },
+  {
+    "path": "assets/banners/v3/left-emblem.png",
+    "sha256": "370dc2dc054b47bbefb3aab1a62aee5a663eff77b9c2915cfdc4491ee989b2bf",
+    "size": 5560
+  },
+  {
+    "path": "assets/banners/v3/outer-cloth.png",
+    "sha256": "1f872c22b8a033de81e18a5c4bb9920b28302003103cfaf7b72df8b647550320",
+    "size": 35062
+  },
+  {
+    "path": "assets/banners/v3/outer-emblem.png",
+    "sha256": "21fada39f7f11941753937e3041f9058b4982fe2ad80af38bc64b92a55df7ba8",
+    "size": 13075
+  },
+  {
+    "path": "assets/banners/v3/outer-repair.png",
+    "sha256": "ecd2e084cda86d2d120ae384de1d3cb2c24ae910e68afbdabe586ff4ed660bad",
+    "size": 65763
+  },
+  {
+    "path": "assets/banners/v3/right-foreground.png",
+    "sha256": "06d674a91d040a9fac2cbd45faebdd739e1bbab58607dd58218d58976e5f163a",
+    "size": 258270
+  },
+  {
+    "path": "assets/book/multi/archive-v1/cover.webp",
+    "sha256": "bb2b0dc92c48e5df623be2fb5b7149885bdff8a2c2ca3c56e2bb9b48416b7b17",
+    "size": 64198
+  },
+  {
+    "path": "assets/book/multi/archive-v1/dome.webp",
+    "sha256": "fe0d008c1cebf9a9337345276c2b1f9a64efd387754baa43f296a5ebabd07db6",
+    "size": 211348
+  },
+  {
+    "path": "assets/book/multi/archive-v1/shelf.webp",
+    "sha256": "d4e7ab0a1ecc0608cf9d1c27724a612e61932a7d0877ee8047445fa79df3251b",
+    "size": 200334
+  },
+  {
+    "path": "assets/book/multi/cover-navy.png",
+    "sha256": "6162b90d67632ab816ad20f32f86e2ea7ad0d3b61bfaa6bdb2f3f717dabd51f7",
+    "size": 96386
+  },
+  {
+    "path": "assets/book/multi/cover-plum.png",
+    "sha256": "c66496d2c78e8c8ae8ecf1a07af92ee771a3b3c871b1fd5b6a473fb78eff7c05",
+    "size": 82274
+  },
+  {
+    "path": "assets/book/multi/cover-wine.png",
+    "sha256": "f39119150656bba4c2811781db902beee1b54d2f10ee358851c7707017516525",
+    "size": 83517
+  },
+  {
+    "path": "assets/book/multi/shelf/AVS-v1/shelf-repair.png",
+    "sha256": "ccaf627d4e72da39307b3c0937d4e7cb45e448effbb91392d3c505110beeb625",
+    "size": 1064
+  },
+  {
+    "path": "assets/book/multi/shelf/AVS-v1/shelf-spine.png",
+    "sha256": "bc08a0e08cd4a6cbc1e11ca9cb0eb2c226deb3751e78a02951f246ce94b3a25a",
+    "size": 1926
+  },
+  {
+    "path": "assets/book/multi/shelf/L1/shelf-repair.png",
+    "sha256": "34907323a2f5dd598642ce81cb05f6a498b56e00c130c431c0cd8dd09c801326",
+    "size": 723
+  },
+  {
+    "path": "assets/book/multi/shelf/L1/shelf-spine.png",
+    "sha256": "f7176301ca2156113c1ecb456b4e60e7f8f249337952ee441257d0bc8f905806",
+    "size": 1078
+  },
+  {
+    "path": "assets/book/multi/shelf/L2/shelf-repair.png",
+    "sha256": "8842b345f3be488f72f36ca5355c795434aada957a266f5b40dd7d035d615061",
+    "size": 631
+  },
+  {
+    "path": "assets/book/multi/shelf/L2/shelf-spine.png",
+    "sha256": "f45cc8a3f89f467e5f1ff0489955aaffddde834bb78f8e050752b9a1f6e49e68",
+    "size": 1038
+  },
+  {
+    "path": "assets/book/multi/shelf/L3/shelf-repair.png",
+    "sha256": "4a1ca07264a45007ec22cbcc69bf6596fa1d2d23ac2cd580f524dcfea86b8626",
+    "size": 328
+  },
+  {
+    "path": "assets/book/multi/shelf/L3/shelf-spine.png",
+    "sha256": "68106738f38d92cd49d40b287476088a501c4f5b46ab9b198bccfced0ee621ab",
+    "size": 297
+  },
+  {
+    "path": "assets/book/multi/shelf/L4/shelf-repair.png",
+    "sha256": "4c8c4d651bfaa273d97984605ecc9f5c095e97e5721ea0c4373febbae950f4a5",
+    "size": 668
+  },
+  {
+    "path": "assets/book/multi/shelf/L4/shelf-spine.png",
+    "sha256": "a9b2a3564e54535be10e85e395dac9a2ccf28f526dd110101bce356b5701df2b",
+    "size": 774
+  },
+  {
+    "path": "assets/book/multi/shelf/LT-v1/shelf-repair.png",
+    "sha256": "050ce900a63a2e01dcf7ea549bb40cc80326027bd7b8d5a228b2e5ecbb0c539b",
+    "size": 943
+  },
+  {
+    "path": "assets/book/multi/shelf/LT-v1/shelf-spine.png",
+    "sha256": "d4df63fd7ed27521d1771fb63578b68abb9f5c5321f4655cfb7f4230f76af22e",
+    "size": 1549
+  },
+  {
+    "path": "assets/book/multi/shelf/R1/shelf-repair.png",
+    "sha256": "6bce0f32d3e5fc68afb1276382d482a1dc60513bd4f6088f093e3cb2d7c68c35",
+    "size": 795
+  },
+  {
+    "path": "assets/book/multi/shelf/R1/shelf-spine.png",
+    "sha256": "3b3b1bb8d3e7142735ea883faf8c923e0db558dde1da9d347701325a7e4d15c0",
+    "size": 1042
+  },
+  {
+    "path": "assets/book/multi/shelf/R2/shelf-repair.png",
+    "sha256": "4037b595fd0751f3ea73a4c116eb6038125e9ee6629b6e7a528068639f649de4",
+    "size": 659
+  },
+  {
+    "path": "assets/book/multi/shelf/R2/shelf-spine.png",
+    "sha256": "739f0ea1bfac5f1df6211ff5a0da3f7ecde8962ee6217538206666cdd4111046",
+    "size": 763
+  },
+  {
+    "path": "assets/book/multi/shelf/R3/shelf-repair.png",
+    "sha256": "0a9d8a75ee883444125c805fd51000262fad8c7ccf5ffe82752f5a1c1b5292f7",
+    "size": 320
+  },
+  {
+    "path": "assets/book/multi/shelf/R3/shelf-spine.png",
+    "sha256": "e5923ac2bede7cad7b00f0ea1ed881f94bb4366331157aa9bbb088a270a3e0d8",
+    "size": 306
+  },
+  {
+    "path": "assets/book/multi/shelf/R4-lab/shelf-repair.png",
+    "sha256": "b0bfff61028c8d2c78b54700daa771afbccb6e29c532b1e5a1c408968c1b2e80",
+    "size": 421
+  },
+  {
+    "path": "assets/book/multi/shelf/R4-lab/shelf-spine.png",
+    "sha256": "bac6428adbc6898f129ff445b40aedbc4a747023411934b2d1bd99658c62bbd4",
+    "size": 407
+  },
+  {
+    "path": "assets/book/multi/shelf/registry.json",
+    "sha256": "97898c22a096c6940ef72f25aecbdc76975db5384e8e0864b62f22cc19eceae8",
+    "size": 3576
+  },
+  {
+    "path": "assets/book/v5/book-closed.png",
+    "sha256": "2e416f900a08b12e096331372ce6eaddc034bcaa4574673bdb8447ee3b056d12",
+    "size": 90889
+  },
+  {
+    "path": "assets/book/v5/book-open.png",
+    "sha256": "bb6dac6cd1cdc26625a7595ea74ce8a4559df1143e79a1544608be547a4de46d",
+    "size": 21367
+  },
+  {
+    "path": "assets/book/v5/cover-face.png",
+    "sha256": "6162b90d67632ab816ad20f32f86e2ea7ad0d3b61bfaa6bdb2f3f717dabd51f7",
+    "size": 96386
+  },
+  {
+    "path": "assets/book/v5/page-left.png",
+    "sha256": "ef2ca3c12d36317abf03e89c4b337e331689a5418ce473dda2ef117ebcea988a",
+    "size": 45415
+  },
+  {
+    "path": "assets/book/v5/page-right.png",
+    "sha256": "1f1b8f9f9e2b2e1c3785ec47bd7bc7de49cb2e170b0b89e60a3dbd1bb7cf0c9d",
+    "size": 44668
+  },
+  {
+    "path": "assets/book/v5/shelf-repair.png",
+    "sha256": "3600279879de51c04df867e44d5164c137ba3907915003370b5394011413f341",
+    "size": 1021
+  },
+  {
+    "path": "assets/book/v5/shelf-spine.png",
+    "sha256": "41f3decf97ac157e5e18ee479bdcb28194ed67e89881b865143df7325a1b8107",
+    "size": 2332
+  },
+  {
+    "path": "assets/book/v5/stand-repair.png",
+    "sha256": "215dd27bb649a6b9a169e94bd6991882229a5b4702d9f1f357060623b3038341",
+    "size": 39368
+  },
+  {
+    "path": "assets/core/v2/emblem.png",
+    "sha256": "c2a01e3bbe1cb2330f3e714c57249e5bd64d3cb8555e52401e6d4fc57f9fd558",
+    "size": 33649
+  },
+  {
+    "path": "assets/core/v2/local-repair.png",
+    "sha256": "49897677b23eb86dae44cb6498a8df21b9037fdb83227f8132b68e8091887ab1",
+    "size": 47423
+  },
+  {
+    "path": "assets/ladder/right-v1/ladder-body.png",
+    "sha256": "3c3c7ab6b9bcc87f134d67e03e04acc5b80e4759d4e751b431c77a8fe8ba3853",
+    "size": 1186278
+  },
+  {
+    "path": "assets/ladder/right-v1/wheel-far.png",
+    "sha256": "f96aed5df1328c0affb0e6c258dd4d1ee6573970431c61e0826ebeb0432fb7b9",
+    "size": 14697
+  },
+  {
+    "path": "assets/ladder/right-v1/wheel-near.png",
+    "sha256": "b14fae191ba8a41275efe12abf6e98cd8908b71e918d967a226a2f92fb97368e",
+    "size": 19050
+  },
+  {
+    "path": "assets/ladder/right-v2/local-repair.png",
+    "sha256": "34ff3dce1136f52cd6560b87aed44ce3662054a56a179feeede25b71ef0eae7d",
+    "size": 225244
+  },
+  {
+    "path": "assets/ladder/v1/foreground.png",
+    "sha256": "721836af77aee634e32e3d97218b79941c8540bd665930de77aeddbb06141e04",
+    "size": 436979
+  },
+  {
+    "path": "assets/ladder/v1/local-repair.png",
+    "sha256": "f087c8928c30e036634004b7e006046dc3d727df5e50c487a9ee0ee60e4b40f7",
+    "size": 175935
+  },
+  {
+    "path": "assets/ladder/v2/ladder-body.png",
+    "sha256": "652e6cd8e9a87c318888807add12d65bc6e1c8d414971883baaf02bc010572b0",
+    "size": 996042
+  },
+  {
+    "path": "assets/ladder/v2/wheel-far.png",
+    "sha256": "5bdc03b2bcccaaa2e023a074413450dda136d765f1a12d873a08b38d79ba4bec",
+    "size": 17174
+  },
+  {
+    "path": "assets/ladder/v2/wheel-near.png",
+    "sha256": "43c30c288f99d19d4a39713e13c5e75aeeb1537df6ee93112dbceff7aac38229",
+    "size": 23672
+  },
+  {
+    "path": "assets/lighting/v2/candle-unlit-overlay.png",
+    "sha256": "283e89213fe66193c877a5a953003cb6662c64a8440c41e0815cfabf8849bd37",
+    "size": 243240
+  },
+  {
+    "path": "assets/master/library-master-v1.png",
+    "sha256": "84bf9d12944ee06c1f01f765bf5b44f40126372e440add3960571eb5a199bb94",
+    "size": 2954806
+  }
+]

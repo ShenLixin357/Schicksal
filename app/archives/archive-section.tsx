@@ -4,22 +4,20 @@ import Image from "next/image";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { archiveMarkdownToHtml } from "./archive-markdown";
 import { PageHead } from "../shell/page-head";
+import chapterMetadata from "../library/archive-chapters.json";
 
 /** Book art, author emblem, copy and reading interactions are unchanged.
  * The original author emblem is provided by the hosting identity layer.
  */
 type ArchiveChapter = { id: string; lesson: string; title: string; source: string; version: string; note: string };
 
-const ARCHIVE_BOOK_CHAPTERS: ArchiveChapter[] = [
-  { id: "lesson-1", lesson: "LESSON 1 · 第一课", title: "我们究竟在建立什么？", source: "/archives/how-to-build-a-state-lesson-1.md", version: "v1.1", note: "国家、领土、政府、行政权、宪法与主权" },
-  { id: "lesson-2-a", lesson: "LESSON 2 · 第二课上", title: "谁是“我们的人”，谁又有权决定什么？", source: "/archives/how-to-build-a-state-lesson-2-a.md", version: "v1.1", note: "公民身份、年龄政治权利与低龄自治" },
-  { id: "lesson-2-b", lesson: "LESSON 2 · 第二课下", title: "如果家人犯了错，国家应该怎样让他回来？", source: "/archives/how-to-build-a-state-lesson-2-b.md", version: "v1.0", note: "政治权利暂停、恢复与共同体身份" },
-];
+const ARCHIVE_BOOK_CHAPTERS: ArchiveChapter[] = chapterMetadata;
 
 export function ArchivesSection({ authorMark, readerAuthorMark, authorMarkColor }: { authorMark: ReactNode; readerAuthorMark: ReactNode; authorMarkColor: string }) {
   const [bookOpen, setBookOpen] = useState(false);
   const [chapterIndex, setChapterIndex] = useState(0);
   const [chapterText, setChapterText] = useState("");
+  const [loadedSource, setLoadedSource] = useState("");
   const [loading, setLoading] = useState(false);
   const [archiveStatus, setArchiveStatus] = useState("");
   const chapter = ARCHIVE_BOOK_CHAPTERS[chapterIndex];
@@ -27,19 +25,20 @@ export function ArchivesSection({ authorMark, readerAuthorMark, authorMarkColor 
 
   useEffect(() => {
     if (!bookOpen) return;
-    let active = true;
-    fetch(chapter.source)
+    let active = true; const controller = new AbortController();
+    setLoading(true); setArchiveStatus("");
+    fetch(chapter.source, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("这一章暂时无法打开。");
         const text = await response.text();
-        if (active) setChapterText(text);
+        if (active) { setChapterText(text); setLoadedSource(chapter.source); }
       })
       .catch((error: unknown) => { if (active) setArchiveStatus(error instanceof Error ? error.message : "这一章暂时无法打开。"); })
       .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    return () => { active = false; controller.abort(); };
   }, [bookOpen, chapter.source]);
 
-  const selectChapter = (index: number) => { setLoading(true); setArchiveStatus(""); setChapterIndex(index); };
+  const selectChapter = (index: number) => { if (index !== chapterIndex || !bookOpen) { setLoading(true); setArchiveStatus(""); setChapterIndex(index); } };
   const openChapter = (index: number) => { selectChapter(index); setBookOpen(true); };
   const chapterHtml = archiveMarkdownToHtml(chapterText);
 
@@ -78,7 +77,7 @@ export function ArchivesSection({ authorMark, readerAuthorMark, authorMarkColor 
           <footer><span>{chapter.version}</span><i>{String(chapterIndex + 1).padStart(2, "0")} / {String(ARCHIVE_BOOK_CHAPTERS.length).padStart(2, "0")}</i></footer>
         </aside>
         <article className="reader-recto" key={chapter.id}>
-          {loading ? <div className="reader-loading"><i /><span>正在翻到这一章…</span></div> : archiveStatus ? <div className="reader-loading error">{archiveStatus}</div> : <div className="archive-prose" dangerouslySetInnerHTML={{ __html: chapterHtml }} />}
+          {loading || (loadedSource !== chapter.source && !archiveStatus) ? <div className="reader-loading"><i /><span>正在翻到这一章…</span></div> : archiveStatus ? <div className="reader-loading error">{archiveStatus}</div> : <div className="archive-prose" dangerouslySetInnerHTML={{ __html: chapterHtml }} />}
         </article>
       </div>
       <footer className="reader-controls"><button type="button" disabled={chapterIndex === 0} onClick={() => selectChapter(Math.max(0, chapterIndex - 1))}>← 上一章</button><span>PAGE · {String(chapterIndex + 1).padStart(2, "0")}</span><button type="button" disabled={chapterIndex === ARCHIVE_BOOK_CHAPTERS.length - 1} onClick={() => selectChapter(Math.min(ARCHIVE_BOOK_CHAPTERS.length - 1, chapterIndex + 1))}>下一章 →</button></footer>

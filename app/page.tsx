@@ -50,12 +50,12 @@ import { TechnologyMinistryPortal } from "./technology/technology-ministry";
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import { PASSAGE_SKIP_LABEL } from "./transitions/passage-gate";
 import type { SidebarDestination, SiteSection } from "./shell/navigation";
-
 // Only import these data-heavy sections when the user navigates to them.
 const SchicksalAtlas = lazy(() => import("./atlas/schicksal-atlas").then(module => ({ default: module.SchicksalAtlas })));
 const AtlasGovernmentHandbook = lazy(() => import("./atlas/government-handbook").then(module => ({ default: module.AtlasGovernmentHandbook })));
 const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(module => ({ default: module.PhotoArchiveSection })));
 const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
+const LibrarySection = lazy(() => import("./library/library-section").then(module => ({ default: module.LibrarySection })));
 const CommitteeLounge = lazy(() => import("./club/committee-lounge").then(module => ({ default: module.CommitteeLounge })));
 
 async function prepareLounge() {
@@ -435,7 +435,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
   let content: ReactNode;
   switch (section) {
     case "messenger": content = <ShellPlaceholder kind="messenger" />; break;
-    case "library": content = <ShellPlaceholder kind="library" />; break;
+    case "library": content = <FeatureSuspense label="天命图书馆" onExit={() => setSection("home")}><LibrarySection technology={accountMode === "technology" && isCurrentMinister}/></FeatureSuspense>; break;
     case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "atlas":
     case "citizens":
@@ -449,14 +449,14 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
     case "profile": content = viewedCitizen.id === citizen.id
       ? (accountMode === "technology" && isCurrentMinister
         ? <TechnologyMinistryPortal sharedMark={<TechnologyEmblem compact={false} />}
-            onOpenPhotos={() => setSection("photos")} onBack={() => setSection("home")}/>
+            onOpenPhotos={() => setSection("photos")} onOpenLibrary={() => setSection("library")} onBack={() => setSection("home")}/>
         : <ProfileSection citizen={citizen} offices={offices}/>)
       : <PublicAtlasCitizenProfile citizen={viewedCitizen} offices={offices} onBack={() => setSection("atlas")}/>; break;
     // Older URLs/internal references resolve to the same profile destination,
     // not to a separate elevated menu or extra admin entry.
     case "technology": content = accountMode === "technology" && isCurrentMinister
       ? <TechnologyMinistryPortal sharedMark={<TechnologyEmblem compact={false} />}
-          onOpenPhotos={() => setSection("photos")} onBack={() => setSection("home")}/>
+          onOpenPhotos={() => setSection("photos")} onOpenLibrary={() => setSection("library")} onBack={() => setSection("home")}/>
       : <HomeSection go={setSection}/>; break;
     case "club": content = CLUB_MEMBER_IDS.has(citizen.id) ? <FeatureSuspense label="委员会 Lounge" onExit={() => setSection("home")} lounge><CommitteeLounge citizen={citizen} leave={exitLounge} seatingUnlocked={loungeSeatingUnlocked} initialRoom={loungeLanding} /></FeatureSuspense> : <HomeSection go={setSection} />; break;
     default: content = <HomeSection go={setSection} />;

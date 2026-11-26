@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const appRoot = join(root, "app");
 const read = path => readFileSync(join(root, path), "utf8");
-const featureRoots = ["home", "photos", "archives", "shell", "emblem", "parliament", "club"];
+const featureRoots = ["home", "photos", "archives", "shell", "emblem", "parliament", "club", "library"];
 const violations = [];
 const fail = message => { violations.push(message); };
 
@@ -87,7 +87,7 @@ if (css.includes("/* Committee Restroom") || css.includes("/* Persistent parliam
   fail("globals.css still contains feature-owned private room/parliament workspace styles");
 for (const legacy of ["function PersistentParliamentSection(", "function CommitteeLounge(", "function ClubMysticMark("])
   if (page.includes(legacy)) fail(`page.tsx still owns a heavy feature: ${legacy}`);
-for (const feature of ["./parliament/parliament-section", "./club/committee-lounge"])
+for (const feature of ["./parliament/parliament-section", "./club/committee-lounge", "./library/library-section"])
   if (!page.includes(`lazy(() => import("${feature}")`))
     fail(`page.tsx missing a lazy-loaded feature: ${feature}`);
 

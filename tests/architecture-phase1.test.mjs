@@ -40,9 +40,12 @@ test("national archives preserve the original cover, content URLs and author emb
   const page = read("app/page.tsx");
   assert.match(archive, /export function ArchivesSection/);
   assert.match(archive, /archive-queen-cover\.png/);
-  assert.match(archive, /how-to-build-a-state-lesson-1\.md/);
-  assert.match(archive, /how-to-build-a-state-lesson-2-a\.md/);
-  assert.match(archive, /how-to-build-a-state-lesson-2-b\.md/);
+  const catalog = read("app/library/archive-chapters.json");
+  assert.match(archive, /import chapterMetadata/);
+  assert.equal(JSON.parse(catalog).length, 7);
+  assert.match(catalog, /how-to-build-a-state-lesson-1\.md/);
+  assert.match(catalog, /how-to-build-a-state-lesson-2-a\.md/);
+  assert.match(catalog, /how-to-build-a-state-lesson-2-b\.md/);
   assert.match(archive, /archiveMarkdownToHtml\(chapterText\)/);
   assert.match(archive, /authorMarkColor/);
   assert.match(page, /authorMark=\{<CitizenMark citizen=\{CITIZENS\[0\]\} placement="archive-book-cover" \/>}/);

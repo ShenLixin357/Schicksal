@@ -73,7 +73,7 @@ async function loginAdmin() {
   return cookie;
 }
 const resourceManifest = JSON.parse(readFileSync(new URL("../public/games/insaniquarium/resources/manifest.json", import.meta.url), "utf8"));
-const paths = ["/", "/committee-room.png", "/mafraer-ice-bedroom-moonlit-v4.png", "/assets/page.js", "/archives/how-to-build-a-state-lesson-1.md", "/favicon.svg", "/_vinext/image?url=%2Fcommittee-room.png&w=640", "/games/fireboy-watergirl", "/games/ice-fire-import.json", "/games/1-forest-temple/index.html", "/games/1-forest-temple/js/game.js", "/games/1-forest-temple/data/forest/temple.json", "/games/1-forest-temple/assets/images/Beam.png", "/games/insaniquarium/resources/manifest.json", `/games/insaniquarium/resources/${resourceManifest.parts[0].file}`];
+const paths = ["/", "/committee-room.png", "/mafraer-ice-bedroom-moonlit-v4.png", "/assets/page.js", "/archives/how-to-build-a-state-lesson-1.md", "/archives/how-to-build-a-state-lesson-6.md", "/library/library/catalog/mount.js", "/library/data/nation-building.json", "/library/assets/master/library-master-v1.png", "/favicon.svg", "/_vinext/image?url=%2Fcommittee-room.png&w=640", "/games/fireboy-watergirl", "/games/ice-fire-import.json", "/games/1-forest-temple/index.html", "/games/1-forest-temple/js/game.js", "/games/1-forest-temple/data/forest/temple.json", "/games/1-forest-temple/assets/images/Beam.png", "/games/insaniquarium/resources/manifest.json", `/games/insaniquarium/resources/${resourceManifest.parts[0].file}`];
 
 test("private deployment invokes authentication before every static asset", () => {
   const settings = JSON.parse(readFileSync(new URL("../wrangler.json", import.meta.url), "utf8"));

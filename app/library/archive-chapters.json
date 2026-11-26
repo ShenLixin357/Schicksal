@@ -1,0 +1,65 @@
+[
+  {
+    "id": "lesson-1",
+    "lesson": "LESSON 1 · 第一课",
+    "title": "我们究竟在建立什么？",
+    "source": "/archives/how-to-build-a-state-lesson-1.md",
+    "version": "v1.1",
+    "note": "国家、领土、政府、行政权、宪法与主权",
+    "sha256": "5c0cc2d664e6b1a1db2ba78d950670dc854e16248ba610a6e2ad175126520817"
+  },
+  {
+    "id": "lesson-2-a",
+    "lesson": "LESSON 2 · 第二课上",
+    "title": "谁是“我们的人”，谁又有权决定什么？",
+    "source": "/archives/how-to-build-a-state-lesson-2-a.md",
+    "version": "v1.1",
+    "note": "公民身份、年龄政治权利与低龄自治",
+    "sha256": "544409799c3be73ef658584731fc2fb449877af07847170d29e230018bd07164"
+  },
+  {
+    "id": "lesson-2-b",
+    "lesson": "LESSON 2 · 第二课下",
+    "title": "如果家人犯了错，国家应该怎样让他回来？",
+    "source": "/archives/how-to-build-a-state-lesson-2-b.md",
+    "version": "v1.0",
+    "note": "政治权利暂停、恢复与共同体身份",
+    "sha256": "09f805d77e59ca1aab0c4d2df22cc257fb493b950241f4ed72958d4d93ed641b"
+  },
+  {
+    "id": "lesson-3",
+    "lesson": "LESSON 3 · 第三课",
+    "title": "如果多数人也会犯错，谁来拦住他们？",
+    "source": "/archives/how-to-build-a-state-lesson-3.md",
+    "version": "v1",
+    "note": "",
+    "sha256": "48013fb65fb8d163d5da7dd61ac7a2e9bbff9f900ec0ef3b072f0bd6d120280b"
+  },
+  {
+    "id": "lesson-4",
+    "lesson": "LESSON 4 · 第四课",
+    "title": "总统必须有权，但怎样让人愿意接过它？",
+    "source": "/archives/how-to-build-a-state-lesson-4.md",
+    "version": "v1.3",
+    "note": "",
+    "sha256": "3f4a0a54b06c14f97adce1be816597b5ce1eb5e40c00afd3037d6937fbcbee89"
+  },
+  {
+    "id": "lesson-5",
+    "lesson": "LESSON 5 · 第五课",
+    "title": "如果八个人真的坐到一起，我们到底要怎样说话？",
+    "source": "/archives/how-to-build-a-state-lesson-5.md",
+    "version": "v1",
+    "note": "",
+    "sha256": "7e76a61069fe035fecd171f4e57520c530a894d56349e0662928708aa314d6f9"
+  },
+  {
+    "id": "lesson-6",
+    "lesson": "LESSON 6 · 第六课",
+    "title": "如果没人愿意干活，一个国家还能运转吗？",
+    "source": "/archives/how-to-build-a-state-lesson-6.md",
+    "version": "v2",
+    "note": "",
+    "sha256": "b0af945e6c414bec56cc41e39dcac826a00c249b439949b972f6e742b6d11c5a"
+  }
+]

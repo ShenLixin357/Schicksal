@@ -1,0 +1,24 @@
+{
+  "handoff_date_singapore": "2026-11-27",
+  "source_site": "https://schicksal-library-lab.nguyenvanhuy68391.chatgpt.site",
+  "source_commit": "137c8b4a68b8958212c89c5d83b57e7b1e27056d",
+  "source_worktree_clean": true,
+  "book_count": 11,
+  "book_ids": ["A", "L1", "L2", "L3", "L4", "R1", "R2", "R3", "R4", "LT", "AVS"],
+  "handoff_overrides": [
+    "R2 moved from drafts to finalized with the user's final values",
+    "R3 replaced by the user's final values and moved to finalized",
+    "R4 replaced by the user's final values and moved to finalized"
+  ],
+  "production_changes": false,
+  "main_site_changes": false,
+  "published_after_handoff_overrides": false,
+  "entrypoints": {
+    "full_scene": "dist/index.html",
+    "book_debug": "dist/books-debug.html",
+    "catalog_reader": "dist/catalog.html",
+    "layer_inventory": "dist/layers.html"
+  },
+  "final_config": "FINAL_BOOK_CONFIG.md",
+  "integration_guide": "MAIN_SITE_HANDOFF.md"
+}

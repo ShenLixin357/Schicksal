@@ -31,7 +31,8 @@ test("collection shows an Atlas placeholder but retains the unapproved-art relea
   const page = read("app/page.tsx");
   assert.match(page, /<ShellPlaceholder kind="atlas" \/>/);
   assert.match(page, /case "messenger": content = <ShellPlaceholder/);
-  assert.match(page, /case "library": content = <ShellPlaceholder/);
+  assert.match(page, /case "library": content = <FeatureSuspense[^\n]*<LibrarySection/);
+  assert.match(page, /const LibrarySection = lazy\(\(\) => import\("\.\/library\/library-section"\)/);
   assert.doesNotMatch(page, /<Messenger selfId=/);
 });
 test("sidebar icons, single-click members, phone and reversible logo are present", () => {

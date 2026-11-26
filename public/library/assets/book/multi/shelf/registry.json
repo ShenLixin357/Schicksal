@@ -1,0 +1,206 @@
+{
+  "master": {
+    "name": "library-master-v1.png",
+    "size": [
+      1671,
+      941
+    ]
+  },
+  "coordinates": "top-left origin, source pixels",
+  "books": {
+    "L1": {
+      "origin": [
+        26,
+        110
+      ],
+      "size": [
+        14,
+        43
+      ],
+      "spineBounds": [
+        28,
+        112,
+        38,
+        151
+      ],
+      "source": "original painting",
+      "spine": "L1/shelf-spine.png",
+      "repair": "L1/shelf-repair.png"
+    },
+    "L2": {
+      "origin": [
+        49,
+        311
+      ],
+      "size": [
+        11,
+        42
+      ],
+      "spineBounds": [
+        51,
+        313,
+        58,
+        351
+      ],
+      "source": "original painting",
+      "spine": "L2/shelf-spine.png",
+      "repair": "L2/shelf-repair.png"
+    },
+    "L3": {
+      "origin": [
+        486,
+        416
+      ],
+      "size": [
+        9,
+        19
+      ],
+      "spineBounds": [
+        488,
+        418,
+        493,
+        433
+      ],
+      "source": "original painting",
+      "spine": "L3/shelf-spine.png",
+      "repair": "L3/shelf-repair.png"
+    },
+    "L4": {
+      "origin": [
+        162,
+        444
+      ],
+      "size": [
+        12,
+        38
+      ],
+      "spineBounds": [
+        164,
+        446,
+        172,
+        479
+      ],
+      "source": "original painting",
+      "spine": "L4/shelf-spine.png",
+      "repair": "L4/shelf-repair.png"
+    },
+    "R1": {
+      "origin": [
+        1618,
+        51
+      ],
+      "size": [
+        14,
+        43
+      ],
+      "spineBounds": [
+        1621,
+        54,
+        1629,
+        91
+      ],
+      "source": "original painting",
+      "spine": "R1/shelf-spine.png",
+      "repair": "R1/shelf-repair.png"
+    },
+    "R2": {
+      "origin": [
+        1597,
+        332
+      ],
+      "size": [
+        12,
+        37
+      ],
+      "spineBounds": [
+        1600,
+        334,
+        1606,
+        366
+      ],
+      "source": "original painting",
+      "spine": "R2/shelf-spine.png",
+      "repair": "R2/shelf-repair.png"
+    },
+    "R3": {
+      "origin": [
+        1176,
+        414
+      ],
+      "size": [
+        9,
+        20
+      ],
+      "spineBounds": [
+        1178,
+        416,
+        1183,
+        432
+      ],
+      "source": "original painting",
+      "spine": "R3/shelf-spine.png",
+      "repair": "R3/shelf-repair.png"
+    },
+    "R4": {
+      "origin": [
+        1355,
+        348
+      ],
+      "size": [
+        10,
+        28
+      ],
+      "spineBounds": [
+        1358,
+        351,
+        1363,
+        373
+      ],
+      "source": "original painting",
+      "spine": "R4/shelf-spine.png",
+      "repair": "R4/shelf-repair.png"
+    },
+    "AVS": {
+      "origin": [34, 174],
+      "size": [14, 51],
+      "spineBounds": [36, 176, 46, 221],
+      "source": "original painting",
+      "spine": "AVS-v1/shelf-spine.png",
+      "repair": "AVS-v1/shelf-repair.png"
+    },
+    "LT": {
+      "origin": [64, 258],
+      "size": [15, 45],
+      "spineBounds": [65, 260, 75, 300],
+      "source": "original painting",
+      "spine": "LT-v1/shelf-spine.png",
+      "repair": "LT-v1/shelf-repair.png"
+    },
+    "R4-lab": {
+      "origin": [
+        1355,
+        350
+      ],
+      "size": [
+        9,
+        26
+      ],
+      "spineBounds": [
+        1358,
+        352,
+        1362,
+        374
+      ],
+      "source": "library-lab ladder backdrop",
+      "spine": "R4-lab/shelf-spine.png",
+      "repair": "R4-lab/shelf-repair.png"
+    }
+  },
+  "labVariants": {
+    "R4": "R4-lab"
+  },
+  "paintedFromSoftEdges": [
+    "L3",
+    "R3"
+  ]
+}

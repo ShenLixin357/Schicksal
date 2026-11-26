@@ -1,0 +1,24 @@
+{
+  "main_sha": "e31fe637aeb629bb0a2cf42223041f2c0755871a",
+  "repository_public_at_check": true,
+  "previous_main_sha": "f9b9fe8efc1a5bcdf2c3ac58c6cac8bf1e0957db",
+  "verified_files": {
+    "app/page.tsx": "887bb6359ab0a745a664dda7b39b35c3f0210d16",
+    "app/archives/archive-section.tsx": "746be858ba767d8a3648f9bc015a1f1292875ba9",
+    "app/technology/technology-ministry.tsx": "c47bb50fad671fdbe950872713389703186ba94f",
+    "tests/shell-preview.test.mjs": "a4915240782a4b544a1d327a617bbafb6dfacdfe",
+    "tests/identity-boundary.test.mjs": "1ff91994d64277ff39c3c67b95a7c072da959159",
+    "package.json": "3bcac53e7ab1cd68917bd55b9348d847e8c61b84",
+    "scripts/architecture/check-boundaries.mjs": "8d58eb9c3864314cfbb602d4c25007ba83474591",
+    "server/auth/member.ts": "c71cca5f8b4ac87c79395fc9b3dc28e38df51b5f",
+    "server/auth/offices.ts": "9c87675e388fc26698d1e822c7393ba1e6c3dd54",
+    "server/http.ts": "dbd84b7ed190d7fd5f340c9dad355c25c34b8198",
+    "app/member-session.ts": "f690ebea8a56ff9521fe4a6edfe7365a26874953",
+    "app/member-session-core.ts": "95268017f84dc9e8ea69551ba3e4e3b3a7a42b58",
+    "app/member-passwords.ts": "124866da6c6cb986929c124529cc4fe24d312ab3",
+    "app/identity/office-registry.ts": "0376c5575e2115470142a46bfd479f13170a21cc",
+    "tests/architecture-phase1.test.mjs": "a5766782304553a3b2111d7217e6a615b24b801c",
+    "tests/private-site.test.mjs": "b8ddddc9e34aa743a181db8bd36c826ed146f9ce"
+  },
+  "remote_mutations": false
+}
