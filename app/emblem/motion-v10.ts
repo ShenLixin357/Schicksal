@@ -73,12 +73,13 @@ export function mountEmblem(canvas:HTMLCanvasElement,mode:MotionMode,pathSource:
       const ease=(p:number)=>bezier(p,.25,.1,.25,1);
       const rise=reduce.matches?1:ease((age-1970)/650);
       const grow=reduce.matches?1:ease((age-1970)/800);
-      // React already fades its entire opening container. The standalone
-      // entry has no such parent animation, so reproduce its original
-      // late fade on the orbit only. Never expand or scatter the orbit.
-      const fall=reduce.matches||orbit.closest(".opening-exit")?0:clamp((bezier((age-3290)/900,.42,0,1,1)-.7)/.3);
-      orbit.style.opacity=String(rise*(1-fall));
-      orbit.style.transform="scale("+(.72+.28*grow)+") rotate("+(-16*(1-grow))+"deg)";
+      // A: hold until the LAST blade has finished scattering
+      // (3290 + 7*28 + 350 = 3836ms), then a single expanding wave.
+      // Fade to zero over 360ms, ending at 4196ms before login at 4200ms.
+      const release=reduce.matches?0:clamp((age-3836)/360);
+      const expansion=1-Math.pow(1-release,2);
+      orbit.style.opacity=String(rise*(1-release));
+      orbit.style.transform="scale("+(.72+.28*grow+.4*expansion)+") rotate("+(-16*(1-grow))+"deg)";
       orbit.dataset.openingAge=String(age);
     }
     for(const r of sample(reduce.matches?"static":mode,age,revealed)){
