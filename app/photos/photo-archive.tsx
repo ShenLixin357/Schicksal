@@ -1,4 +1,5 @@
 "use client";
+import { ImperialLoading } from "../emblem/imperial-loading";
 
 import Image from "next/image";
 import { useEffect, useState, type CSSProperties, type ReactNode, type Dispatch, type SetStateAction, type DragEvent, type FormEvent } from "react";
@@ -232,13 +233,13 @@ export function PhotoArchiveSection({ citizen, accountMode, sharedMark, renderCi
           </div>
           <label className="archive-field"><span>照片说明</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={800} rows={3} placeholder="这张照片发生了什么？由谁提供？" /></label>
           <fieldset className="upload-subjects"><legend>照片中恰好有哪些人 *</legend><p>若是当时全体成员的合照，请只选“天命全体照”。</p><div>{PHOTO_SUBJECTS.map((subject) => <button type="button" key={subject.id} className={uploadSubjects.includes(subject.id) ? "selected" : ""} aria-pressed={uploadSubjects.includes(subject.id)} onClick={() => toggleChoice(subject.id, setUploadSubjects)} title={subject.username} style={{ "--citizen": citizenRepresentativeColor(subject) } as CSSProperties}>{renderSubjectMark(subject, "photos-upload-subject")}<span>{subject.id === "empire" ? "天命" : subject.username}</span></button>)}</div></fieldset>
-          <button className="primary archive-submit" type="submit" disabled={uploading}>{uploading ? "ARCHIVING…" : "收入影像馆"}<span>→</span></button>
+          <button className="primary archive-submit" type="submit" disabled={uploading}>{uploading && <ImperialLoading size={24}/>} {uploading ? "ARCHIVING…" : "收入影像馆"}<span>→</span></button>
           <p className="upload-status" role="status">{status || "上传后会自动切换到对应的标志分类。"}</p>
         </form>
       </aside>
       <section className="photo-gallery" aria-live="polite">
         <header><div><p className="eyebrow">{showTrash ? "Recoverable Archive" : "Selected Collection"}</p><h2>{showTrash ? "照片回收站" : filterLabel}</h2></div><div className="photo-gallery-toolbar"><span>{visiblePhotos.length} / {album.length} PHOTOS</span>{(accountMode==="technology" && isCurrentTechnologyMinister(citizen.id)) && <button type="button" onClick={() => { setShowTrash((value) => !value); if (!showTrash) void reloadPhotos().catch(() => setStatus("无法读取回收站。")); }}>{showTrash ? "返回影像馆" : "管理回收站"}</button>}</div></header>
-        {loading ? <div className="gallery-empty loading"><i /><h3>正在打开影像馆</h3><p>读取已保存的照片与分类信息…</p></div> : visiblePhotos.length === 0 ? <div className="gallery-empty"><span>S</span><h3>{album.length ? "这个精确组合还没有照片" : showTrash ? "回收站为空" : "影像馆正在等待第一张照片"}</h3><p>{album.length ? "可以更换上方标志组合，或上传一张属于这个组合的照片。" : showTrash ? "尚无等待恢复的照片。" : "从左侧上传一张共同记忆，并为它选择人物标志。"}</p></div> : <div className="photo-grid">{visiblePhotos.map((photo) => <article className="photo-card" key={photo.id}>
+        {loading ? <div className="gallery-empty loading" role="status"><ImperialLoading size={48}/><h3>正在打开影像馆</h3><p>读取已保存的照片与分类信息…</p></div> : visiblePhotos.length === 0 ? <div className="gallery-empty"><span>S</span><h3>{album.length ? "这个精确组合还没有照片" : showTrash ? "回收站为空" : "影像馆正在等待第一张照片"}</h3><p>{album.length ? "可以更换上方标志组合，或上传一张属于这个组合的照片。" : showTrash ? "尚无等待恢复的照片。" : "从左侧上传一张共同记忆，并为它选择人物标志。"}</p></div> : <div className="photo-grid">{visiblePhotos.map((photo) => <article className="photo-card" key={photo.id}>
           <figure><Image src={photo.imageUrl} alt={photo.title} fill sizes="(max-width: 760px) 100vw, (max-width: 1100px) 50vw, 32vw" /><figcaption>{photo.capturedAt || photo.era || "日期待补"}</figcaption></figure>
           <div className="photo-card-copy"><div className="photo-card-marks">{photo.subjects.map((id) => { const subject = subjectFor(id); return subject ? <span key={id} title={subject.username}>{renderSubjectMark(subject, "photos-card-subject")}</span> : null; })}</div><h3>{photo.title}</h3>{photo.description ? <p>{photo.description}</p> : <p className="muted">尚未填写照片说明。</p>}<footer><span>{photo.era || "时期待补"}</span><span>UPLOADED BY {subjectFor(photo.uploaderCitizenId)?.username ?? "CITIZEN"}</span></footer>
             {((accountMode==="technology" && isCurrentTechnologyMinister(citizen.id)) || citizen.id === photo.uploaderCitizenId) && <div className="photo-card-actions">

@@ -1,4 +1,5 @@
 "use client";
+import { ImperialLoading } from "../emblem/imperial-loading";
 
 import { startTransition, useEffect, useState, type CSSProperties, type ReactNode, type FormEvent } from "react";
 import { CITIZENS, citizenRepresentativeColor, type Citizen } from "../citizens";
@@ -604,7 +605,7 @@ export function PersistentParliamentSection({ citizen, requestedItemId = "", req
     <section className={`parliament-library-grid ${workspaceOpen ? "workspace-open" : "overview-open"}`}>
       {!workspaceOpen && <aside className="docket-list streamlined-docket">
         <header><div><p className="eyebrow">Order Paper · 议事清单</p><h2>{filter === "all" ? "全部议案" : PARLIAMENT_STAGE_META[filter].cn}</h2></div><span>{visibleItems.length} ITEMS</span></header>
-        {loading && !items.length ? <div className="docket-empty">正在打开议事记录…</div> : visibleItems.length ? visibleItems.map((item) => <article key={item.id} className={`docket-card ${activeItem?.id === item.id ? "active" : ""}`}>
+        {loading && !items.length ? <div className="docket-empty" role="status"><ImperialLoading size={48}/>正在打开议事记录…</div> : visibleItems.length ? visibleItems.map((item) => <article key={item.id} className={`docket-card ${activeItem?.id === item.id ? "active" : ""}`}>
           <button type="button" className="docket-open" onClick={() => openItem(item.id)}>
             <span className={`docket-kind ${item.kind}`}>{item.kind === "proposal" ? "提案" : item.kind === "bill" ? "法案" : "公投"}</span>
             <small>{item.serialCode} · {PARLIAMENT_STAGE_META[item.stage].cn}</small><strong>{item.title}</strong><p>{item.summary}</p><div className="docket-route"><span>{CLASSIFICATION_META[item.classification]}</span><span>{ROUTING_META[item.routing]}</span>{item.pendingAmendmentCount > 0 && <b>{item.pendingAmendmentCount} 项待审修正</b>}</div><footer><span>{item.commentCount} 评论</span><span>{item.voteCount} 票</span><b>v{item.version}</b></footer>

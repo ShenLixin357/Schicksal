@@ -1,4 +1,5 @@
 "use client";
+import { ImperialLoading } from "./emblem/imperial-loading";
 
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -43,7 +44,7 @@ export function MemberAccessSettings() {
       <label>新密码<input name="new-password" type="password" autoComplete="new-password" value={password} maxLength={1024} required onChange={(event) => setPassword(event.target.value)} /></label>
       <label>再次输入密码<input name="confirm-password" type="password" autoComplete="new-password" value={confirmation} maxLength={1024} required onChange={(event) => setConfirmation(event.target.value)} /></label>
       <p className="member-password-note">保存后，该成员已有的登录会退出；为自己改密码后，请重新登录。</p>
-      <button className="primary" type="submit" disabled={saving}>{saving ? "正在保存…" : "保存成员密码"}</button>
+      <button className="primary" type="submit" disabled={saving}>{saving && <ImperialLoading size={24}/>} {saving ? "正在保存…" : "保存成员密码"}</button>
       <p role="status" aria-live="polite">{status}</p>
     </form>
   </section>;

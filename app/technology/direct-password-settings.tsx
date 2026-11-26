@@ -1,4 +1,5 @@
 "use client";
+import { ImperialLoading } from "../emblem/imperial-loading";
 
 import { useEffect, useState, type FormEvent } from "react";
 import "./direct-password-settings.css";
@@ -67,7 +68,7 @@ export function TechnologyDirectPasswordSettings() {
         <input type="password" autoComplete="new-password" minLength={12} maxLength={128} required
           value={confirm} onChange={event=>setConfirm(event.target.value)} />
       </label>
-      <button type="submit" disabled={busy}>{busy?"正在保存…":configured?"更改部长专用密码":"启用部长专用登录"}</button>
+      <button type="submit" disabled={busy}>{busy && <ImperialLoading size={24}/>} {busy?"正在保存…":configured?"更改部长专用密码":"启用部长专用登录"}</button>
     </form>
     {message&&<p className="technology-password-success" role="status">{message}</p>}
     {error&&<p className="technology-password-error" role="alert">{error}</p>}

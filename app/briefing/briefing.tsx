@@ -1,4 +1,5 @@
 "use client";
+import { ImperialLoading } from "../emblem/imperial-loading";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
@@ -108,7 +109,7 @@ function NewsList({ items, onNavigate, compact = false, state = "ready" }: {
       {shown.length === 0 && <p className="imperial-briefing-empty">尚无已发布的新闻记录。</p>}
     </div>
     {compact && ordered.length > 4 && <button type="button" className="imperial-briefing-more" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>{expanded ? "收起新闻" : "展开全部 · " + ordered.length + " 条新闻"} <span aria-hidden="true">{expanded ? "↑" : "↓"}</span></button>}
-    {state === "loading" && <p className="imperial-briefing-footnote">正在同步最新国家动态…</p>}
+    {state === "loading" && <p className="imperial-briefing-footnote"><ImperialLoading size={24}/>正在同步最新国家动态…</p>}
     {state === "error" && <p className="imperial-briefing-footnote" role="status">新闻同步暂时失败，以下是已保存的历史记录。</p>}
   </section>;
 }
@@ -136,7 +137,7 @@ function Tasks({ tasks, state, onNavigate, onOpenDesk, full = false }: {
       <div className="imperial-briefing-panel-title"><BriefingIcon name="affairs" size={27}/><div><h2>我的政务</h2><span className="imperial-briefing-eyebrow">MY AFFAIRS</span></div></div>
       {state === "ready" && <span className="imperial-briefing-count">{ordered.length} 项</span>}
     </header>
-    {state !== "ready" ? <p className="imperial-briefing-empty">{state === "error" ? "政务同步暂时失败，请稍后重试。" : state === "loading" ? "正在查询你的待办…" : "政务同步功能待接入；目前不显示未经核实的个人待办。"}</p> :
+    {state !== "ready" ? <p className="imperial-briefing-empty">{state === "loading" && <ImperialLoading size={24}/>} {state === "error" ? "政务同步暂时失败，请稍后重试。" : state === "loading" ? "正在查询你的待办…" : "政务同步功能待接入；目前不显示未经核实的个人待办。"}</p> :
       displayed.length === 0 ? <p className="imperial-briefing-empty">目前没有待处理政务。</p> :
       <div className="imperial-briefing-rows">{displayed.map((task) => {
         const isExpected = task.deadlineKind === "expected" && Boolean(task.deadline);
