@@ -56,9 +56,15 @@ jobs:
             await new Promise(r=>setTimeout(r,10000));
           }
           assert.ok(verified,"Exact production revision not yet confirmed; inspect the native Cloudflare build");
-          const migrations=wrangler(["d1","execute","schicksal-db","--remote","--json","--command","SELECT name FROM d1_migrations ORDER BY id"]);
-          assert.equal(migrations[0].results.at(-1).name,"0020_parliament_document_versions.sql");
-          const counts=wrangler(["d1","execute","schicksal-db","--remote","--json","--command","SELECT (SELECT count(*) FROM committee_vase_history) AS vase_history, (SELECT count(*) FROM member_credentials) AS credentials, (SELECT count(*) FROM parliament_items) AS items, (SELECT count(*) FROM parliament_document_versions) AS versions, (SELECT count(*) FROM parliament_items i LEFT JOIN parliament_document_versions d ON d.item_id=i.id AND d.version=i.version WHERE d.item_id IS NULL OR d.title IS NOT i.title OR d.summary IS NOT i.summary OR d.body IS NOT i.body) AS mismatch"])[0].results[0];
+          async function query(sql){
+            assert.match(sql,/^SELECT /i);
+            const res=await fetch("https://api.cloudflare.com/client/v4/accounts/"+account+"/d1/database/"+prod[0].uuid+"/query",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({sql}),signal:AbortSignal.timeout(30000)});
+            const body=await res.json();assert.ok(res.ok&&body.success&&body.result?.[0]?.success,"D1 SELECT failed: HTTP "+res.status);
+            return body.result[0].results;
+          }
+          const migrations=await query("SELECT name FROM d1_migrations ORDER BY id");
+          assert.equal(migrations.at(-1).name,"0020_parliament_document_versions.sql");
+          const counts=(await query("SELECT (SELECT count(*) FROM committee_vase_history) AS vase_history, (SELECT count(*) FROM member_credentials) AS credentials, (SELECT count(*) FROM parliament_items) AS items, (SELECT count(*) FROM parliament_document_versions) AS versions, (SELECT count(*) FROM parliament_items i LEFT JOIN parliament_document_versions d ON d.item_id=i.id AND d.version=i.version WHERE d.item_id IS NULL OR d.title IS NOT i.title OR d.summary IS NOT i.summary OR d.body IS NOT i.body) AS mismatch"))[0];
           assert.ok(counts.vase_history>=47&&counts.credentials>=5&&counts.items>=4);assert.equal(counts.mismatch,0);
           for(const route of ["/","/api/parliament","/api/briefing"]){
             const r=await fetch("https://schicksal.m17686100216.workers.dev"+route,{redirect:"manual",signal:AbortSignal.timeout(15000)});

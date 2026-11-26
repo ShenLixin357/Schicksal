@@ -5,3 +5,7 @@ Owner approved the cumulative preview and explicitly requested production public
 ## Production deployment correction
 
 Native Cloudflare build `0b646a03-1a1e-41a4-bb0d-908fe68b0ad2` compiled successfully but failed before migration: `wrangler d1 info` was given a UUID rather than a database name/binding. The correction uses the reviewed name (or binding `DB`) for lookup and still asserts the returned UUID and production name before any mutation. Test fixture now rejects a UUID in the name argument. No application changes, migration changes, database replacement, or preview state transfer.
+
+## V10 public visual release
+
+Owner approved the V10 standalone motion laboratory. Public 2D marks use shared supersampled canvas, opening 420/230/3/350/900, Loading 4300 ms / 15 beats / 30% white-mixed opaque facets, four-orbit ministry mark 2.5/13; Lounge and both passage directions are excluded. Homepage helical motion is retained with the revised geometry. No migrations, credential changes, or preview data transfer. Postmerge verification uses the proven read-only D1 SELECT API instead of the failing Wrangler execute wrapper.
