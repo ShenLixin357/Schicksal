@@ -12,12 +12,14 @@ on:
       - "preview/sidebar-lounge-v4-20261120"
       - "feature/minister-dual-account-switch-20261121"
       - "feature/no2-garnet-identity-20261122"
+      - "fix/parliament-history-transitions"
     paths:
       - ".github/workflows/schicksal-ui-preview-deploy.yml"
       - "scripts/cloudflare/prepare-ui-preview.mjs"
       - "app/**"
       - "public/no2-personal-*.png"
       - "tests/**"
+      - "scripts/qa/**"
       - "package.json"
   workflow_dispatch:
 
@@ -45,6 +47,8 @@ jobs:
         with:
           node-version: "24"
           cache: npm
+      - name: Verify exact preview source commit
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Verify preview-only authorization
         shell: bash
         run: |
@@ -70,6 +74,9 @@ jobs:
           npm run test:mark-placements
           npm run build
           bash scripts/validate-artifact.sh
+      - name: Full release-candidate regression before any remote changes
+        if: github.ref_name == 'fix/parliament-history-transitions'
+        run: npm test
       - name: Identify production D1 by name, provision only separate preview D1
         shell: bash
         run: |
@@ -178,6 +185,18 @@ jobs:
             echo "Preview schema: $table"
             npx wrangler d1 execute DB --remote --config "$CONFIG" --command "SELECT name FROM pragma_table_info('$table')"
           done
+      - name: Verify current parliament document snapshots on isolated preview D1
+        if: github.ref_name == 'fix/parliament-history-transitions'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --json --command "SELECT COUNT(*) AS mismatch FROM parliament_items i LEFT JOIN parliament_document_versions d ON d.item_id=i.id AND d.version=i.version WHERE d.item_id IS NULL OR d.title IS NOT i.title OR d.summary IS NOT i.summary OR d.body IS NOT i.body" > "$RUNNER_TEMP/parliament-preview-integrity.json"
+          node --input-type=module - "$RUNNER_TEMP/parliament-preview-integrity.json" <<'NODE'
+          import { readFileSync } from "node:fs";
+          const results=JSON.parse(readFileSync(process.argv[2],"utf8"));
+          if (results?.[0]?.results?.[0]?.mismatch !== 0) throw Error("Preview document snapshot integrity failed; do not deploy");
+          console.log("All current proposal snapshots match; no proposal contents printed.");
+          NODE
       - name: Publish separate briefing preview Worker
         shell: bash
         run: |
@@ -331,3 +350,30 @@ jobs:
             echo "- Accepted UX: personal long-hold toggles directly; minister dashboard replaces profile; dedicated login uses a term-bound D1 hash."
             echo "- Check login, daily news and responsive layout manually before claiming acceptance."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  browser-qa:
+    name: Real Chromium and WebKit preview acceptance
+    needs: deploy-preview
+    if: github.ref_name == 'fix/parliament-history-transitions'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: briefing-preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install pinned browser test tools in temporary directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mkdir -p "$RUNNER_TEMP/schicksal-browser"
+          npm install --prefix "$RUNNER_TEMP/schicksal-browser" --no-save --package-lock=false playwright@1.56.1
+          "$RUNNER_TEMP/schicksal-browser/node_modules/.bin/playwright" install --with-deps chromium webkit
+          cp scripts/qa/parliament-preview-browser.mjs "$RUNNER_TEMP/schicksal-browser/"
+      - name: Browser acceptance on the exact isolated preview
+        env:
+          SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+        run: node "$RUNNER_TEMP/schicksal-browser/parliament-preview-browser.mjs"

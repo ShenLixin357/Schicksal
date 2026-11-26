@@ -66,3 +66,4 @@ export function announceCommitteeLounge(citizen: Citizen, onComplete: () => void
   synthesis.speak(utterance);
   window.setTimeout(finish, 9000);
 }
+export const COMMITTEE_LOUNGE_ART = "/committee-lounge-word-globe-v1.png";

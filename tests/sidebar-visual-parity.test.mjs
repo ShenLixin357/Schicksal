@@ -18,20 +18,20 @@ test("keep the approved icon-based and expandable sidebar, NEVER regress to 01/0
   assert.match(navigation, /id: "honors"/);
 });
 
-test("visual metrics match original site independent of the selected icon style", () => {
+test("owner-approved compact widths and lighter typography preserve icon and spacing metrics", () => {
   const legacy = read("app/globals.css");
   const layout = read("app/navigation-layout.css");
   const styles = read("app/shell/shell.css");
   const variables = read("app/entry.css");
-  assert.match(layout,/--sidebar-width: 248px/);
-  assert.match(layout,/--sidebar-width: 200px/);
+  assert.match(layout,/--sidebar-width: 224px/);
+  assert.match(layout,/--sidebar-width: 192px/);
   assert.match(layout,/--sidebar-width: 64px/);
   assert.match(legacy, /min-height: 49px/);
   assert.match(styles, /min-height:49px/);
   assert.match(styles, /grid-template-columns:25px minmax\(0,1fr\) 15px/);
   assert.match(styles, /padding:0 9px; border:0; border-left:1px solid transparent/);
   assert.match(styles, /font-family:var\(--sans\); font-size:\.74rem/);
-  assert.match(styles, /font-weight:500; line-height:normal; letter-spacing:\.04em/);
+  assert.match(styles, /font-weight:400; line-height:normal; letter-spacing:\.04em/);
   assert.match(styles, /font-size:6px; font-weight:400; line-height:normal/);
   assert.match(styles, /color:#505d70; text-transform:uppercase/);
   assert.match(styles, /color:#738095/);
@@ -39,6 +39,9 @@ test("visual metrics match original site independent of the selected icon style"
   assert.match(variables, /--serif: Georgia, "Times New Roman", "Noto Serif SC"/);
   assert.match(styles, /width:18px; height:18px; stroke-width:1.5/);
   assert.match(styles, /grid-template-areas:"icon copy chevron"/);
+  assert.match(styles, /font-size:\.74rem; font-weight:400; line-height:normal/);
+  assert.match(styles, /padding-right:30px/);
+  assert.match(styles, /min-width:761px/);
 });
 
 test("collapsed logo, phone and expand button occupy separate nonoverlapping rows", () => {

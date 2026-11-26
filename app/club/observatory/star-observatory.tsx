@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { DEG, POLARIS_HIP, STRIDE, cameraBasis, clamp, directionAt, equatorialCoordinates, horizontalCoordinates, localBasis, panCamera, parseCatalog, prepareDirections, toHorizontal, type Observer, type StarCatalog, type Vec3 } from "./sky-engine";
+import { DEG, POLARIS_HIP, STRIDE, cameraBasis, clamp, directionAt, equatorialCoordinates, horizontalCoordinates, localBasis, panCamera, parseCatalog, prepareDirections, toHorizontal, type CatalogMetadata, type Observer, type StarCatalog, type Vec3 } from "./sky-engine";
 import { paintSky, type SkyHit } from "./sky-renderer";
 
 let catalogPromise: Promise<StarCatalog> | null = null;
@@ -12,7 +12,7 @@ function loadCatalog() {
   catalogPromise = Promise.all([
     fetch("/data/mafraer-hyg-v41.bin", { signal: controller.signal }).then((response) => { if (!response.ok) throw new Error("Star data unavailable"); return response.arrayBuffer(); }),
     fetch("/data/mafraer-hyg-v41.json", { signal: controller.signal }).then((response) => { if (!response.ok) throw new Error("Star names unavailable"); return response.json(); }),
-  ]).then(([buffer, metadata]) => parseCatalog(buffer, metadata)).catch((error) => { controller.abort(); catalogPromise = null; throw error; }).finally(() => window.clearTimeout(timer));
+  ]).then(([buffer, metadata]) => parseCatalog(buffer, metadata as CatalogMetadata)).catch((error) => { controller.abort(); catalogPromise = null; throw error; }).finally(() => window.clearTimeout(timer));
   return catalogPromise;
 }
 

@@ -107,6 +107,24 @@ export const parliamentItems = sqliteTable(
   ],
 );
 
+export const parliamentDocumentVersions = sqliteTable(
+  "parliament_document_versions",
+  {
+    itemId: text("item_id").notNull().references(() => parliamentItems.id, { onDelete: "restrict" }),
+    version: integer("version").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    body: text("body").notNull(),
+    recordedAt: text("recorded_at").notNull(),
+    source: text("source", { enum: ["baseline", "revision"] }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.itemId, table.version] }),
+    check("parliament_document_version_positive", sql`${table.version} >= 1`),
+    check("parliament_document_version_source", sql`${table.source} IN ('baseline', 'revision')`),
+  ],
+);
+
 export const parliamentComments = sqliteTable(
   "parliament_comments",
   {

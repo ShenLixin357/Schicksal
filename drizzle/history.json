@@ -80,6 +80,10 @@
     {
       "name": "0019_technology_credential_tenure.sql",
       "sha256": "8930f78ca11b41e54063148146f1c8af91f752dda65ea10ec3c240214978d4cb"
+    },
+    {
+      "name": "0020_parliament_document_versions.sql",
+      "sha256": "d2bacd1e6ff6312bfacc384a9a1964529594982403162dda311399364d3bf060"
     }
   ]
 }
