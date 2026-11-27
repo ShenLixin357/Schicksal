@@ -1,6 +1,7 @@
 import {githubOverview,cloudflareOverview} from '../../integration/imperial-v3/foundation/monitor.mjs';
 import {normalizePolicy,effectiveAccess} from '../../integration/imperial-v3/foundation/permissions.mjs';
 import {scoreRanking} from '../../integration/imperial-v3/foundation/evaluation.mjs';
+import {registry,editEnabled,enforcementConfigured,policySnapshot,savePolicyLive} from './policy-runtime.mjs';
 
 const groups={
  events:['imperial_events','imperial_deliveries'],
@@ -11,9 +12,7 @@ const groups={
  producers:['imperial_source_changes','imperial_source_fanout','imperial_book_published','imperial_gallery_version','imperial_digital_version','imperial_permission_changed','imperial_gallery_visibility','imperial_digital_visibility','imperial_gallery_tags_insert','imperial_gallery_tags_update','imperial_caption_changed','imperial_verified_discovery'],
  collection:['library_revisions','gallery_versions','digital_versions','ministry_current','search_embeddings','exploration_discoveries']
 };
-const members=['amberina','zxy','truth','kaito','harry'];
-const features=['photos','archives','library','gallery','digital'];
-const templates=['visitor','reader','editor'];
+const {members,features,templates}=registry;
 export const previewEnabled=config=>config.SCHICKSAL_V3_STATUS_ENABLED==='true'&&config.SCHICKSAL_HOSTING==='cloudflare'&&typeof config.SCHICKSAL_PREVIEW_COMMIT==='string'&&/^[a-f0-9]{40}$/i.test(config.SCHICKSAL_PREVIEW_COMMIT);
 const mutationEnabled=config=>previewEnabled(config)&&config.SCHICKSAL_V3_MUTATIONS_ENABLED==='true';
 const headers={'Cache-Control':'private, no-store','Vary':'Cookie'};
@@ -43,7 +42,7 @@ export async function status(db,config,actor){
   incidents={items:r.results.slice(0,50),hasMore:r.results.length>50};
  }
  return {asOf:Date.now(),previewCommit:config.SCHICKSAL_PREVIEW_COMMIT,term:appointment,schema,queue,incidents,
-  mutations:mutationEnabled(config)&&schema.incidents.ready,externalConfigured:config.SCHICKSAL_V3_EXTERNAL_READS==='true',
+  mutations:mutationEnabled(config)&&schema.incidents.ready,policyEditable:editEnabled(config)&&schema.policy.ready,policyEnforcementConfigured:enforcementConfigured(config),externalConfigured:config.SCHICKSAL_V3_EXTERNAL_READS==='true',
   registry:{members,features,templates},note:'表结构存在不表示功能已启用；此处仅显示真实查询结果。'};
 }
 export async function externalStatus(config,fetcher=fetch){
@@ -81,6 +80,10 @@ export async function handle(request,{db,config,requireMinister,readBody,tokenHa
   if(!previewEnabled(config))return fail(404,'V3 预览监察未启用');
   if(request.method==='GET'){
    const url=new URL(request.url);
+   if(url.searchParams.get('view')==='policy'){
+    if(!(await inventory(db)).policy.ready)return fail(503,'高级权限表尚未安装');
+    const result=await policySnapshot(db,config);await requireMinister(request);return json(result);
+   }
    if(url.searchParams.get('view')==='external'){
     const result=await externalStatus(config,fetcher);await requireMinister(request);
     return json(result);
@@ -95,6 +98,13 @@ export async function handle(request,{db,config,requireMinister,readBody,tokenHa
   if(p.action==='evaluate'){
    if(!Array.isArray(p.ranking)||p.ranking.length>1000)return fail(400,'评估结果数量无效');
    return json({simulation:true,metrics:scoreRanking(p.ranking,p.judgments,p.k),note:'仅计算输入的排序与标注，未调用模型或实时检索。'});
+  }
+  if(p.action==='savePolicy'){
+   if(!editEnabled(config))return fail(403,'高级权限编辑未获预览许可');
+   const hash=await tokenHash(request);if(!hash)return fail(401,'会话已失效');
+   if(!(await inventory(db)).policy.ready)return fail(503,'高级权限表尚未安装');
+   const result=await savePolicyLive(db,{actor,tokenHash:hash,expectedTerm:p.expectedTerm,expectedRevision:p.expectedRevision,reason:p.reason,rules:p.rules,assignments:p.assignments,restoreRevision:p.restoreRevision,now:clock()});
+   return result?json(result):fail(409,'配置版本、部长任期或会话已变化，请刷新');
   }
   if(p.action!=='acknowledge')return fail(400,'未知操作');
   if(!mutationEnabled(config))return fail(403,'预览写入未获许可');

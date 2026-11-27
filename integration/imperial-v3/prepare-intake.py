@@ -82,6 +82,9 @@ def main():
         search = module(stage / ROOTS[2] / 'apply-search-local.py')
         print('Search preflight:', search.apply(root, True))
         print('Search applied:', search.apply(root, False))
+        v3_policy = module(pathlib.Path(__file__).resolve().parent / 'foundation' / 'apply-v3-policy.py')
+        print('V3 policy preflight:', v3_policy.apply(root, True))
+        print('V3 policy hooked:', v3_policy.apply(root, False))
         # Preserve proposals outside active migrations. The original bundle stays
         # external: duplicating TS fixtures in the app tree can break typechecking.
         support = root / 'integration' / 'imperial-v3' / 'support'

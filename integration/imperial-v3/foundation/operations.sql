@@ -32,6 +32,7 @@ CREATE TABLE imperial_policy_sets (
  id TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision>=1),
  actor TEXT NOT NULL, term TEXT NOT NULL, reason TEXT NOT NULL CHECK(length(reason) BETWEEN 1 AND 500),
  created_at INTEGER NOT NULL, rules TEXT NOT NULL CHECK(json_valid(rules)),
+ assignments TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(assignments) AND json_type(assignments)='object'),
  PRIMARY KEY(id,revision)
 );
 CREATE TRIGGER imperial_policy_immutable_update BEFORE UPDATE ON imperial_policy_sets BEGIN SELECT RAISE(ABORT,'immutable policy'); END;
