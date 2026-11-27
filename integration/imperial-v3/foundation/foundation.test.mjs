@@ -44,3 +44,16 @@ const e=[{from:'a2',to:'a1',kind:'supersedes'},{from:'b1',to:'a2',kind:'derived-
 test('graph hides unauthorized nodes AND edges; timeline stable',()=>{const g=buildGraph(v,e),visible=visibleGraph(g,new Set(['a1','a2']));assert.equal(visible.edges.length,1);assert.ok(!JSON.stringify(visible).includes('private'));assert.deepEqual(versionTimeline(g,'a',new Set(['a1','a2'])).map(x=>x.id),['a2','a1']);});
 test('graph rejects cycle, reverse lineage and absent targets',()=>{assert.throws(()=>buildGraph(v,[...e,{from:'a1',to:'b1',kind:'derived-from'}]));assert.throws(()=>buildGraph(v,[{from:'a1',to:'a2',kind:'supersedes'}]));assert.throws(()=>buildGraph(v,[{from:'a1',to:'missing',kind:'related'}]));});
 test('SQL art relation cycle and lineage constraints',()=>{const {sql}=setup();for(const x of v)sql.prepare('INSERT INTO imperial_art_versions VALUES(?,?,?,?)').run(x.id,x.work,x.revision,x.title);for(const x of e)sql.prepare('INSERT INTO imperial_art_relations VALUES(?,?,?)').run(x.from,x.to,x.kind);assert.throws(()=>sql.exec("INSERT INTO imperial_art_relations VALUES('a1','b1','derived-from')"));assert.throws(()=>sql.exec("INSERT INTO imperial_art_relations VALUES('a1','a2','supersedes')"));});
+
+test('temporary member exception expires without overriding original rights or template restrictions',()=>{
+ const rules=normalizePolicy([{...rule,mode:'deny',expiresAt:null},{...rule,mode:'use'},{subjectType:'template',subject:'visitor',feature:'library',mode:'read'}],{...registry,now:100});
+ const args={baseRead:true,baseWrite:true,member:'a',feature:'library',rules,at:150};
+ assert.equal(effectiveAccess(args).write,true);
+ assert.equal(effectiveAccess({...args,at:200}).read,false);
+ assert.equal(effectiveAccess({...args,assignedTemplates:['visitor']}).write,false);
+ assert.equal(effectiveAccess({...args,baseRead:false}).read,false);
+});
+test('duplicate art revision and unsafe branch rejected',async()=>{
+ assert.throws(()=>buildGraph([...v,{...v[0],id:'duplicate'}],e));
+ await assert.rejects(githubOverview({owner:'owner',repo:'repo',branch:'..',token:'secret',fetcher:async()=>{throw Error('must not call')}}),TypeError);
+});

@@ -9,7 +9,7 @@ async function request(fetcher,url,token,timeoutMs){
   }catch{return {state:'unavailable'};}
 }
 export async function githubOverview({owner,repo,branch,token,fetcher=fetch,timeoutMs=5000}){
-  if(!validName(owner)||!validName(repo)||typeof branch!=='string'||!branch||branch.length>150)throw new TypeError('Invalid repository');
+  if(!validName(owner)||!validName(repo)||typeof branch!=='string'||!branch||branch.length>150||branch.split('/').some(part=>!validName(part)||part.endsWith('.lock'))||branch.includes('..'))throw new TypeError('Invalid repository');
   const base='https://api.github.com/repos/'+encodeURIComponent(owner)+'/'+encodeURIComponent(repo);
   const [b,r]=await Promise.all([request(fetcher,base+'/branches/'+encodeURIComponent(branch),token,timeoutMs),request(fetcher,base+'/actions/runs?branch='+encodeURIComponent(branch)+'&per_page=10',token,timeoutMs)]);
   const sha=b.body?.commit?.sha;

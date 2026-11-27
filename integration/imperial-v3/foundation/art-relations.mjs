@@ -3,8 +3,8 @@ const kinds=new Set(['inspired-by','variant-of','supersedes','derived-from','rel
 const valid=x=>typeof x==='string'&&ID.test(x);
 export function buildGraph(versions,relations){
   if(!Array.isArray(versions)||versions.length>10000||!Array.isArray(relations)||relations.length>50000)throw new TypeError('Invalid graph');
-  const nodes=new Map(),edges=[],keys=new Set(),parent=new Map();
-  for(const v of versions){if(!v||!valid(v.id)||!valid(v.work)||!Number.isSafeInteger(v.revision)||v.revision<1||typeof v.title!=='string'||v.title.length>200||nodes.has(v.id))throw new TypeError('Invalid version');nodes.set(v.id,{id:v.id,work:v.work,revision:v.revision,title:v.title});}
+  const nodes=new Map(),edges=[],keys=new Set(),parent=new Map(),revisions=new Set();
+  for(const v of versions){if(!v||!valid(v.id)||!valid(v.work)||!Number.isSafeInteger(v.revision)||v.revision<1||typeof v.title!=='string'||v.title.length>200||nodes.has(v.id))throw new TypeError('Invalid version');const rev=v.work+':'+v.revision;if(revisions.has(rev))throw new TypeError('Duplicate work revision');revisions.add(rev);nodes.set(v.id,{id:v.id,work:v.work,revision:v.revision,title:v.title});}
   for(const r of relations){
     if(!r||!nodes.has(r.from)||!nodes.has(r.to)||r.from===r.to||!kinds.has(r.kind))throw new TypeError('Invalid relation');
     const key=[r.from,r.to,r.kind].join(':');if(keys.has(key))throw new TypeError('Duplicate relation');keys.add(key);

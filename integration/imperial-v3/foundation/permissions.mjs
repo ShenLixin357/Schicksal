@@ -12,7 +12,7 @@ export function normalizePolicy(rules,{members,features,templates,maxTemporarySe
        !known(r.feature,features)||!MODES.has(r.mode))throw new TypeError('Unknown subject, feature or mode');
     const expiry=r.expiresAt??null;
     if(expiry!==null&&(!integer(expiry)||expiry<=now||expiry-now>maxTemporarySeconds||r.subjectType==='template'))throw new TypeError('Invalid temporary expiry');
-    const key=r.subjectType+':'+r.subject+':'+r.feature;
+    const key=r.subjectType+':'+r.subject+':'+r.feature+':'+(expiry===null?'permanent':'temporary');
     if(seen.has(key))throw new TypeError('Duplicate rule');seen.add(key);
     return {subjectType:r.subjectType,subject:r.subject,feature:r.feature,mode:r.mode,expiresAt:expiry};
   });
@@ -21,7 +21,11 @@ export function effectiveAccess({baseRead,baseWrite,member,feature,assignedTempl
   if(!integer(at)||typeof baseRead!=='boolean'||typeof baseWrite!=='boolean')throw new TypeError('Invalid access');
   const matched=rules.filter(r=>r.feature===feature&&(r.expiresAt==null||r.expiresAt>at)&&
      (r.subjectType==='member'?r.subject===member:r.subjectType==='template'&&assignedTemplates.includes(r.subject)));
-  const deny=matched.some(r=>r.mode==='deny'),readOnly=matched.some(r=>r.mode==='read');
+  // An explicit temporary member rule overrides only that member's own permanent rule.
+  // It never overrides a template restriction or the authoritative baseline.
+  const temporary=matched.filter(r=>r.subjectType==='member'&&r.expiresAt!=null);
+  const applied=temporary.length?matched.filter(r=>r.subjectType!=='member'||r.expiresAt!=null):matched;
+  const deny=applied.some(r=>r.mode==='deny'),readOnly=applied.some(r=>r.mode==='read');
   return {read:baseRead&&!deny,write:baseRead&&baseWrite&&!deny&&!readOnly,restricted:deny||readOnly};
 }
 // Templates are named in trusted configuration; batch is a full immutable policy snapshot.
