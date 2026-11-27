@@ -142,7 +142,7 @@ function Login({ enter, replay }: { enter: (citizen: Citizen, mode: AccountMode,
   return (
     <main className="login">
       <div className="login-ghost" aria-hidden="true">S</div>
-      <header className="entry-header"><div className="brand"><Emblem compact /><Wordmark /></div><button type="button" onClick={replay}>REPLAY OPENING</button></header>
+      <header className="entry-header"><div className="brand"><Emblem compact /><div className="wordmark"><strong>Schicksal</strong><span>天命第一帝国</span></div></div><button type="button" onClick={replay}>REPLAY OPENING</button></header>
       <section className="login-shell">
         <div className="login-copy">
           <p className="eyebrow">Citizen Access · 公民通道</p>
