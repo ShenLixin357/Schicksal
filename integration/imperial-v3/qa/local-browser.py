@@ -14,7 +14,10 @@ with sync_playwright() as p:
     try:
         response=page.goto(root,wait_until='domcontentloaded')
         assert response.status==401
-        page.locator('#skip').click(timeout=30000)
+        # Reduced motion intentionally bypasses opening.
+        expect(page.locator('#login')).to_be_visible(timeout=15000)
+        expect(page.locator('#opening')).to_be_hidden()
+        print('PASS reduced-motion opening bypass')
         page.locator('#identity-amberina').click()
         page.locator('#password').fill(password)
         page.locator('#entry button[type=submit]').click()
@@ -51,6 +54,10 @@ with sync_playwright() as p:
         expect(page.locator('.library-native-host')).to_have_count(0)
         assert not errors,errors
         print('PASS real authenticated entry, mandatory briefing, R5 first frame, 11 hotspots, settings, crest, read/cover/return and teardown')
+    except Exception:
+        page.screenshot(path=str(report/'failure.png'))
+        print('Failure URL:',page.url,'page errors:',errors)
+        raise
     finally:
         try: page.request.delete(root+'/api/member-session',headers={'Origin':root})
         except Exception: pass

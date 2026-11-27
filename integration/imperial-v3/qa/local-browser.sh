@@ -5,7 +5,7 @@ unset CLOUDFLARE_API_TOKEN CF_API_TOKEN CLOUDFLARE_ACCOUNT_ID SCHICKSAL_D1_DATAB
 REPORT="$RUNNER_TEMP/v32-browser"
 mkdir -p "$REPORT"
 export V32_REPORT="$REPORT"
-export SCHICKSAL_LOCAL_SHA="$GITHUB_SHA"
+export SCHICKSAL_LOCAL_SHA="${V32_BUILT_SHA:-$GITHUB_SHA}"
 export SCHICKSAL_LOCAL_URL=http://127.0.0.1:8787
 export SCHICKSAL_TEST_MEMBER=amberina
 export SCHICKSAL_TEST_PASSWORD="$(node -e 'console.log(require("node:crypto").randomBytes(24).toString("hex"))')"
