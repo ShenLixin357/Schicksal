@@ -11,3 +11,31 @@
 .schicksal-gallery-v12 .gallery-grid article img{aspect-ratio:4/5;object-fit:contain;background:#eee9de}
 .schicksal-gallery-v12 button,.schicksal-gallery-v12 input,.schicksal-gallery-v12 select{background:#fffdf8;color:#493e35;border:1px solid #bdb09a;padding:8px 12px}
 .schicksal-gallery-v12 a{color:#775c31}.gallery-citizen-upload{margin:18px 0}.gallery-citizen-upload>div{padding:20px;border:1px solid #c9bba3;display:grid;gap:12px}.gallery-citizen-upload label{display:grid;gap:5px}.gallery-citizen-upload p{margin:0}
+
+/* Gallery B: artwork-first browsing, without fetching full originals for grid thumbnails. */
+.schicksal-gallery-v12{--gallery-ink:#39332d;--gallery-paper:#f7f4ed;--gallery-line:#d8cbb6;--gallery-gold:#856e4e;color:var(--gallery-ink)}
+.schicksal-gallery-v12>header{padding:clamp(10px,2vw,28px) 0 22px;border-bottom:1px solid var(--gallery-line)}
+.schicksal-gallery-v12>header h2{margin:.3em 0 .2em;letter-spacing:.045em}
+.schicksal-gallery-v12>header p{color:#766b5d;line-height:1.6;margin:0}
+.schicksal-gallery-v12 .gallery-toolbar{gap:12px;margin:24px 0}
+.schicksal-gallery-v12 .gallery-toolbar label{display:flex;align-items:center;gap:10px;flex:1;min-width:min(100%,230px)}
+.schicksal-gallery-v12 .gallery-toolbar label input{width:100%;max-width:440px;min-width:0}
+.schicksal-gallery-v12 .gallery-grid article h3{font-size:1rem;line-height:1.45;font-weight:550;letter-spacing:.015em;margin:12px 0 5px}
+.schicksal-gallery-v12 .gallery-grid article p{font-size:.82rem;line-height:1.5;color:#746657;margin:4px 0}
+.schicksal-gallery-v12 .gallery-grid article>a,.schicksal-gallery-v12 .gallery-grid article>button{display:inline-flex;align-items:center;font-size:.8rem;margin:8px 8px 0 0}
+.schicksal-gallery-v12 button.gallery-artwork-tile{width:100%;position:relative;display:block;border:1px solid var(--gallery-line);padding:clamp(8px,1.3vw,16px);background:#eee9de;border-radius:2px;overflow:hidden;cursor:zoom-in}
+.schicksal-gallery-v12 .gallery-artwork-tile img,.schicksal-gallery-v12 .gallery-artwork-tile .gallery-placeholder{display:grid;place-content:center;width:100%;aspect-ratio:4/5;object-fit:contain;background:#e9e3d8;color:#746657;font-size:.8rem;transition:transform .25s}
+.schicksal-gallery-v12 .gallery-artwork-tile:hover img{transform:scale(1.025)}
+.schicksal-gallery-v12 .gallery-artwork-caption{position:absolute;right:10px;bottom:10px;padding:7px 10px;background:#fffdf5ed;color:#584932;font-size:.76rem;opacity:0;transition:opacity .2s}
+.schicksal-gallery-v12 .gallery-artwork-tile:hover .gallery-artwork-caption,.schicksal-gallery-v12 .gallery-artwork-tile:focus-visible .gallery-artwork-caption{opacity:1}
+.schicksal-gallery-v12 :is(button,a,input,select):focus-visible{outline:2px solid #8a6936;outline-offset:3px}
+.schicksal-gallery-v12 .gallery-artwork-viewer{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:min(94vw,1160px);max-height:92dvh;max-width:94vw;padding:clamp(14px,2vw,26px);border:1px solid var(--gallery-line);border-radius:4px;background:#f7f4ed;color:var(--gallery-ink);box-shadow:0 24px 100px #0005;overflow:auto}
+.schicksal-gallery-v12 .gallery-artwork-viewer::backdrop{background:#16130fd6}
+.schicksal-gallery-v12 .gallery-artwork-viewer header,.schicksal-gallery-v12 .gallery-artwork-viewer footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.schicksal-gallery-v12 .gallery-artwork-viewer header h3{font-family:Georgia,serif;font-size:clamp(1.1rem,2vw,1.7rem);font-weight:400;margin:6px 0 12px}
+.schicksal-gallery-v12 .gallery-artwork-stage{display:grid;place-items:center;background:#e8e2d7;min-height:180px;height:min(62dvh,680px);overflow:auto;padding:12px}
+.schicksal-gallery-v12 .gallery-artwork-stage img{display:block;width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:auto;object-fit:contain;background:transparent}
+.schicksal-gallery-v12 .gallery-artwork-viewer footer{padding-top:14px;font-size:.85rem}
+.schicksal-gallery-v12 .gallery-artwork-viewer footer div{display:flex;align-items:center;flex-wrap:wrap;gap:14px}
+@media(hover:none){.schicksal-gallery-v12 .gallery-artwork-caption{opacity:1}}
+@media(prefers-reduced-motion:reduce){.schicksal-gallery-v12 .gallery-artwork-tile img,.schicksal-gallery-v12 .gallery-artwork-caption{transition:none}.schicksal-gallery-v12 .gallery-artwork-tile:hover img{transform:none}}
