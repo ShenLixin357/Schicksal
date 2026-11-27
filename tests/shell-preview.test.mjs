@@ -31,7 +31,12 @@ test("collection shows an Atlas placeholder but retains the unapproved-art relea
   const page = read("app/page.tsx");
   assert.match(page, /<ShellPlaceholder kind="atlas" \/>/);
   assert.match(page, /case "messenger": content = <ShellPlaceholder/);
-  assert.match(page, /case "library": content = <FeatureSuspense[^\n]*<LibrarySection/);
+  assert.match(page, /case "library": content = <LibraryEntrance[^\n]*component=\{LibrarySection\}[^\n]*onExit=\{\(\)=>setSection\("home"\)\}/);
+  const entrance = read("app/library/library-entrance.tsx");
+  assert.match(entrance, /<Suspense fallback=\{null\}><Scene[^>]*onReady=\{ready\}[^>]*onFailure=\{failure\}/);
+  assert.match(entrance, /data-ready=\{phase==="ready"\} inert=\{phase!=="ready"\}/);
+  assert.match(entrance, /<EmblemCanvas mode="loading"\/>/);
+  assert.match(entrance, /onClick=\{onExit\}/);
   assert.match(page, /const LibrarySection = lazy\(\(\) => import\("\.\/library\/library-section"\)/);
   assert.doesNotMatch(page, /<Messenger selfId=/);
 });

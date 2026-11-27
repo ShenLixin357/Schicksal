@@ -1,82 +1,24 @@
-name: V3.2 isolated assembly and parallel acceptance
+name: V3.2 isolated candidate acceptance
 on:
   push:
     branches: [feature/imperial-v32-review]
-    paths: [".github/workflows/imperial-v32-review.yml", "integration/imperial-v3/qa/**"]
+    paths-ignore: ["**/*.md"]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: imperial-v32-review
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
-  assemble:
-    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 12
-    permissions:
-      contents: write
-    outputs:
-      candidate: ${{ steps.integrate.outputs.candidate }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: feature/imperial-v32-review
-          fetch-depth: 0
-      - name: Exact source, original bundle and guarded assembly
-        id: integrate
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          git merge-base --is-ancestor 29af9213d3dc0582862f8fd061a365f4bbd82e7c HEAD
-          git remote set-url origin https://github.com/ShenLixin357/Schicksal.git
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          mkdir -p "$RUNNER_TEMP/v32-report"
-          git status --short
-          # Reuse the already assembled and hash-verified intake commit.
-          git fetch origin refs/heads/feature/imperial-v32-intake-assembled
-          test "$(git rev-parse FETCH_HEAD)" = "d4272289a0e318d0a7ed91eef0a8aa3078ac74a6"
-          set +e
-          git merge --no-ff --no-commit "d4272289a0e318d0a7ed91eef0a8aa3078ac74a6" 2>&1 | tee "$RUNNER_TEMP/v32-report/merge.log"
-          result=${PIPESTATUS[0]}
-          set -e
-          test "$result" = 1
-          test "$(git diff --name-only --diff-filter=U | sort)" = "$(printf '%s\n' app/library/library-section.tsx app/page.tsx public/library/library/catalog/mount.js | sort)"
-          python3 integration/imperial-v3/qa/resolve-v32.py
-          git add app/library/library-section.tsx app/library/library-entrance.tsx app/page.tsx app/shell/navigation.ts public/library/library/catalog/mount.js integration/imperial-v3/foundation/collection-review.proposed.sql
-          test -z "$(git diff --name-only --diff-filter=U)"
-          node --check public/library/library/catalog/mount.js
-          git diff --cached --name-only | tee "$RUNNER_TEMP/v32-report/changes.txt"
-          python3 - <<'PY'
-          import subprocess
-          paths=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()
-          assert paths, 'No assembled changes'
-          assert not any(p.startswith(('.github/','drizzle/','wrangler','cloudflare-ui-preview/')) for p in paths), 'Unexpected migration or deployment changes'
-          PY
-          git commit -m 'Assemble V3.2 cumulative source without activation or deployment'
-          candidate=$(git rev-parse HEAD)
-          git fetch origin refs/heads/feature/imperial-v32-review
-          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
-          git push origin HEAD:refs/heads/feature/imperial-v32-review
-          echo "candidate=$candidate" >> "$GITHUB_OUTPUT"
-          echo "Candidate: $candidate" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: v32-assembly-evidence
-          path: ${{ runner.temp }}/v32-report
-          if-no-files-found: warn
-          retention-days: 7
   foundations:
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
     name: V3 foundation and isolated SQLite
-    needs: assemble
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assemble.outputs.candidate }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -87,14 +29,14 @@ jobs:
           node --test integration/imperial-v3/foundation/*.test.mjs integration/imperial-v3/foundation/events/*.test.mjs
           for f in integration/imperial-v3/foundation/*.test.py; do python3 "$f"; done
   build:
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
     name: Build exact candidate once
-    needs: assemble
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assemble.outputs.candidate }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -117,19 +59,33 @@ jobs:
           retention-days: 2
           compression-level: 0
   regression:
-    name: Full regression and R5 contract
-    needs: assemble
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
+    name: Full regression (collect all suite results)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assemble.outputs.candidate }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: Execute each existing npm test suite once, including after failures
+        run: node integration/imperial-v3/qa/run-regression.mjs
+  immersive:
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
+    name: R5 immersive library contract (mock lifecycle)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - run: node --test tests/library-immersive-review.test.mjs
