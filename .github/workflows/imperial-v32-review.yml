@@ -34,30 +34,19 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           mkdir -p "$RUNNER_TEMP/v32-report"
           git status --short
+          # Reuse the already assembled and hash-verified intake commit.
+          git fetch origin refs/heads/feature/imperial-v32-intake-assembled
+          test "$(git rev-parse FETCH_HEAD)" = "d4272289a0e318d0a7ed91eef0a8aa3078ac74a6"
           set +e
-          bash integration/imperial-v3/integrate-v32-local.sh 2>&1 | tee "$RUNNER_TEMP/v32-report/assembly.log"
+          git merge --no-ff --no-commit "d4272289a0e318d0a7ed91eef0a8aa3078ac74a6" 2>&1 | tee "$RUNNER_TEMP/v32-report/merge.log"
           result=${PIPESTATUS[0]}
           set -e
-          # Preserve the exact assembled side even when a three-way merge stops.
-          if git show-ref --verify --quiet refs/heads/local/imperial-v3-intake; then
-            side=$(git rev-parse local/imperial-v3-intake)
-            remote=refs/heads/feature/imperial-v32-intake-assembled
-            existing=$(git ls-remote origin "$remote" | cut -f1)
-            if [ -z "$existing" ]; then
-              git push origin "$side:$remote"
-            elif [ "$existing" != "$side" ]; then
-              echo "Existing assembled branch preserved: $existing; new side $side"
-              git diff --stat "$existing" "$side" || true
-            fi
-            echo "Assembled side: $side" | tee "$RUNNER_TEMP/v32-report/assembled.txt"
-          fi
-          if [ "$result" != 0 ]; then
-            git status --short | tee "$RUNNER_TEMP/v32-report/status.txt"
-            git diff --name-only --diff-filter=U | tee "$RUNNER_TEMP/v32-report/conflicts.txt"
-            git diff --cc --no-ext-diff > "$RUNNER_TEMP/v32-report/conflicts.diff"
-            cat "$RUNNER_TEMP/v32-report/conflicts.diff"
-            exit "$result"
-          fi
+          test "$result" = 1
+          test "$(git diff --name-only --diff-filter=U | sort)" = "$(printf '%s\n' app/library/library-section.tsx app/page.tsx public/library/library/catalog/mount.js | sort)"
+          python3 integration/imperial-v3/qa/resolve-v32.py
+          git add app/library/library-section.tsx app/library/library-entrance.tsx app/page.tsx app/shell/navigation.ts public/library/library/catalog/mount.js integration/imperial-v3/foundation/collection-review.proposed.sql
+          test -z "$(git diff --name-only --diff-filter=U)"
+          node --check public/library/library/catalog/mount.js
           git diff --cached --name-only | tee "$RUNNER_TEMP/v32-report/changes.txt"
           python3 - <<'PY'
           import subprocess
