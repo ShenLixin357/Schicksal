@@ -40,10 +40,10 @@ def apply(root,check=False):
  # Integrate split progress into existing authenticated V2.5 service.
  def exploration(s):
   s=rep(s,"import {env} from 'cloudflare:workers';","import {env} from 'cloudflare:workers';\nimport {buildProgress,classifiedEggs,freeHintEggs} from '../imperial-v3/exploration-progress.mjs';")
-  s=rep(s,"eggs:EGGS.filter(x=>","eggs:classifiedEggs(EGGS).filter((x:Egg)=>")
+  s=rep(s,"eggs:EGGS.filter(x=>","eggs:(classifiedEggs(EGGS) as Egg[]).filter((x:Egg)=>")
   a=s.index('export async function progress(');b=s.index('export async function hint(',a)
   s=s[:a]+"export async function progress(r:Request){const c=await context(r),rows=new Map((await seen(c.actor)).map(x=>[x.egg_id,x.first_seen_at]));return buildProgress(c.eggs,rows);}\n"+s[b:]
-  s=rep(s,"const remaining=c.eggs.filter(x=>!ids.has(x.id));","const remaining=freeHintEggs(c.eggs).filter((x:Egg)=>!ids.has(x.id));")
+  s=rep(s,"const remaining=c.eggs.filter(x=>!ids.has(x.id));","const remaining=(freeHintEggs(c.eggs) as Egg[]).filter((x:Egg)=>!ids.has(x.id));")
   s=rep(s,"return {recorded:!!row};","return {recorded:!!row,member:c.actor,mode:c.session.accountMode};")
   return s
  edit('server/exploration/service.ts',exploration)
