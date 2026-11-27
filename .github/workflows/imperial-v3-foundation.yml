@@ -4,6 +4,9 @@ on:
     branches: [feature/imperial-integration-v3]
     paths:
       - integration/imperial-v3/foundation/**
+      - server/imperial-v3/**
+      - app/api/technology/v3-status/**
+      - app/technology/v3/**
       - .github/workflows/imperial-v3-foundation.yml
 permissions:
   contents: read

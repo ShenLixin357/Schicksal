@@ -9,7 +9,7 @@ const groups={
  policy:['imperial_policy_sets','imperial_policy_current'],
  exploration:['imperial_exploration_steps','imperial_exploration_completions'],
  art:['imperial_art_versions','imperial_art_relations'],
- producers:['imperial_source_changes','imperial_source_fanout','imperial_book_published','imperial_gallery_version','imperial_digital_version','imperial_permission_changed','imperial_gallery_visibility','imperial_digital_visibility','imperial_gallery_tags_insert','imperial_gallery_tags_update','imperial_caption_changed','imperial_verified_discovery'],
+ producers:['imperial_source_changes','imperial_source_fanout','imperial_book_published','imperial_gallery_version','imperial_digital_version','imperial_permission_changed','imperial_gallery_visibility','imperial_digital_visibility','imperial_gallery_tags_insert','imperial_gallery_tags_update','imperial_caption_changed','imperial_verified_discovery','imperial_advanced_policy_changed'],
  collection:['library_revisions','gallery_versions','digital_versions','ministry_current','search_embeddings','exploration_discoveries']
 };
 const {members,features,templates}=registry;
@@ -82,14 +82,16 @@ export async function handle(request,{db,config,requireMinister,readBody,tokenHa
    const url=new URL(request.url);
    if(url.searchParams.get('view')==='policy'){
     if(!(await inventory(db)).policy.ready)return fail(503,'高级权限表尚未安装');
-    const result=await policySnapshot(db,config);await requireMinister(request);return json(result);
+    const appointment=await term(db,actor);if(!appointment)return fail(403,'部长任期已变化');
+    const result=await policySnapshot(db,config);if(await requireMinister(request)!==actor||await term(db,actor)!==appointment)return fail(403,'部长任期已变化');return json({...result,term:appointment});
    }
    if(url.searchParams.get('view')==='external'){
-    const result=await externalStatus(config,fetcher);await requireMinister(request);
+    const appointment=await term(db,actor);if(!appointment)return fail(403,'部长任期已变化');
+    const result=await externalStatus(config,fetcher);if(await requireMinister(request)!==actor||await term(db,actor)!==appointment)return fail(403,'部长任期已变化');
     return json(result);
    }
-   const result=await status(db,config,actor);await requireMinister(request);
-   return result?json(result):fail(403,'部长任期已变化');
+   const result=await status(db,config,actor);if(await requireMinister(request)!==actor||!result||await term(db,actor)!==result.term)return fail(403,'部长任期已变化');
+   return json(result);
   }
   if(request.method!=='POST')return fail(405,'不支持该操作');
   if(request.headers.get('origin')!==new URL(request.url).origin)return fail(403,'请从天命网站内操作');

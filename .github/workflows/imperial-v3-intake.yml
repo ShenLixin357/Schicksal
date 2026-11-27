@@ -75,6 +75,10 @@ jobs:
           CANDIDATE: ${{ needs.import.outputs.candidate }}
         run: test "$(git rev-parse HEAD)" = "$CANDIDATE"
       - run: npm ci
+      - name: V3 foundations and domain transaction tests
+        run: |
+          node --test integration/imperial-v3/foundation/*.test.mjs integration/imperial-v3/foundation/events/*.test.mjs
+          python3 integration/imperial-v3/foundation/domain-events.test.py
       - name: Whole repository regression
         run: npm test
       - name: Build application without deployment

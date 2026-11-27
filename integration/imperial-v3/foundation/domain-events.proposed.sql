@@ -57,3 +57,8 @@ CREATE TRIGGER imperial_verified_discovery AFTER INSERT ON imperial_exploration_
  INSERT INTO imperial_source_changes(kind,source_type,entity_id,operation)
  VALUES('exploration.discovered','exploration',NEW.secret,'complete');
 END;
+-- Bulk V3 rules are also authoritative, but merely enqueue reconciliation.
+CREATE TRIGGER imperial_advanced_policy_changed AFTER INSERT ON imperial_policy_sets WHEN NEW.id='global' BEGIN
+ INSERT INTO imperial_source_changes(kind,source_type,entity_id,version_id,operation)
+ VALUES('permission.changed','ministry','v3-global',CAST(NEW.revision AS TEXT),'policy');
+END;
