@@ -9,3 +9,7 @@ User decision: keep the repository private. Do not dispatch/re-run Actions or de
 - Limited activities still need server registry, versioned windows, independent event records and admin controls.
 - SQLite test: python3 integration/imperial-v3/qa/achievement-sql.test.py. Full build/D1/browser not executed by this checkpoint.
 - All new SQL stays under integration/imperial-v3/qa, never in numbered production migrations. No remote database operations.
+
+## Gallery compatibility checkpoint
+- Replaced the legacy minister create/version client path with the same authoritative submission route used by citizens. Stable work/version IDs remain compatible with queue retry. Existing works use server-verified original title/category, and only their owner can append from this UI. No fallback around disabled review/inspector/storage gates. Old unapproved arbitrary categories need explicit mapping before import.
+- Added visible upload readiness and deterministic upload-plan tests. Full upload, inspector binding, R2, old-record backfill and browser verification still pending. No new R2 or provider enabled.
