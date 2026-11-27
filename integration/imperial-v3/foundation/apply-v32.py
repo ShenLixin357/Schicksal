@@ -44,9 +44,11 @@ def apply(root,check=False):
   a=s.index('export async function progress(');b=s.index('export async function hint(',a)
   s=s[:a]+"export async function progress(r:Request){const c=await context(r),rows=new Map((await seen(c.actor)).map(x=>[x.egg_id,x.first_seen_at]));return buildProgress(c.eggs,rows);}\n"+s[b:]
   s=rep(s,"const remaining=c.eggs.filter(x=>!ids.has(x.id));","const remaining=freeHintEggs(c.eggs).filter((x:Egg)=>!ids.has(x.id));")
+  s=rep(s,"return {recorded:!!row};","return {recorded:!!row,member:c.actor,mode:c.session.accountMode};")
   return s
  edit('server/exploration/service.ts',exploration)
  edit('app/guide/exploration.tsx',lambda s:rep(rep(s,"type Progress={coverage:string;","type Progress={hidden?:{total:number;unlocked:number;percent:number|null};limited?:{id:string;title:string;status:string;total:number;unlocked:number}[];coverage:string;"),"<h4>已发现的记忆</h4>","<h4>特殊隐藏探索</h4>{data.hidden&&<p>{data.hidden.percent===null?'暂无登记':data.hidden.percent+'%'} · {data.hidden.unlocked}/{data.hidden.total}</p>}<h4>限时活动</h4>{!data.limited?.length?<p>暂无已登记活动。</p>:data.limited.map(e=><p key={e.id}>{e.title} · {e.unlocked}/{e.total} · {e.status}</p>)}<h4>基础探索记忆</h4>"))
+ edit('app/guide/exploration.tsx',lambda s:rep(rep(s,"{recorded?:boolean}","{recorded?:boolean;member?:string;mode?:string}"),"window.dispatchEvent(new Event('imperial-first-discovery'))","window.dispatchEvent(new CustomEvent('imperial-first-discovery',{detail:{identity:result.member+':'+result.mode}}))"))
  # Light editorial styling; preserve original asset and compare controls.
  edit('app/library/gallery/gallery.css',lambda s:s+'''
 .schicksal-gallery-v12{background:#f7f4ed;color:#3b3531;border:0;border-radius:0;padding:clamp(18px,4vw,48px)}

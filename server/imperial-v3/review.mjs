@@ -16,7 +16,8 @@ const ministerLive=live+" AND ?='technology'";
 const ministerArgs=a=>[...authArgs(a),a.mode];
 const authArgs=a=>[a.tokenHash,a.actor,a.now,a.mode,a.mode,a.now,a.term??null];
 export const galleryReady=c=>enabled(c)&&c.SCHICKSAL_V32_CANONICAL_INTAKE_READY==='true';
-export const fullReviewReady=c=>galleryReady(c)&&c.SCHICKSAL_V32_BOOK_DIGITAL_READY==='true';
+// Book/digital upload and read integration still pending: do not enable by config alone.
+export const fullReviewReady=()=>false;
 const query=(db,q,args)=>db.prepare(q).bind(...args);
 export async function submitReview(db,p,a){
  validateKey(p);authority(a);
@@ -42,9 +43,9 @@ export async function reviewDecision(db,p,a){
  if(!row)fail('审核版本、任期或会话已变化',409);
  return row;
 }
-export async function reviewList(db,a,limit=50,before=null){
+export async function reviewList(db,a,limit=50,before=null,own=false){
  authority(a);if(!Number.isSafeInteger(limit)||limit<1||limit>100||before!==null&&(!Number.isSafeInteger(before)||before<0))fail('分页无效');
- const result=await query(db,"SELECT i.*,r.revision,r.state,r.reason,r.at FROM imperial_review_items i JOIN imperial_review_current r USING(kind,entity,version) WHERE (?='technology' OR i.author=?) AND (? IS NULL OR i.submitted_at<?) AND "+live+" ORDER BY CASE r.state WHEN 'pending' THEN 0 ELSE 1 END,i.submitted_at DESC,i.kind,i.entity,i.version LIMIT ?",[a.mode,a.actor,before,before,...authArgs(a),limit]).all();
+ const result=await query(db,"SELECT i.*,r.revision,r.state,r.reason,r.at,CASE i.kind WHEN 'gallery' THEN (SELECT w.title FROM gallery_works w WHERE w.id=i.entity) WHEN 'digital' THEN (SELECT o.title FROM digital_objects o WHERE o.id=i.entity) WHEN 'book' THEN (SELECT json_extract(v.payload,'$.title') FROM library_revisions v WHERE v.revision=i.version) END title FROM imperial_review_items i JOIN imperial_review_current r USING(kind,entity,version) WHERE (?='technology' OR i.author=?) AND (? IS NULL OR i.submitted_at<?) AND "+live+" ORDER BY CASE r.state WHEN 'pending' THEN 0 ELSE 1 END,i.submitted_at DESC,i.kind,i.entity,i.version LIMIT ?",[own?'citizen':a.mode,a.actor,before,before,...authArgs(a),limit]).all();
  return result.results;
 }
 export async function assignSlot(db,p,a){

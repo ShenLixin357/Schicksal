@@ -18,7 +18,7 @@ async function authority(request:Request){
 }
 function gate(){if(!enabled(env))throw new ApiError("馆藏审核预览尚未启用",404);}
 function error(e:unknown){const s=e as {status?:number;message?:string};const status=[400,401,403,404,409,413].includes(s?.status??0)?s.status!:503;return Response.json({error:status===503?"馆藏审核暂不可用":s.message},{status,headers});}
-export async function GET(request:Request){try{gate();const a=await authority(request);const list=await reviewList(env.DB,a);const after=await authority(request);if(after.actor!==a.actor||after.mode!==a.mode||after.term!==a.term)throw new ApiError("会话已变化",403);return Response.json({items:list,mode:a.mode,actor:a.actor},{headers});}catch(e){return error(e)}}
+export async function GET(request:Request){try{gate();const a=await authority(request);const list=await reviewList(env.DB,a,50,null,new URL(request.url).searchParams.get('own')==='1');const after=await authority(request);if(after.actor!==a.actor||after.mode!==a.mode||after.term!==a.term)throw new ApiError("会话已变化",403);return Response.json({items:list,mode:a.mode,actor:a.actor},{headers});}catch(e){return error(e)}}
 export async function POST(request:Request){try{gate();if(request.headers.get("origin")!==new URL(request.url).origin)throw new ApiError("必须从本站提交",403);const p=await readJson(request,16384),a=await authority(request);
  // Submission is only registration of an already existing canonical version.
  // Do not expose this switch until public visibility and owner upload adapters are installed.

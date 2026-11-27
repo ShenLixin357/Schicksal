@@ -36,7 +36,7 @@ import { COMMITTEE_LOUNGE_ART } from "./club/lounge-access";
 
 import { HomeSection } from "./home/home-section";
 import { FeatureSuspense } from "./shell/feature-suspense";
-import { LibraryEntrance, useLibrarySidebar } from "./library/library-entrance";
+import { LibraryEntrance, useLibrarySidebar } from "./library/library-entrance"; import { PersonalDiscoveryToast } from "./guide/personal-discovery"; import { ProfileCrystalEmblem } from "./profile/profile-crystal-emblem";
 // Parliament UI and state remain isolated from the global entry coordinator.
 const PersistentParliamentSection = lazy(() => import("./parliament/parliament-section").then(module => ({ default: module.PersistentParliamentSection })));
 import { ImperialSidebar } from "./shell/imperial-sidebar";
@@ -516,7 +516,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>
         <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
       </section>
-      {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
+      {<PersonalDiscoveryToast identity={citizen.id+":"+accountMode} mark={<ProfileCrystalEmblem color={citizenRepresentativeColor(citizen)}/>}/>} {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
         prepareDestination={portal === "enter" ? prepareLounge : undefined}
         onSwap={swapPortalRoom} onFinish={() => setPortal(null)}
         onFailure={() => { setPortal(null); setPortalError(true); }}/>}

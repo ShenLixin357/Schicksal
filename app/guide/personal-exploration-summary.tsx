@@ -1,0 +1,9 @@
+"use client";
+import {useEffect,useState} from "react";
+type Score={total:number;unlocked:number;percent:number|null};
+type Progress={basic?:Score;hidden?:Score;limited?:({id:string;title:string;status:string}&Score)[];achievementCoverage?:string};
+export function PersonalExplorationSummary({identity}:{identity:string}){
+ const [data,D]=useState<Progress|null>(null),[error,E]=useState("");
+ useEffect(()=>{let active=true;let job:AbortController|undefined;D(null);E("");const load=()=>{job?.abort();const a=new AbortController();job=a;fetch("/api/exploration",{cache:"no-store",credentials:"same-origin",signal:a.signal}).then(async r=>{if(r.status===404)return null;if(!r.ok)throw Error("探索记录暂不可用");return await r.json() as Progress;}).then(p=>{if(active&&!a.signal.aborted){D(p?.basic?p:null);E("");}}).catch(()=>{if(active&&!a.signal.aborted){D(null);E("探索记录暂不可用")}});};load();window.addEventListener("imperial-discovery-updated",load);return()=>{active=false;job?.abort();window.removeEventListener("imperial-discovery-updated",load)}},[identity]);
+ return <section className="profile-exploration-summary"><h3>帝国探索图鉴</h3>{error&&<p role="status">{error}</p>}{!data?.basic?<p>探索图鉴暂未开放。</p>:<><div className="profile-exploration-scores">{[["基础探索",data.basic],["特殊隐藏探索",data.hidden]].map(([label,value])=>{const s=value as Score|undefined;return <article key={String(label)}><h4>{String(label)}</h4><strong>{s?.percent==null?"—":s.percent+"%"}</strong>{s&&<><progress max={Math.max(1,s.total)} value={s.unlocked}/><small>{s.unlocked}/{s.total}</small></>}</article>})}</div><h4>限时探索</h4>{data.limited?.length?data.limited.map(e=><article key={e.id}><h5>{e.title}</h5><small>{e.status==="active"?"进行中":e.status==="ended"?"已结束":"尚未开始"} · {e.unlocked}/{e.total}</small><progress max={Math.max(1,e.total)} value={e.unlocked}/></article>):<p>暂无已登记的限时活动。</p>}<p>各类探索独立计算。尚未发现的项目不会公开名称或答案。</p></>}</section>;
+}

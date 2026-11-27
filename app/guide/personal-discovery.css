@@ -7,3 +7,5 @@
 @keyframes discovery-surface{0%{opacity:0;transform:translateY(-8px)}12%,78%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-5px)}}
 @keyframes discovery-crystal{0%{opacity:0;transform:scale(.5);filter:blur(5px)}40%{opacity:1;transform:scale(1.05);filter:drop-shadow(0 0 12px #fff5bd88)}100%{transform:scale(1);filter:drop-shadow(0 0 7px #d4c4aa55)}}
 @media(prefers-reduced-motion:reduce){.personal-discovery,.personal-discovery-mark{animation:none}}
+
+.profile-exploration-summary,.profile-collection-placeholder{margin-top:24px;padding:20px;border:1px solid #b9a88a55;border-radius:8px}.profile-exploration-scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:16px}.profile-exploration-summary article{display:grid;gap:8px;padding:12px}.profile-exploration-summary h4,.profile-exploration-summary h5{margin:0}.profile-exploration-summary progress{width:100%;accent-color:#ad9573}.profile-exploration-scores strong{font-size:1.7rem;font-weight:500}.personal-discovery-mark .profile-crystal-emblem{width:32px;height:66px;margin:0}
