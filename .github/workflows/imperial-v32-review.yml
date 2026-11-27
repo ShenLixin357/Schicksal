@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -41,6 +41,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          git merge-base --is-ancestor "$V32_BUILT_SHA" "$GITHUB_SHA"
           git diff --name-only "$V32_BUILT_SHA" "$GITHUB_SHA" | python3 -c 'import sys; allowed={".github/workflows/imperial-v32-review.yml","integration/imperial-v3/qa/local-browser.py","integration/imperial-v3/qa/local-browser.sh"}; assert set(sys.stdin.read().splitlines())<=allowed'
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$V32_BUILD_RUN/jobs" --jq '.jobs[] | select(.id==140758366583 or .id==140758366853) | .conclusion' | grep -c '^success$' | grep -x 2
       - run: npm ci
