@@ -36,7 +36,7 @@ import { prepareLounge } from "./club/prepare-lounge";
 
 import { HomeSection } from "./home/home-section";
 import { FeatureSuspense } from "./shell/feature-suspense";
-import { LibraryEntrance, useLibrarySidebar } from "./library/library-entrance"; import { PersonalDiscoveryToast } from "./guide/personal-discovery"; import { ProfileCrystalEmblem } from "./profile/profile-crystal-emblem"; import { PersonalExplorationSummary } from "./guide/personal-exploration-summary";
+import { LibraryEntrance, useLibrarySidebar } from "./library/library-entrance"; import { PersonalDiscoveryToast } from "./guide/personal-discovery"; import { ProfileCrystalEmblem } from "./profile/profile-crystal-emblem";
 // Parliament UI and state remain isolated from the global entry coordinator.
 const PersistentParliamentSection = lazy(() => import("./parliament/parliament-section").then(module => ({ default: module.PersistentParliamentSection })));
 import { ImperialSidebar } from "./shell/imperial-sidebar";
@@ -283,7 +283,7 @@ function PublicAtlasCitizenProfile({ citizen, onBack, offices }: { citizen: Citi
   return <><button className="atlas-profile-back" type="button" onClick={onBack}>← 返回天命图谱</button><PageHead eyebrow="Public Citizen Profile" title="公民公开档案" copy="这里只展示获准公开的身份与公职资料。"/><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} placement="profile-public-simple"/><span>{atlasCodename(citizen.id)}</span></div><div className="profile-copy"><small>PUBLIC CITIZEN RECORD</small><h2>{atlasName(citizen)}</h2><dl><div><dt>公民代号</dt><dd>{atlasCodename(citizen.id)}</dd></div><div><dt>现任公职</dt><dd>{offices ? positions.length ? positions.map(office => office.title).join(" · ") : "暂无现任公职" : "正在核验现任公职"}</dd></div><div><dt>身份</dt><dd>第一帝国公民</dd></div></dl><p className="atlas-visitor-disclaimer">访客只能查看公开身份；私人消息、账户设置、个人数据及编辑功能不开放。</p></div></article><ProfileSupplement id={citizen.id}/></>;
 }
 
-function ProfileSection({ citizen, offices }: { citizen: Citizen; offices: readonly Office[] | null }) { return <><SelfProfilePage citizen={citizen} offices={offices} renderMark={<CitizenMark citizen={citizen} placement="profile-personal-simple" />}/><ProfileSupplement id={citizen.id}/><PersonalExplorationSummary identity={citizen.id+":citizen"}/><section aria-label="私人工作区"><h3>私人工作区</h3><p>尚未开放。</p></section></>; }
+function ProfileSection({ citizen, offices }: { citizen: Citizen; offices: readonly Office[] | null }) { return <><SelfProfilePage citizen={citizen} offices={offices} renderMark={<CitizenMark citizen={citizen} placement="profile-personal-simple" />}/><ProfileSupplement id={citizen.id}/><section aria-label="私人工作区"><h3>私人工作区</h3><p>尚未开放。</p></section></>; }
 
 function System({ citizen, accountMode, authSource, offices, onAccountModeChange, logout, initialBriefing }: {
   citizen: Citizen; accountMode:AccountMode; authSource:AuthSource; offices: readonly Office[] | null; onAccountModeChange:(mode:AccountMode)=>void; logout: () => void; initialBriefing: BriefingFeed;

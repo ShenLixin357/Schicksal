@@ -1,0 +1,6 @@
+.personal-achievements{margin:24px 0;padding:20px 24px;border:1px solid var(--line,rgba(130,145,157,.25));border-radius:12px;color:inherit;background:rgba(255,255,255,.25)}
+.personal-achievements header small{font-size:.65rem;letter-spacing:.16em;color:inherit;opacity:.65}
+.personal-achievements h3{margin:7px 0 12px;font-size:1.15rem}
+.personal-achievements article{padding:14px 0;border-top:1px solid var(--line,rgba(130,145,157,.25))}
+.personal-achievements article h4{margin:5px 0;font-size:1.1rem}
+.personal-achievements-note{font-size:.78rem;opacity:.75}
