@@ -1,0 +1,13 @@
+'use client';
+import {useEffect,useState} from 'react';
+import {guideRequest} from '../../guide/guide-panel';
+type Row={citizen_id:string;achievement_id:string;revision:number;state:string;source_seq:number|null;actor:string;reason:string;at:number};
+type Data={term:string;members:string[];definitions:{id:string;title:string}[];current:Row[];history:Row[]};
+export function AchievementAdmin(){
+ const [data,D]=useState<Data|null>(null),[citizen,C]=useState(''),[achievement,A]=useState(''),[reason,R]=useState(''),[busy,B]=useState(false),[message,M]=useState('');
+ async function load(){try{const d=await guideRequest<Data>('/api/technology/achievements');D(d);C(x=>d.members.includes(x)?x:d.members[0]||'');A(x=>d.definitions.some(a=>a.id===x)?x:d.definitions[0]?.id||'')}catch(e){D(null);M(String(e))}}
+ useEffect(()=>{void load()},[]);
+ const row=data?.current.find(x=>x.citizen_id===citizen&&x.achievement_id===achievement);
+ async function save(state:'granted'|'revoked'){if(!data||!reason.trim()||busy)return;if(!window.confirm((state==='granted'?'特别授予':'撤销')+'所选成就？这会创建不可覆盖的审计记录，不发放卡牌或积分。'))return;B(true);M('');try{await guideRequest('/api/technology/achievements',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({citizen,achievement,state,reason,expectedRevision:row?.revision??0,expectedTerm:data.term,confirm:true})});R('');M('新版本已保存');await load()}catch(e){M(String(e))}finally{B(false)}}
+ return <section className="mv2-panel"><h3>成就管理</h3><p>仅用于明确授权的特殊授予和纠错。不会伪造抽卡记录；撤销保留历史。</p>{message&&<p role="status">{message}</p>}<button disabled={busy} onClick={()=>void load()}>刷新</button>{data&&<><label>公民<select value={citizen} onChange={e=>{C(e.target.value);R('')}}>{data.members.map(m=><option key={m}>{m}</option>)}</select></label><label>成就<select value={achievement} onChange={e=>{A(e.target.value);R('')}}>{data.definitions.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></label><p>状态：{row?.state==='granted'?'已授予':row?.state==='revoked'?'已撤销':'未授予'} · V{row?.revision??0}</p><label>原因<textarea value={reason} maxLength={500} onChange={e=>R(e.target.value)}/></label><button disabled={busy||!reason.trim()||row?.state==='granted'} onClick={()=>void save('granted')}>特别授予</button><button disabled={busy||!reason.trim()||row?.state!=='granted'} onClick={()=>void save('revoked')}>撤销成就</button><h4>最近审计记录</h4>{data.history.map(h=><article key={[h.citizen_id,h.achievement_id,h.revision].join(':')}><strong>{h.citizen_id} · {data.definitions.find(a=>a.id===h.achievement_id)?.title??h.achievement_id} · V{h.revision}</strong><p>{h.state==='granted'?'授予':'撤销'} · {h.actor} · {new Date(h.at).toLocaleString()} · {h.reason}</p></article>)}</>}</section>;
+}

@@ -205,6 +205,7 @@ jobs:
           NODE
           npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --file integration/imperial-v3/qa/preview-guide-exploration.sql
           npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --file integration/imperial-v3/qa/preview-limited-exploration.sql
+          npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --file integration/imperial-v3/qa/preview-review-notices.sql
       - name: Inspect preview-only D1 schema used by briefing (no member data)
         shell: bash
         run: |

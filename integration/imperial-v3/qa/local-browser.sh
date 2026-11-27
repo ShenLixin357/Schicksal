@@ -26,6 +26,7 @@ STATE="$RUNNER_TEMP/v32-local-d1"
 npx wrangler d1 migrations apply DB --local --persist-to "$STATE" --config "$CONFIG"
 npx wrangler d1 execute DB --local --persist-to "$STATE" --config "$CONFIG" --file integration/imperial-v3/qa/preview-guide-exploration.sql
 npx wrangler d1 execute DB --local --persist-to "$STATE" --config "$CONFIG" --file integration/imperial-v3/qa/preview-limited-exploration.sql
+npx wrangler d1 execute DB --local --persist-to "$STATE" --config "$CONFIG" --file integration/imperial-v3/qa/preview-review-notices.sql
 npx wrangler dev --local --ip 127.0.0.1 --port 8787 --persist-to "$STATE" --config "$CONFIG" >"$REPORT/worker.log" 2>&1 &
 PID=$!
 trap 'kill "$PID" 2>/dev/null || true; rm -f dist/server/.dev.vars' EXIT
