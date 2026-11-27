@@ -1,0 +1,36 @@
+"use client";
+import {useEffect,useRef,useState} from "react";
+import "./status-panel.css";
+type Item={code:string;severity:string;state:string;generation:number;revision:number;observed_at:number};
+type Status={asOf:number;previewCommit:string;term:string;schema:Record<string,{ready:boolean;present:number;required:number}>;queue:{consumer:string;state:string;count:number}[]|null;incidents:{items:Item[];hasMore:boolean}|null;mutations:boolean;externalConfigured:boolean;registry:{members:string[];features:string[];templates:string[]};note:string};
+const names:Record<string,string>={events:"事件与任务",incidents:"异常历史",policy:"高级权限",exploration:"进阶探索",art:"艺术关系",producers:"业务事件接入",collection:"累计馆藏",pending:"待处理",leased:"执行中",done:"已完成",dead:"永久失败",open:"未确认",acknowledged:"已阅",resolved:"已恢复",critical:"严重",warning:"警告",info:"信息"};
+async function call(path="",init:RequestInit={}){
+ const response=await fetch("/api/technology/v3-status"+path,{cache:"no-store",credentials:"same-origin",...init});
+ if(response.status===404&&!init.method)return null;
+ const data=await response.json();if(!response.ok)throw Error(data.error||"请求失败");return data;
+}
+const post=(data:object)=>({method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+export function ImperialV3Status(){
+ const [data,D]=useState<Status|null>(null),[error,E]=useState(""),[busy,B]=useState(false),[message,M]=useState(""),[external,X]=useState<unknown>(null),[tab,T]=useState("operations");
+ const [member,U]=useState("amberina"),[feature,F]=useState("library"),[baseRead,R]=useState(true),[baseWrite,W]=useState(true),[mode,P]=useState("read"),[temp,Q]=useState(false),[assigned,A]=useState(false),[simulation,S]=useState<unknown>(null);
+ const [rank,K]=useState("a,b,c"),[labels,L]=useState('{"a":3,"c":1}'),[depth,N]=useState("3");
+ const active=useRef(false),serial=useRef(0);
+ async function load(signal?:AbortSignal){const n=++serial.current;try{const result=await call("",{signal});if(active.current&&n===serial.current){D(result);E("");if(!result){X(null);S(null)}}}catch(e){if(active.current&&n===serial.current&&!signal?.aborted){D(null);E(String(e));}}}
+ useEffect(()=>{active.current=true;const controller=new AbortController();void load(controller.signal);return()=>{active.current=false;serial.current++;controller.abort();}},[]);
+ async function execute(fn:()=>Promise<void>){if(busy)return;B(true);M("");try{await fn()}catch(e){if(active.current)M(String(e))}finally{if(active.current)B(false)}}
+ if(!data)return error?<p className="iv3-error" role="alert">{error} <button onClick={()=>void load()}>重试监察</button></p>:null;
+ return <details className="iv3-console">
+ <summary><strong>帝国运行监察 · V3</strong><small>独立预览 / {data.previewCommit.slice(0,12)}</small></summary>
+ <p>基础模块状态与实际读数。表存在不等同于启用；操作只作用于已配置的预览环境。</p>
+ <nav aria-label="V3 管理模块">{[["operations","运行监察"],["policy","权限试算"],["evaluation","检索评估"],["external","外部监察"]].map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} disabled={busy} onClick={()=>{T(id);S(null);M("")}}>{label}</button>)}</nav>
+ {message&&<p role="status">{message}</p>}
+ {tab==="operations"&&<><button disabled={busy} onClick={()=>void load()}>刷新实际读数</button><small>读取时间 {new Date(data.asOf).toLocaleString()}</small>
+ <div className="iv3-grid">{Object.entries(data.schema).map(([id,x])=><article key={id}><strong>{names[id]||id}</strong><span>{x.ready?"结构已存在":"结构未齐"} · {x.present}/{x.required}</span></article>)}</div>
+ <h4>事件队列</h4>{data.queue===null?<p>尚未安装事件表。</p>:data.queue.length===0?<p>当前无队列记录。</p>:<div className="iv3-table"><table><thead><tr><th>消费者</th><th>状态</th><th>数量</th></tr></thead><tbody>{data.queue.map(x=><tr key={x.consumer+":"+x.state}><td>{x.consumer}</td><td>{names[x.state]||x.state}</td><td>{x.count}</td></tr>)}</tbody></table></div>}
+ <h4>未恢复异常</h4>{data.incidents===null?<p>尚未安装异常表。</p>:data.incidents.items.length===0?<p>当前没有未恢复记录；不表示全站无故障。</p>:data.incidents.items.map(x=><article className="iv3-row" key={x.code}><div><strong>{x.code}</strong><small>{names[x.severity]||x.severity} · {names[x.state]||x.state} · 第 {x.generation} 次 · {new Date(x.observed_at*1000).toLocaleString()}</small></div><button disabled={busy||!data.mutations||x.state!=="open"} onClick={()=>void execute(async()=>{await call("",post({action:"acknowledge",expectedTerm:data.term,code:x.code,revision:x.revision}));M("已确认阅读，不代表修复。");await load()})}>{x.state==="acknowledged"?"已阅":"确认已阅"}</button></article>)}{data.incidents?.hasMore&&<p>仅显示前50项，完整历史待接入。</p>}{!data.mutations&&<p>预览写入未启用。</p>}</>}
+ {tab==="policy"&&<><p>此处只试算，不读取真实成员权限，不保存或授权。基础权限由你输入。</p><div className="iv3-form"><label>成员<select value={member} onChange={e=>U(e.target.value)}>{data.registry.members.map(x=><option key={x}>{x}</option>)}</select></label><label>资源<select value={feature} onChange={e=>F(e.target.value)}>{data.registry.features.map(x=><option key={x}>{x}</option>)}</select></label><label><input type="checkbox" checked={baseRead} onChange={e=>R(e.target.checked)}/>假设原有读取权限</label><label><input type="checkbox" checked={baseWrite} onChange={e=>W(e.target.checked)}/>假设原有写入权限</label><label>个人限制<select value={mode} onChange={e=>P(e.target.value)}><option value="inherit">沿用</option><option value="deny">拒绝</option><option value="read">只读</option><option value="use">原权利内使用</option></select></label><label><input type="checkbox" checked={temp} onChange={e=>Q(e.target.checked)}/>临时解除个人限制</label><label><input type="checkbox" checked={assigned} onChange={e=>A(e.target.checked)}/>适用只读模板</label></div><button disabled={busy} onClick={()=>void execute(async()=>{const rules:object[]=[{subjectType:"member",subject:member,feature,mode,expiresAt:null}];if(temp)rules.push({subjectType:"member",subject:member,feature,mode:"use",expiresAt:Math.floor(Date.now()/1000)+3600});if(assigned)rules.push({subjectType:"template",subject:"reader",feature,mode:"read"});S(await call("",post({action:"simulate",member,feature,baseRead,baseWrite,assignedTemplates:assigned?["reader"]:[],rules})))})}>试算权限</button></>}
+ {tab==="evaluation"&&<><p>手动评估真实或示例检索结果，输入文档 ID 顺序及 0–4 相关度。不会调用模型。</p><div className="iv3-form"><label>结果 ID（逗号分隔）<input value={rank} onChange={e=>K(e.target.value)} maxLength={10000}/></label><label>标注 JSON<textarea value={labels} onChange={e=>L(e.target.value)} maxLength={10000}/></label><label>截断 K<input value={depth} type="number" min="1" max="100" onChange={e=>N(e.target.value)}/></label></div><button disabled={busy} onClick={()=>void execute(async()=>{S(await call("",post({action:"evaluate",ranking:rank.split(",").map(x=>x.trim()).filter(Boolean),judgments:JSON.parse(labels),k:Number(depth)})))})}>计算指标</button></>}
+ {(tab==="policy"||tab==="evaluation")&&simulation!=null&&<pre role="status">{JSON.stringify(simulation,null,2)}</pre>}
+ {tab==="external"&&<><p>仅从预先配置的 GitHub 和 Cloudflare 只读接口取数，不使用站内用户凭据，不自动发起调用。</p><button disabled={busy||!data.externalConfigured} onClick={()=>void execute(async()=>{X(await call("?view=external"))})}>读取外部状态</button>{!data.externalConfigured&&<p>外部监察未启用。</p>}{external!=null&&<pre>{JSON.stringify(external,null,2)}</pre>}</>}
+ </details>;
+}

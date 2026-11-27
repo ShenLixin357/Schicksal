@@ -1,4 +1,5 @@
 "use client";
+import { ImperialV3Status } from "./v3/status-panel";
 import { ImperialLoading } from "../emblem/imperial-loading";
 
 import { useEffect, useState, type ReactNode } from "react";
@@ -28,6 +29,7 @@ export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onOpenLibra
   return <section className="technology-ministry">
     <PageHead eyebrow="MINISTRY OF TECHNOLOGY" title="科技部 · 管理台"
       copy="管理权限属于现任科技部长公职；个人身份、职务标识与操作记录分别保存。" />
+    {access === "authorized" && <ImperialV3Status />}
     <div className="technology-ministry-banner">
       <div className="technology-ministry-emblem" aria-hidden="true">{sharedMark}</div>
       <div><small>MINISTRY OF TECHNOLOGY · OFFICIAL INSIGNIA</small><h2>天命第一帝国 · 科技部</h2>
