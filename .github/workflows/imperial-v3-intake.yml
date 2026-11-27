@@ -1,0 +1,83 @@
+name: Imperial V3 isolated intake
+on:
+  push:
+    branches: [feature/imperial-integration-v3]
+    paths:
+      - integration/imperial-v3/Schicksal_Integrated_Development_Handoff_V2_5_2026-11-27.zip
+permissions:
+  contents: read
+concurrency:
+  group: imperial-v3-intake
+  cancel-in-progress: false
+jobs:
+  import:
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref == 'refs/heads/feature/imperial-integration-v3' && github.event.repository.private == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    outputs:
+      candidate: ${{ steps.commit.outputs.candidate }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Validate isolated source and prepare cumulative overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = refs/heads/feature/imperial-integration-v3
+          BASE=e5452b4517435c25004d15299d060c8f149ed0c8
+          git merge-base --is-ancestor "$BASE" HEAD
+          git diff --name-only "$BASE" HEAD | python3 -c 'import sys; paths=sys.stdin.read().splitlines(); assert all(p.startswith("integration/imperial-v3/") or p==".github/workflows/imperial-v3-intake.yml" for p in paths), "Candidate already imported or unexpected changes: review manually"'
+          PACKAGE="$PWD/integration/imperial-v3/Schicksal_Integrated_Development_Handoff_V2_5_2026-11-27.zip"
+          test -f "$PACKAGE"
+          python3 integration/imperial-v3/prepare-intake.py "$PACKAGE" --repo "$PWD" --worktree "$RUNNER_TEMP/imperial-v3-candidate"
+      - name: Preserve candidate on isolated branch only
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          WT="$RUNNER_TEMP/imperial-v3-candidate"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$WT" add -A
+          git -C "$WT" diff --cached --check
+          git -C "$WT" diff --cached --stat
+          git -C "$WT" commit -m "Integrate cumulative V2.5 candidate; all new gates remain disabled"
+          git cherry-pick "$(git -C "$WT" rev-parse HEAD)"
+          git diff --name-only "$GITHUB_SHA" HEAD | python3 -c 'import sys; paths=sys.stdin.read().splitlines(); assert len(paths)>=116; assert not any(p.startswith((".github/","drizzle/")) or p.startswith("wrangler") for p in paths), "Unexpected deployment or migration change"'
+          git fetch origin refs/heads/feature/imperial-integration-v3
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/feature/imperial-integration-v3
+          echo "candidate=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Isolated candidate: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Import completed. No migration or deployment. Validation is a separate job." >> "$GITHUB_STEP_SUMMARY"
+  validate:
+    needs: import
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.import.outputs.candidate }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Verify exact imported candidate
+        env:
+          CANDIDATE: ${{ needs.import.outputs.candidate }}
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE"
+      - run: npm ci
+      - name: Whole repository regression
+        run: npm test
+      - name: Build application without deployment
+        run: npm run build
+      - name: Verify built artifact
+        run: bash scripts/validate-artifact.sh
