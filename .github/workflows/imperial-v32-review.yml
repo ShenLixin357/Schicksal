@@ -1,4 +1,4 @@
-name: V3.2 isolated candidate acceptance
+name: V3.2 focused architecture and R5 repair
 on:
   push:
     branches: [feature/imperial-v32-review]
@@ -8,26 +8,8 @@ permissions:
   contents: read
 concurrency:
   group: imperial-v32-review
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
-  foundations:
-    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
-    name: V3 foundation and isolated SQLite
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - name: Existing foundation and proposal checks
-        run: |
-          set -euo pipefail
-          node --test integration/imperial-v3/foundation/*.test.mjs integration/imperial-v3/foundation/events/*.test.mjs
-          for f in integration/imperial-v3/foundation/*.test.py; do python3 "$f"; done
   build:
     if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
     name: Build exact candidate once
@@ -58,26 +40,9 @@ jobs:
           path: ${{ runner.temp }}/v32-build
           retention-days: 2
           compression-level: 0
-  regression:
-    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
-    name: Full regression (collect all suite results)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci
-      - name: Execute each existing npm test suite once, including after failures
-        run: node integration/imperial-v3/qa/run-regression.mjs
   immersive:
     if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
-    name: R5 immersive library contract (mock lifecycle)
+    name: Architecture and R5 targeted regression
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -88,4 +53,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --test tests/library-immersive-review.test.mjs
+      - run: npm ci
+      - name: Recheck failed suites plus neighboring shell and identity contracts
+        run: |
+          set -euo pipefail
+          npm run test:architecture
+          npm run test:library
+          npm run test:shell
+          npm run test:identity-architecture
+          npm run test:mark-placements
+          npm run test:performance

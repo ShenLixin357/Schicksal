@@ -27,7 +27,7 @@ import { lazy, useCallback, useEffect, useRef, useState, type CSSProperties, typ
 
 import { wantsGameRoomReturn } from "./club/game-room-return";
 import { CLUB_MEMBER_IDS, announceCommitteeLounge } from "./club/lounge-access";
-import { COMMITTEE_LOUNGE_ART } from "./club/lounge-access";
+import { prepareLounge } from "./club/prepare-lounge";
 
 
 
@@ -45,7 +45,7 @@ import { PageHead } from "./shell/page-head";
 import { HonorsPage, MarketPage } from "./points/points-pages";
 import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
-import { GuidePanel } from "./guide/guide-panel"; import { ExplorationVisit } from "./guide/exploration"; import { IMPERIAL_GUIDE_ENABLED, LIBRARY_COLLECTIONS_ENABLED } from "./library/library-mode"; import type { GuideTarget } from "../server/guide/registry"; import { TechnologyMinistryPortal } from "./technology/technology-ministry"; import { MinistryFeatureGate, ProfileSupplement } from "./technology/v2/runtime";
+import { GuidePanel } from "./guide/guide-panel"; import { useGuideState } from "./guide/use-guide-state"; import { ExplorationVisit } from "./guide/exploration"; import { IMPERIAL_GUIDE_ENABLED, LIBRARY_COLLECTIONS_ENABLED } from "./library/library-mode"; import type { GuideTarget } from "../server/guide/registry"; import { TechnologyMinistryPortal } from "./technology/technology-ministry"; import { MinistryFeatureGate, ProfileSupplement } from "./technology/v2/runtime";
 
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import { PASSAGE_SKIP_LABEL } from "./transitions/passage-gate";
@@ -58,12 +58,6 @@ const ArchivesSection = lazy(() => import("./archives/archive-section").then(mod
 const LibrarySection = lazy(() => import("./library/library-section").then(module => ({ default: module.LibrarySection })));
 const LibraryCollections = lazy(() => import("./library/library-collections").then(m=>({default:m.LibraryCollections})));
 const CommitteeLounge = lazy(() => import("./club/committee-lounge").then(module => ({ default: module.CommitteeLounge })));
-
-async function prepareLounge() {
-  const art = new window.Image();
-  art.src = COMMITTEE_LOUNGE_ART;
-  await Promise.all([import("./club/committee-lounge"), art.decode()]);
-}
 
 type AccountMode = "citizen" | "technology";
 type AuthSource = "personal" | "ministry-direct";
@@ -294,7 +288,7 @@ function ProfileSection({ citizen, offices }: { citizen: Citizen; offices: reado
 function System({ citizen, accountMode, authSource, offices, onAccountModeChange, logout, initialBriefing }: {
   citizen: Citizen; accountMode:AccountMode; authSource:AuthSource; offices: readonly Office[] | null; onAccountModeChange:(mode:AccountMode)=>void; logout: () => void; initialBriefing: BriefingFeed;
 }) {
-  const [section,setSection] = useState<Section>("home"); const [guideOpen,setGuideOpen]=useState(false); const [guideVisit,setGuideVisit]=useState<{target?:"books"|"collections";serial:number}>({serial:0}); useEffect(()=>{if(section!=="library")setGuideVisit(v=>v.target?{serial:v.serial}:v);},[section]);
+  const [section,setSection] = useState<Section>("home"); const {guideOpen,setGuideOpen,guideVisit,setGuideVisit}=useGuideState(section);
   const isCurrentMinister = Boolean(offices && isCurrentTechnologyMinister(citizen.id, offices));
   const switchBusy = useRef(false);
   const [modeSwitchMessage,setModeSwitchMessage] = useState("");
