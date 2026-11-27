@@ -52,10 +52,11 @@ CREATE TRIGGER imperial_binding_guard BEFORE INSERT ON imperial_book_bindings BE
  SELECT CASE WHEN NEW.book='AVS' AND (NEW.slot IS NOT 'AVS' OR NEW.author<>'amberina') THEN RAISE(ABORT,'protected AVS') END;
 END;
 CREATE TABLE imperial_slot_displays(slot TEXT NOT NULL REFERENCES imperial_book_slots(id),revision INTEGER NOT NULL CHECK(revision>0),book TEXT NOT NULL,actor TEXT NOT NULL,term TEXT NOT NULL,at INTEGER NOT NULL,PRIMARY KEY(slot,revision));
-CREATE VIEW imperial_slot_display_current AS SELECT d.* FROM imperial_slot_displays d JOIN imperial_book_binding_current b ON b.book=d.book AND b.slot=d.slot WHERE d.revision=(SELECT MAX(x.revision) FROM imperial_slot_displays x WHERE x.slot=d.slot);
+CREATE VIEW imperial_slot_display_current AS SELECT d.* FROM imperial_slot_displays d JOIN imperial_book_binding_current b ON b.book=d.book AND b.slot=d.slot WHERE d.revision=(SELECT MAX(x.revision) FROM imperial_slot_displays x WHERE x.slot=d.slot) AND EXISTS(SELECT 1 FROM imperial_review_current r WHERE r.kind='book' AND r.entity=d.book AND r.state='approved');
 CREATE TRIGGER imperial_display_guard BEFORE INSERT ON imperial_slot_displays BEGIN
  SELECT CASE WHEN NEW.revision<>COALESCE((SELECT MAX(revision) FROM imperial_slot_displays WHERE slot=NEW.slot),0)+1 THEN RAISE(ABORT,'stale display') END;
  SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM imperial_book_binding_current b WHERE b.book=NEW.book AND b.slot=NEW.slot) THEN RAISE(ABORT,'not bound') END;
+ SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM imperial_review_current r WHERE r.kind='book' AND r.entity=NEW.book AND r.state='approved') THEN RAISE(ABORT,'not approved') END;
 END;
 CREATE TRIGGER imperial_binding_no_update BEFORE UPDATE ON imperial_book_bindings BEGIN SELECT RAISE(ABORT,'immutable binding'); END;
 CREATE TRIGGER imperial_binding_no_delete BEFORE DELETE ON imperial_book_bindings BEGIN SELECT RAISE(ABORT,'immutable binding'); END;

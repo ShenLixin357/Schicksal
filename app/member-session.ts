@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { accountFrozen } from "../server/ministry/status.ts";
 import { cookieToken, digest } from "./member-session-core";
 import { matchesMemberPassword } from "./member-passwords";
 import { isIncumbentTechnologyMinister } from "../server/auth/offices.ts";
@@ -19,7 +20,7 @@ export async function currentSession(request: Request): Promise<{
     FROM member_sessions WHERE token_hash = ? AND expires_at > ?`)
     .bind(await digest(token), now)
     .first<{ citizenId: string; accountMode: string; ministerGrantExpiresAt: number; authSource: string }>();
-  if (!row || !MEMBER_IDS.has(row.citizenId)) return null;
+  if (!row || !MEMBER_IDS.has(row.citizenId) || await accountFrozen(row.citizenId)) return null;
   const ministerGrantExpiresAt = Number(row.ministerGrantExpiresAt) || 0;
   const permitted = row.accountMode === "technology" && ministerGrantExpiresAt > now
     && await isIncumbentTechnologyMinister(row.citizenId);
@@ -39,7 +40,7 @@ export async function currentMember(request: Request): Promise<string | null> {
  * instead, so no password is requested for a long hold.
  */
 export async function verifyTechnologyPassword(citizenId: string, password: string): Promise<boolean> {
-  if (!await isIncumbentTechnologyMinister(citizenId) || !password || password.length > 1024) return false;
+  if (!await isIncumbentTechnologyMinister(citizenId) || !password || password.length > 1024 || await accountFrozen(citizenId)) return false;
   // The direct entry NEVER accepts the current minister's personal password,
   // even if someone accidentally configures the two secrets identically.
   if (await verifyMemberPassword(citizenId, password)) return false;
@@ -55,7 +56,7 @@ export async function verifyTechnologyPassword(citizenId: string, password: stri
 }
 
 export async function verifyMemberPassword(citizenId: string, password: string) {
-  if (!MEMBER_IDS.has(citizenId) || !password || password.length > 1024) return false;
+  if (!MEMBER_IDS.has(citizenId) || !password || password.length > 1024 || await accountFrozen(citizenId)) return false;
   const settings = env as unknown as { SCHICKSAL_HOSTING?: string; SCHICKSAL_MEMBER_PASSWORDS?: string; SCHICKSAL_SITE_PASSWORD?: string };
   if (settings.SCHICKSAL_HOSTING === "cloudflare") {
     const saved = await env.DB.prepare("SELECT password_hash AS hash, password_salt AS salt FROM member_credentials WHERE citizen_id = ?").bind(citizenId).first<{ hash: string; salt: string }>();

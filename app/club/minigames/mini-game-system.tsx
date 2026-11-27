@@ -1,4 +1,6 @@
 "use client";
+import {recordExploration} from "../../guide/exploration";
+import {useEffect} from "react";
 
 import { LoungeSolitaire } from "../lounge-solitaire";
 import { getMiniGame } from "./mini-game-registry";
@@ -14,6 +16,7 @@ export function MiniGameSystem({ gameId, citizenId, emblemBlades, onClose, loung
   backLabel?: string;
 }) {
   const registration = getMiniGame(gameId);
+  useEffect(()=>{void recordExploration("lounge:game:"+gameId);},[gameId]);
   if (registration.integration === "legacy-adapter") return <LoungeSolitaire citizenId={citizenId} blades={emblemBlades} onClose={onClose} backLabel={backLabel} />;
   return <MiniGameShell key={`${citizenId}:${gameId}`} citizenId={citizenId} registration={registration} emblemBlades={emblemBlades} onClose={onClose} loungeTitle={loungeTitle} backLabel={backLabel} />;
 }

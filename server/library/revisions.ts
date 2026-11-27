@@ -1,0 +1,42 @@
+import {ApiError} from '../http.ts';
+import schema from './animation-schema.json' with {type:'json'};
+export type Kind='book'|'animation';
+type Row={seq:number;revision:string;kind:Kind;entity_id:string;state:'draft'|'published';base_revision:string|null;origin_draft:string|null;actor:string;created_at:string;payload:string};
+type DB={prepare(sql:string):{bind(...args:unknown[]):{first<T>():Promise<T|null>;all<T>():Promise<{results:T[]}>;run():Promise<{meta:{changes:number}}>}}};
+const specs=schema as unknown as Record<string,{defaults:Record<string,number>;fields:[string,string,number,number,number,string][]}>;
+const safeId=(v:unknown)=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(v);
+function fail(message:string,status=400):never{throw new ApiError(message,status)}
+const text=(v:unknown,max:number,required=true)=>{if(typeof v!=='string'||v.length>max||(required&&!v.trim()))fail('文本字段无效或超限');return v as string};
+const record=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=='object'||Array.isArray(v))fail('对象格式错误');return v as Record<string,unknown>};
+export const escapeHtml=(s:string)=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+async function hash(s:string){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))].map(x=>x.toString(16).padStart(2,'0')).join('')}
+// Source Markdown remains intact. This deliberately conservative renderer accepts text, headings and paragraphs only;
+// imported approved R3 blocks are retained verbatim for unchanged chapters. Never accept browser-authored HTML.
+async function compile(id:string,markdown:string,previous:any){if(previous?.markdown===markdown)return previous.blocks;
+ const chunks=markdown.replaceAll('\r\n','\n').split(/\n\s*\n/u).filter(s=>s.trim());const seen=new Map<string,number>();const blocks:{id:string;html:string;text:string;searchText:string}[]=[];if(chunks.length>1200)fail('段落数量超限',413);
+ for(const chunk of chunks){const value=chunk.trim();const h=await hash(value);const occurrence=(seen.get(h)??0)+1;seen.set(h,occurrence);const heading=value.match(/^(#{1,6})\s+([^\n]+)$/u);const html=heading?`<h${heading[1].length}>${escapeHtml(heading[2])}</h${heading[1].length}>`:`<p>${escapeHtml(value).replaceAll('\n','<br>')}</p>`;const old=previous?.blocks?.find((b:any)=>b.html===html);const candidate=old?.id;const stable:string=candidate&&!blocks.some((b:any)=>b.id===candidate)?candidate:`${id}-${h.slice(0,24)}-${occurrence}`;blocks.push({id:stable,html,text:value,searchText:value.normalize('NFKC').toLocaleLowerCase('zh-CN')});}
+ return blocks;
+}
+export async function validate(kind:Kind,id:string,raw:unknown,previous:any,allowArchiveRestructure=false){const p=record(raw);
+ if(kind==='animation'){const spec=Object.hasOwn(specs,id)?specs[id]:null;if(!spec)fail('未知动画配置');const values=record(p.parameters);const result={...spec.defaults};const fields=new Map(spec.fields.map(f=>[f[0],f]));for(const [k,v] of Object.entries(values)){const f=fields.get(k);if(!f){if(Object.hasOwn(spec.defaults,k)&&v===spec.defaults[k])continue;fail('禁止修改非开放参数：'+k)}if(typeof v!=='number'||!Number.isFinite(v)||v<f![2]||v>f![3])fail('参数超限：'+k);result[k]=v as number;}return {id,parameters:result,engineRevision:'handoff-2026-11-27'};}
+ const title=text(p.title,180),author=text(p.author??'',120,false);if(!Array.isArray(p.chapters)||p.chapters.length>80)fail('章节数量无效');const ids=new Set<string>();const chapters=[];let bytes=0;
+ for(const rawChapter of p.chapters as unknown[]){const c=record(rawChapter);if(!safeId(c.id)||ids.has(c.id as string))fail('章节 ID 无效或重复');const cid=c.id as string;ids.add(cid);const markdown=text(c.markdown,180000,false);bytes+=new TextEncoder().encode(markdown).length;if(bytes>350000)fail('正文总大小超限',413);const prior=previous?.chapters?.find((x:any)=>x.id===cid);chapters.push({id:cid,title:text(c.title,240),lesson:text(c.lesson??'',120,false),note:text(c.note??'',300,false),version:text(c.version??'',40,false),markdown,sha256:await hash(markdown),...(prior?.source&&prior.markdown===markdown?{source:prior.source}:{}),blocks:await compile(cid,markdown,prior)});}
+ // Physical positions, artwork and engine configuration remain independent. No client may change an approved binding.
+ if(p.status!=='bound'&&p.status!=='placeholder')fail('书籍状态无效');const legacyArchive=['lesson-1','lesson-2-a','lesson-2-b','lesson-3','lesson-4','lesson-5','lesson-6'].every(x=>ids.has(x));if(id==='AVS'&&(p.status!=='bound'||chapters.length===0||(!legacyArchive&&!allowArchiveRestructure)))fail('国家书必须有正式正文；替换七章结构须启用独立预览授权');
+ return {id,title,author,status:p.status,coverAssetId:previous?.coverAssetId??null,chapters,...(id==='AVS'&&!legacyArchive?{archiveStructure:'dynamic-v1'}:{})};
+}
+function publicRow(row:Row){return {...row,payload:JSON.parse(row.payload)}}
+function key(kind:unknown,id:unknown):asserts kind is Kind{if((kind!=='book'&&kind!=='animation')||!safeId(id))fail('馆藏类型或编号无效');}
+export function libraryStore(db:DB,{allowArchiveRestructure=false}={}){
+ const latest=async(kind:Kind,id:string)=>db.prepare("SELECT * FROM library_revisions WHERE kind=? AND entity_id=? AND state='published' ORDER BY seq DESC LIMIT 1").bind(kind,id).first<Row>();
+ const byRevision=async(rev:string)=>db.prepare('SELECT * FROM library_revisions WHERE revision=?').bind(rev).first<Row>();
+ return {
+ async published(){const r=await db.prepare("SELECT a.* FROM library_revisions a WHERE a.state='published' AND NOT EXISTS(SELECT 1 FROM library_revisions b WHERE b.kind=a.kind AND b.entity_id=a.entity_id AND b.state='published' AND b.seq>a.seq) ORDER BY a.kind,a.entity_id").bind().all<Row>();if(r.results.filter(x=>x.kind==='animation').length!==11||!r.results.some(x=>x.kind==='book'&&x.entity_id==='AVS'))fail('馆藏尚未初始化',503);return r.results.map(publicRow);},
+ async history(kind:Kind,id:string){key(kind,id);return (await db.prepare('SELECT seq,revision,kind,entity_id,state,base_revision,origin_draft,actor,created_at FROM library_revisions WHERE kind=? AND entity_id=? ORDER BY seq DESC LIMIT 100').bind(kind,id).all<Omit<Row,'payload'>>()).results;},
+ async readRevision(rev:string){if(!safeId(rev))fail('版本编号无效');const r=await byRevision(rev);if(!r)fail('版本不存在',404);return publicRow(r!);},
+ async draft(kind:Kind,id:string,base:string|null,payload:unknown,actor:string,from?:string){key(kind,id);const current=await latest(kind,id);if((current?.revision??null)!==base)fail('正式版本已经变化，请刷新后重试',409);let previous=current?JSON.parse(current.payload):null;if(from){const historical=await byRevision(from);if(!historical||historical.kind!==kind||historical.entity_id!==id)fail('历史版本不匹配',404);previous=JSON.parse(historical!.payload);payload=previous;}
+ const clean=await validate(kind,id,payload,previous,allowArchiveRestructure);const revision=crypto.randomUUID();const body=JSON.stringify(clean);if(new TextEncoder().encode(body).length>1500000)fail('版本数据超限',413);
+ const r=await db.prepare("INSERT INTO library_revisions(revision,kind,entity_id,state,base_revision,actor,created_at,payload) SELECT ?,?,?,'draft',?,?,?,? WHERE (SELECT revision FROM library_revisions WHERE kind=? AND entity_id=? AND state='published' ORDER BY seq DESC LIMIT 1) IS ?").bind(revision,kind,id,base,actor,new Date().toISOString(),body,kind,id,base).run();if(r.meta.changes!==1)fail('正式版本已变化',409);return revision;},
+ async publish(draftId:string,base:string|null,actor:string){if(!safeId(draftId))fail('草稿编号无效');const draft=await byRevision(draftId);if(!draft||draft.state!=='draft')fail('草稿不存在',404);if(draft!.base_revision!==base)fail('草稿基线不一致',409);if(draft!.kind==='book'&&draft!.entity_id==='AVS'&&JSON.parse(draft!.payload).archiveStructure==='dynamic-v1'&&!allowArchiveRestructure)fail('结构替换未获当前环境授权',403);const rev=crypto.randomUUID();const r=await db.prepare("INSERT INTO library_revisions(revision,kind,entity_id,state,base_revision,origin_draft,actor,created_at,payload) SELECT ?,d.kind,d.entity_id,'published',d.base_revision,d.revision,?,?,d.payload FROM library_revisions d WHERE d.revision=? AND d.state='draft' AND d.base_revision IS ? AND (SELECT p.revision FROM library_revisions p WHERE p.kind=d.kind AND p.entity_id=d.entity_id AND p.state='published' ORDER BY p.seq DESC LIMIT 1) IS ? AND NOT EXISTS(SELECT 1 FROM library_revisions p WHERE p.origin_draft=d.revision)").bind(rev,actor,new Date().toISOString(),draftId,base,base).run();if(r.meta.changes!==1)fail('草稿已发布或正式版本变化',409);return rev;}
+ };
+}

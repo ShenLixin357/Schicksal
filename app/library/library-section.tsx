@@ -1,10 +1,15 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-type Mount = (host:HTMLElement, options?:{debug?:boolean;onError?:(error:unknown)=>void;onReady?:()=>void})=>()=>void;
+import {DYNAMIC_LIBRARY_ENABLED,LIBRARY_SEMANTIC_SEARCH_ENABLED} from "./library-mode";
+import {recordExploration} from "../guide/exploration";
+import {LibraryManagement} from "./library-management";
+type Mount = (host:HTMLElement, options?:{debug?:boolean;dynamic?:boolean;semanticSearch?:boolean;onOpenCollectionSearch?:()=>void;onOpenGuide?:()=>void;initialBookSearch?:boolean;onDiscover?:(id:string)=>Promise<boolean>;onError?:(error:unknown)=>void;onReady?:()=>void})=>()=>void;
 /** Keep the approved native drawing engine in a shadow-root; the authenticated host owns the lifecycle. */
-export function LibrarySection({technology=false,onReady,onLoading,onFailure}:{technology?:boolean;onReady?:()=>void;onLoading?:()=>void;onFailure?:()=>void}){
+export function LibrarySection({technology=false,onOpenGuide,onOpenCollectionSearch,initialSearch,onReady,onLoading,onFailure}:{technology?:boolean;onOpenGuide?:()=>void;onOpenCollectionSearch?:()=>void;initialSearch?:"books";onReady?:()=>void;onLoading?:()=>void;onFailure?:()=>void}){
   const host=useRef<HTMLDivElement>(null);
   const [error,setError]=useState(false);
+  const [management,setManagement]=useState(false);
+  const callbacks=useRef({onOpenGuide,onOpenCollectionSearch});callbacks.current={onOpenGuide,onOpenCollectionSearch};
   const [attempt,setAttempt]=useState(0);
   useEffect(()=>{
     const controller=new AbortController();let dispose:(()=>void)|undefined;
@@ -21,9 +26,9 @@ export function LibrarySection({technology=false,onReady,onLoading,onFailure}:{t
     }
     function mount(allowed:boolean){
       if(controller.signal.aborted||!host.current||!engine)return;
-      const current=++generation;onLoading?.();dispose?.();debug=allowed;
+      const current=++generation;onLoading?.();dispose?.();debug=allowed;setManagement(allowed&&DYNAMIC_LIBRARY_ENABLED);
       const live=()=>!controller.signal.aborted&&current===generation;
-      dispose=engine.mountLibrary(host.current,{debug,onReady:()=>{if(live())onReady?.();},onError:()=>{if(live()){setError(true);onFailure?.();}}});mounted=true;
+      dispose=engine.mountLibrary(host.current,{debug,dynamic:DYNAMIC_LIBRARY_ENABLED,semanticSearch:LIBRARY_SEMANTIC_SEARCH_ENABLED&&DYNAMIC_LIBRARY_ENABLED,onOpenCollectionSearch:()=>callbacks.current.onOpenCollectionSearch?.(),onOpenGuide:()=>callbacks.current.onOpenGuide?.(),initialBookSearch:initialSearch==="books",onDiscover:recordExploration,onReady:()=>{if(live())onReady?.();},onError:()=>{if(live()){setError(true);onFailure?.();}}});mounted=true;
     }
     async function recheck(){
       if(!mounted||!debug||checking||controller.signal.aborted)return;
@@ -37,8 +42,8 @@ export function LibrarySection({technology=false,onReady,onLoading,onFailure}:{t
       mount(allowed);
       if(allowed&&!controller.signal.aborted){interval=setInterval(()=>void recheck(),30000);document.addEventListener("visibilitychange",visible,{signal:controller.signal});}
     };
-    setError(false);onLoading?.();void boot().catch(()=>{if(!controller.signal.aborted){setError(true);onFailure?.();}});
+    setError(false);setManagement(false);onLoading?.();void boot().catch(()=>{if(!controller.signal.aborted){setError(true);onFailure?.();}});
     return()=>{controller.abort();if(interval!==undefined)clearInterval(interval);dispose?.();};
-  },[technology,attempt,onReady,onLoading,onFailure]);
-  return <section aria-label="天命图书馆">{error&&<div role="alert">图书馆暂时无法打开。 <button onClick={()=>setAttempt(n=>n+1)}>重试</button></div>}<div className="library-native-host" ref={host}/></section>;
+  },[technology,attempt,initialSearch,onReady,onLoading,onFailure]);
+  return <section aria-label="天命图书馆">{error&&<div role="alert">图书馆暂时无法打开。 <button onClick={()=>setAttempt(n=>n+1)}>重试</button></div>}<div className="library-native-host" ref={host}/>{management&&technology&&<LibraryManagement onPublished={()=>setAttempt(n=>n+1)}/>}</section>;
 }

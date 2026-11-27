@@ -1,4 +1,5 @@
 "use client";
+import {recordExploration} from "../../guide/exploration";
 
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
@@ -75,7 +76,7 @@ export function VaseExperience({ room, citizenId, memberName, onRoomChange }: Pr
     } catch (reason) { if (alive.current && !controller.signal.aborted) setError(reason instanceof Error ? reason.message : "往事暂时没有展开。"); }
     finally { if (alive.current && !controller.signal.aborted) setHistoryBusy(false); }
   }
-  function showHistory() { if (locked.current) return; setError(""); setPane("history"); setHistoryLoaded(false); void loadHistory(); }
+  function showHistory() { if (locked.current) return; void recordExploration("lounge:vase:history"); setError(""); setPane("history"); setHistoryLoaded(false); void loadHistory(); }
 
   async function save(action: "vase" | "vase-random", selection: string | undefined, id: string) {
     request.current?.abort(); const controller = new AbortController(); request.current = controller;
@@ -96,7 +97,7 @@ export function VaseExperience({ room, citizenId, memberName, onRoomChange }: Pr
       const result = await save("vase", selection, crypto.randomUUID());
       if (!alive.current) return;
       drawId.current = null; // An explicit manual choice starts a fresh future draw.
-      onRoomChange(result.room); setPane(null);
+      onRoomChange(result.room); setPane(null); void recordExploration("lounge:vase:choice");
     } catch (reason) { if (alive.current) setError(reason instanceof Error ? reason.message : "这次更换没有完成。"); }
     finally { locked.current = false; if (alive.current) setBusy(false); }
   }
@@ -105,7 +106,7 @@ export function VaseExperience({ room, citizenId, memberName, onRoomChange }: Pr
     const result = activeDraw.current;
     if (!result) { skip.current = true; return; }
     timers.current.forEach(clearTimeout); timers.current = [];
-    onRoomChange(result.room); activeDraw.current = null; drawId.current = null;
+    onRoomChange(result.room); activeDraw.current = null; drawId.current = null; void recordExploration("lounge:vase:draw");
     setCelebrated(result.draw?.vaseSelection ?? result.room.vaseSelection);
     later(() => setCelebrated(""), 2200);
     setDraw(null); setBusy(false); locked.current = false;
@@ -156,7 +157,7 @@ export function VaseExperience({ room, citizenId, memberName, onRoomChange }: Pr
     cancelPress();
     if (gesture.current?.consumed) { gesture.current = null; return; }
     gesture.current = null;
-    if (!locked.current) { setError(""); setPane(value => value === "menu" ? null : "menu"); }
+    if (!locked.current) { setError(""); setPane(value => value === "menu" ? null : "menu"); void recordExploration("lounge:vase:menu"); }
   }
 
   const visible = draw ? draw.frozen : current;

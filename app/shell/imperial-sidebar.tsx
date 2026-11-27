@@ -8,6 +8,7 @@ import { SidebarPresence } from "../briefing/sidebar-presence";
 import { PRIMARY_NAV, COLLECTION_NAV, POINTS_NAV, type SidebarDestination } from "./navigation";
 import { NavigationIcon } from "./navigation-icons";
 import { SidebarMenuGroup, SidebarNavCopy } from "./sidebar-menu-group";
+import {useMinistryRoster,withDisplay} from "../technology/v2/runtime";
 
 export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnterLounge, sharedMark,
   presence, members, selfId, renderMemberMark, isTechnologyMode, onToggle, onLogo, onNavigate, onLogout, onSelfLongPress }: {
@@ -27,6 +28,7 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
   onLogout: () => void;
   onSelfLongPress?: () => void;
 }) {
+  const roster=useMinistryRoster();
   const navigationItems = isTechnologyMode
     ? PRIMARY_NAV.map(item => item.id === "profile"
       ? { ...item, label: "科技部管理台", en: "TECHNOLOGY MINISTRY" } : item)
@@ -70,7 +72,7 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
         </button>)}
     </nav>
     <div className="schicksal-sidebar-footer">
-      <SidebarPresence presence={presence} members={members} collapsed={collapsed} selfId={selfId}
+      <SidebarPresence presence={presence} members={members.map(member=>withDisplay(member,roster))} collapsed={collapsed} selfId={selfId}
         renderMark={renderMemberMark} onMember={() => onNavigate("messenger")} onSelfLongPress={onSelfLongPress}/>
       <button type="button" className="schicksal-sidebar-logout"
         onClick={onLogout} title="退出登录" aria-label="退出登录">↗</button>

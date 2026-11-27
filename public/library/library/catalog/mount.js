@@ -5,8 +5,11 @@ import {AnimationProfiles} from './documents.js';
 import {commonFields,aFields,teleportFields,archiveFields,returnBufferField,routeBook} from '../book/multi/routes.js';
 import {createSelection} from './selection.js';
 import {createSceneFullscreen} from './fullscreen.js';
+import {createBookSearch} from './semantic-search.js';
+import {loadPublishedCatalog,bookPresentation,saveAnimationDraft} from './dynamic-catalog.js';
 
-export function mountLibrary(host,{debug=false,onError=()=>{},onReady=()=>{}}={}){
+export function mountLibrary(host,{debug=false,dynamic=false,semanticSearch=false,onOpenCollectionSearch=()=>{},onOpenGuide,initialBookSearch=false,onDiscover,onError=()=>{},onReady=()=>{}}={}){
+const reports=new Map();const discover=id=>{if(!onDiscover)return;const last=reports.get(id);if(last===Infinity||(last!==undefined&&Date.now()-last<10000))return;reports.set(id,Date.now());Promise.resolve(onDiscover(id)).then(ok=>{if(ok)reports.set(id,Infinity);}).catch(()=>{});};
 const root=host.shadowRoot??host.attachShadow({mode:'open'});
 root.innerHTML=template;
 const abort=new AbortController();let disposed=false,frame=0,ready=false,failed=false;
@@ -25,7 +28,7 @@ const coverView=byId('cover-view'), cover=byId('cover'), resume=byId('resume-but
 const coverButton=byId('cover-button'), contentsButton=byId('contents-button');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const catalogTarget={kind:'contents'};
-let stage, catalog, documents, trip, target=catalogTarget, origin=crest;
+let stage, catalog, documents, trip, publishedAnimations=null, target=catalogTarget, origin=crest;
 let mode='loading', animation, clock=0, hover=null, lastFrame=null,lastPaint=0;
 let savedScroll=0, turning=null, drag=null, yaw=.18, pitch=-.17;
 let debugTick=()=>{},sceneTick=()=>{},cancelScenePress=()=>{},selectDebugBook=()=>{},pauseDebug=()=>{},viewCompare=false;const timers=new Set();
@@ -104,7 +107,7 @@ function renderResults(){
     const choose=element('button',undefined,'result-main');
     choose.type='button';choose.dataset.bookId=match.bookId;choose.dataset.kind=match.kind;if(match.blockId)choose.dataset.blockId=match.blockId;
     choose.append(element('strong',match.title));
-    choose.append(element('span',match.chapterTitle??(match.bookId==='AVS'?'7 篇课稿 · 打开目录':'内容占位符 · 打开目录')));
+    choose.append(element('span',match.chapterTitle??(dynamic?bookPresentation(documents.find(d=>d.id===match.bookId))+' · 打开目录':(match.bookId==='AVS'?'7 篇课稿 · 打开目录':'内容占位符 · 打开目录'))));
     if(match.snippet)choose.append(element('p',match.snippet));
     bindSelectionClick(choose,event=>selection.click(match,event.detail,event.pointerType));
     const direct=element('button','直接阅读','direct');
@@ -125,15 +128,16 @@ async function showCatalog(event){
   if(fullscreen.active()){setMode('opening-catalog');await fullscreen.close();if(disposed)return;setMode('idle');}
   if(disposed||mode!=='idle'||summon.open)return;
   summon.showModal();
+  if(event.isTrusted)discover('library:crest');if(semanticSearch&&dynamic)discover('visit:books');
   query.focus();
 }
 
 const selection=createSelection((destination,direct)=>{
   if(mode!=='idle'||viewCompare)return;
-  target=destination;catalog=documents.find(d=>d.id===destination.bookId);if(!catalog)return;trip=stage.setBook(bindingForBook(catalog.id));
-  byId('book-title').textContent=catalog.title;byId('collection-name').textContent=catalog.id==='AVS'?'国家档案馆':'天命图书馆 · 内容占位符';
+  target=destination;catalog=documents.find(d=>d.id===destination.bookId);if(!catalog)return;const binding=bindingForBook(catalog.id);trip=binding?stage.setBook(binding,publishedAnimations?.[binding.profileId]?.parameters):null;
+  byId('book-title').textContent=catalog.title;byId('collection-name').textContent=catalog.id==='AVS'?'国家档案馆':dynamic?bookPresentation(catalog):'天命图书馆 · 内容占位符';
   if(summon.open)summon.close();
-  if(direct||reduced.matches){showReader();return;}
+  if(!trip||direct||reduced.matches){showReader();return;}
   setMode('summoning');
   skip.focus();
   moveThrough(0,trip.settled,showReader);
@@ -171,7 +175,7 @@ function showPassage(chapterId,blockId){
     fragment.append(node);
     if(block.id===blockId)match=node;
   }
-  content.replaceChildren(fragment);
+  content.replaceChildren(fragment);discover('library:chapter');
   pages.scrollTop=match?match.getBoundingClientRect().top-pages.getBoundingClientRect().top+pages.scrollTop-24:0;
   pages.focus({preventScroll:true});
 }
@@ -179,17 +183,17 @@ function showPassage(chapterId,blockId){
 async function showReader(){
   if(disposed||mode==='opening-reader'||mode==='reading')return;
   animation=null;
-  clock=trip.settled;
+  clock=trip?.settled??0;
   setMode('opening-reader');
   coverView.hidden=true;
   pages.hidden=false;
   resume.hidden=true;
-  coverButton.hidden=false;
+  coverButton.hidden=!trip;
   contentsButton.hidden=false;
   if(fullscreen.active())await fullscreen.close();
   if(disposed||mode!=='opening-reader')return;
   setMode('reading');
-  if(!reader.open)reader.showModal();stage.render(performance.now(),clock,null);
+  if(!reader.open)reader.showModal();stage.render(performance.now(),clock,null);discover('library:read');if(trip&&bindingForBook(catalog.id))discover('library:book:'+catalog.id);
   if(target.kind==='passage')showPassage(target.chapterId,target.blockId);
   else showContents();
 }
@@ -202,15 +206,15 @@ function putBookBack(){
   const finish=()=>{
     clock=0;stage.reset();
     setMode('idle');
-    stage.render(performance.now(),0,null);
+    stage.render(performance.now(),0,null);discover('library:return');
     if(origin.isConnected)origin.focus({preventScroll:true});
   };
-  if(reduced.matches){finish();stage.render(performance.now(),0,null);}
+  if(!trip||reduced.matches){finish();stage.render(performance.now(),0,null);}
   else moveThrough(trip.closes,trip.finish,finish);
 }
 
 function showCover(){
-  if(turning||pages.hidden)return;
+  if(!trip||turning||pages.hidden)return;
   savedScroll=pages.scrollTop;
   const finish=()=>{
     turning=null;
@@ -221,7 +225,7 @@ function showCover(){
     contentsButton.hidden=true;
     resume.hidden=false;
     yaw=.18;pitch=-.17;
-    stage.drawCover(cover,yaw,pitch);
+    stage.drawCover(cover,yaw,pitch);discover('library:cover');
     cover.focus();
   };
   if(reduced.matches){finish();return;}
@@ -239,25 +243,26 @@ function resumeReading(){
   resume.hidden=true;
   coverButton.hidden=false;
   contentsButton.hidden=false;
-  pages.scrollTop=savedScroll;
+  pages.scrollTop=savedScroll;discover('library:resume');
   pages.focus({preventScroll:true});
   if(!reduced.matches)pages.animate([{opacity:.25, transform:'perspective(950px) rotateY(20deg)'},{opacity:1,transform:'none'}],230);
 }
 
 function rotate(dx,dy){
   yaw=(yaw+dx)%(2*Math.PI);
-  pitch=Math.max(-1.26,Math.min(1.26,pitch+dy));
+  pitch=Math.max(-1.26,Math.min(1.26,pitch+dy));if(dx||dy)discover('library:rotate');
   stage.drawCover(cover,yaw,pitch);
 }
 
+const smartSearch=semanticSearch&&dynamic?createBookSearch({dialog:summon,query,results,title:byId('result-title'),count:byId('result-count'),documents:()=>documents,selection,renderLocal:renderResults,openCollections:onOpenCollectionSearch,openGuide:onOpenGuide,bindSelectionClick,signal:abort.signal}):null;
 crest.addEventListener('click',showCatalog);
 byId('close-catalog').addEventListener('click',()=>summon.close());
 summon.addEventListener('close',()=>selection.cancel());
 query.addEventListener('input',event=>{
   selection.cancel();
-  if(!event.isComposing)renderResults();
+  if(!event.isComposing){if(smartSearch)smartSearch.input();else renderResults();}
 });
-query.addEventListener('compositionend',renderResults);
+query.addEventListener('compositionend',()=>{if(smartSearch)smartSearch.input();else renderResults();});
 skip.addEventListener('click',showReader);
 contentsButton.addEventListener('click',showContents);
 coverButton.addEventListener('click',showCover);
@@ -291,7 +296,7 @@ function bindDebug(){
  const phase=element('output'),routeLabel=element('output'),legend=element('p','去程 · 回程 · 下降');legend.className='debug-legend';timeline.append(phase,routeLabel,legend);
  for(const id of Object.keys(AnimationProfiles)){const option=element('option',`${id} · ${routeBook[id].route??''} ${routeBook[id].title}`);option.value=id;selector.append(option);}selector.value=current;panel.append(selector,inputs,bar,timeline,out);root.querySelector('.scene-wrap').append(panel);
  const fieldsFor=id=>id==='A'?aFields:routeBook[id].kind==='archive'?archiveFields:routeBook[id].kind==='teleport'?teleportFields:id==='R1'?[...commonFields,returnBufferField]:commonFields;
- const values=()=>drafts[current]??={...AnimationProfiles[current].parameters};
+ const values=()=>drafts[current]??={...(publishedAnimations?.[current]?.parameters??AnimationProfiles[current].parameters)};
  const available=()=>mode==='idle'||mode==='debug';
  function repaint(){stage.render(performance.now(),clock,null);debugTick();}
  function prepare(at=0){if(!available())return false;animation=null;debugPlaying=false;selection.cancel();stage.reset();debugTrip=stage.setBook(bindingForBook(current),values());clock=Math.max(0,Math.min(at,debugTrip.finish));setMode('debug');stage.setView({debugGuides:showGuides,lockedCore:locked?angle/360*120000:null});scrub.max=debugTrip.finish;chapters.replaceChildren();for(const [label,time] of debugTrip.chapters){const b=element('button',label);b.type='button';b.addEventListener('click',()=>seek(time));chapters.append(b);}repaint();return true;}
@@ -307,7 +312,7 @@ function bindDebug(){
  toggle('循环',v=>{loop=v;});const guideButton=toggle('轨迹与时间标记',v=>{showGuides=v;legend.hidden=!v;if(mode==='debug'){stage.setView({debugGuides:v});repaint();}});guideButton.setAttribute('aria-pressed','true');toggle('固定徽记角度',v=>{locked=v;angleInput.disabled=!v;if(v)angle=stage.coreDegrees();if(mode==='debug'){stage.setView({lockedCore:v?angle/360*120000:null});repaint();}});
  const angleInput=element('input');angleInput.type='range';angleInput.min=0;angleInput.max=359;angleInput.step=1;angleInput.value=0;angleInput.disabled=true;angleInput.setAttribute('aria-label','徽记角度');on(angleInput,'input',()=>{angle=+angleInput.value;if(mode==='debug'&&locked){stage.setView({lockedCore:angle/360*120000});repaint();}});bar.append(angleInput);const degrees=element('output','0°');bar.append(degrees);
  const rateSelect=element('select');rateSelect.setAttribute('aria-label','调试播放倍率');for(const r of [.25,.5,1,1.5,2]){const option=element('option',r+'×');option.value=r;rateSelect.append(option);}rateSelect.value=1;on(rateSelect,'change',()=>{rate=+rateSelect.value;if(mode==='debug'&&animation)animation.rate=rate;});bar.append(rateSelect);
- button('恢复最终定稿',()=>{delete drafts[current];fieldsUI();prepare();});button('导出草稿 JSON',()=>{out.value=JSON.stringify({revision:'handoff-2026-11-27',drafts},null,2);});button('导入草稿 JSON',()=>{try{const obj=JSON.parse(out.value);if(obj.revision!=='handoff-2026-11-27'||!obj.drafts||typeof obj.drafts!=='object'||Array.isArray(obj.drafts))throw Error();const next=Object.create(null);for(const [id,v] of Object.entries(obj.drafts)){if(!Object.hasOwn(AnimationProfiles,id)||!v||typeof v!=='object'||Array.isArray(v))throw Error();const valid=fieldsFor(id);const clean={...AnimationProfiles[id].parameters};if(Object.keys(v).some(k=>!valid.some(f=>f[0]===k)))throw Error();for(const [k,,min,max] of valid)if(Object.hasOwn(v,k)){if(!Number.isFinite(v[k])||v[k]<min||v[k]>max)throw Error();clean[k]=v[k];}next[id]=clean;}drafts=next;fieldsUI();preview();}catch{out.value='配置不合法，未导入。';}});
+ button('恢复最终定稿',()=>{drafts[current]={...AnimationProfiles[current].parameters};fieldsUI();prepare();});if(dynamic){const draftStatus=element('output');const save=button('保存参数草稿（不发布）',async()=>{const id=current;const p={...values()};save.disabled=true;try{const rev=await saveAnimationDraft(publishedAnimations[id],p,abort.signal);if(!disposed)draftStatus.value=id+' 草稿已保存 '+rev+'；请在版本管理中确认发布。';}catch(e){if(!disposed)draftStatus.value=String(e);}finally{if(!disposed)save.disabled=false;}});bar.append(draftStatus);}button('导出草稿 JSON',()=>{out.value=JSON.stringify({revision:'handoff-2026-11-27',drafts},null,2);});button('导入草稿 JSON',()=>{try{const obj=JSON.parse(out.value);if(obj.revision!=='handoff-2026-11-27'||!obj.drafts||typeof obj.drafts!=='object'||Array.isArray(obj.drafts))throw Error();const next=Object.create(null);for(const [id,v] of Object.entries(obj.drafts)){if(!Object.hasOwn(AnimationProfiles,id)||!v||typeof v!=='object'||Array.isArray(v))throw Error();const valid=fieldsFor(id);const clean={...AnimationProfiles[id].parameters};if(Object.keys(v).some(k=>!valid.some(f=>f[0]===k)))throw Error();for(const [k,,min,max] of valid)if(Object.hasOwn(v,k)){if(!Number.isFinite(v[k])||v[k]<min||v[k]>max)throw Error();clean[k]=v[k];}next[id]=clean;}drafts=next;fieldsUI();preview();}catch{out.value='配置不合法，未导入。';}});
  debugTick=()=>{routeLabel.value=`${current} · ${routeBook[current].route??''} ${routeBook[current].title}`;degrees.value=stage.coreDegrees()+'°';if(!locked)angleInput.value=stage.coreDegrees();if(mode==='debug'&&debugTrip){phase.value=stage.phase();scrub.value=clock;timeLabel.value=`${clock.toFixed(2)} / ${debugTrip.finish.toFixed(2)} s · ${debugPlaying?'播放':'暂停'}`;}else{scrub.value=0;phase.value='原书位';timeLabel.value='尚未开始调试';}};
  selectDebugBook=id=>{if(mode!=='debug')return;current=id;selector.value=id;fieldsUI();preview();};pauseDebug=()=>{if(mode==='debug'){animation=null;debugPlaying=false;}};
  // Local-only flag art preview. No upload endpoint or persistence.
@@ -324,20 +329,20 @@ function bindSceneControls(){
  const toggled=(label,initial,fn)=>{const b=addButton(label,()=>{const state=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(state));fn(state);repaint();});b.setAttribute('aria-pressed',String(initial));return b;};
  const heading=element('p','灯光调节','settings-heading');container.append(heading);
  for(const [key,label] of [['candle','烛火'],['window','花窗'],['dome','穹顶']]){
-   const b=addButton(label,()=>{stage.lights[key]=1-stage.lights[key];b.setAttribute('aria-pressed',String(!!stage.lights[key]));repaint();schedule();});
+   const b=addButton(label,()=>{stage.lights[key]=1-stage.lights[key];discover("library:light:"+key);b.setAttribute('aria-pressed',String(!!stage.lights[key]));repaint();schedule();});
    b.setAttribute('aria-pressed','true');b.dataset.light=key;
  }
- toggled('原画',false,compare=>{viewCompare=compare;stage.setView({compare});selection.cancel();}).dataset.compare='true';
+ toggled('原画',false,compare=>{viewCompare=compare;stage.setView({compare});selection.cancel();discover('library:compare');}).dataset.compare='true';
  on(settingsToggle,'click',()=>{if(mode!=='idle')return;settings.hidden=!settings.hidden;settingsToggle.setAttribute('aria-expanded',String(!settings.hidden));});
  on(root,'pointerdown',e=>{if(!settings.hidden&&!e.composedPath().includes(settings)&&!e.composedPath().includes(settingsToggle))closeSettings();});
  on(document,'keydown',e=>{if(e.key==='Escape'&&!settings.hidden){closeSettings();settingsToggle.focus();}});
  let press=null,handled=false;
  const cancelPress=()=>{if(press){const {id,timer}=press;press=null;clearLater(timer);if(room.hasPointerCapture?.(id))room.releasePointerCapture(id);}};cancelScenePress=cancelPress;
- on(room,'pointerdown',e=>{if(mode!=='idle'||viewCompare||e.button!==0)return;const hit=stage.hit(e);if(!hit?.banner)return;handled=false;const p={id:e.pointerId,x:e.clientX,y:e.clientY,banner:hit.banner,strong:false};p.timer=later(()=>{if(press===p){p.strong=true;stage.wind(p.banner,'strong');}},420);press=p;room.setPointerCapture?.(e.pointerId);});
+ on(room,'pointerdown',e=>{if(mode!=='idle'||viewCompare||e.button!==0)return;const hit=stage.hit(e);if(!hit?.banner)return;handled=false;const p={id:e.pointerId,x:e.clientX,y:e.clientY,banner:hit.banner,strong:false};p.timer=later(()=>{if(press===p){p.strong=true;stage.wind(p.banner,'strong');discover('library:banner:'+p.banner+':strong');}},420);press=p;room.setPointerCapture?.(e.pointerId);});
  on(room,'pointermove',e=>{if(press?.id===e.pointerId&&!press.strong&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>16)cancelPress();});
- on(room,'pointerup',e=>{if(press?.id!==e.pointerId)return;const p=press;cancelPress();handled=true;later(()=>{handled=false;},500);if(!p.strong)stage.wind(p.banner,'gentle');});
+ on(room,'pointerup',e=>{if(press?.id!==e.pointerId)return;const p=press;cancelPress();handled=true;later(()=>{handled=false;},500);if(!p.strong){stage.wind(p.banner,'gentle');discover('library:banner:'+p.banner+':gentle');}});
  on(room,'pointercancel',cancelPress);on(room,'lostpointercapture',cancelPress);
- on(room,'click',e=>{if(handled){handled=false;return;}if(mode!=='idle'||viewCompare)return;const hit=stage.hit(e);if(hit?.banner)stage.wind(hit.banner,'gentle');else if(hit?.side){if(hit.ladder)stage.activateLadder(hit.side);else stage.move(hit.side,hit.t);repaint();}});
+ on(room,'click',e=>{if(handled){handled=false;return;}if(mode!=='idle'||viewCompare)return;const hit=stage.hit(e);if(hit?.banner){stage.wind(hit.banner,'gentle');discover('library:banner:'+hit.banner+':gentle');}else if(hit?.side){if(hit.ladder)stage.activateLadder(hit.side);else stage.move(hit.side,hit.t);repaint();discover('library:ladder:'+hit.side);}});
 
 }
 function schedule(){if(!frame&&!disposed&&!failed&&!document.hidden){lastFrame=null;frame=requestAnimationFrame(animate);}}
@@ -346,10 +351,10 @@ on(reduced,'change',()=>{stage?.reducedChanged();if(reduced.matches&&animation){
 function failLoading(error){if(disposed||failed)return;failed=true;abort.abort();stage?.dispose();clearLater(loadTimeout);onError(error);}
 const loadTimeout=later(()=>{if(!ready)failLoading(Error('图书馆加载超时'));},60000);
 (async()=>{try{
- [stage,documents]=await Promise.all([loadSceneHost(room,{signal:abort.signal,reduced:()=>reduced.matches}).then(value=>{if(disposed||failed||abort.signal.aborted){value.dispose();throw new DOMException('Aborted','AbortError');}stage=value;return value;}),loadDocuments(abort.signal),styleReady]);
+ [stage,documents]=await Promise.all([loadSceneHost(room,{signal:abort.signal,reduced:()=>reduced.matches}).then(value=>{if(disposed||failed||abort.signal.aborted){value.dispose();throw new DOMException('Aborted','AbortError');}stage=value;return value;}),(dynamic?loadPublishedCatalog(abort.signal).then(data=>{publishedAnimations=data.animations;return data.documents;}):loadDocuments(abort.signal)),styleReady]);
  if(disposed||failed||abort.signal.aborted){stage.dispose();return;}
- for(const doc of documents){const slot=stage.slots.find(s=>s.id===bindingForBook(doc.id).slotId);const [left,top,right,bottom]=slot.box;const button=element('button',undefined,'hotspot shelf');button.type='button';button.dataset.book=doc.id;button.setAttribute('aria-label','召唤 '+doc.title);positionHotspot(button,(left+right)/2,(top+bottom)/2,right-left+16,bottom-top+12);shelfButtons.set(doc.id,button);byId('shelf-hotspots').append(button);const destination={kind:'contents',bookId:doc.id};bindSelectionClick(button,event=>{if(mode==='debug'){selectDebugBook(doc.id);return;}origin=button;selection.click(destination,event.detail,event.pointerType);});for(const event of ['pointerenter','focus'])on(button,event,()=>{if(mode==='idle'){hover=doc.id;stage.render(performance.now(),clock,hover);}});for(const event of ['pointerleave','blur'])on(button,event,()=>{if(hover===doc.id){hover=null;stage.render(performance.now(),clock,null);}});}
- positionHotspot(crest,crestCenter.x,crestCenter.y,178,178);bindSceneControls();if(debug)bindDebug();stage.render(performance.now(),0,null);setMode('idle');ready=true;clearLater(loadTimeout);onReady();schedule();
+ for(const doc of documents){const binding=bindingForBook(doc.id);if(!binding)continue;const slot=stage.slots.find(s=>s.id===binding.slotId);if(!slot)continue;const [left,top,right,bottom]=slot.box;const button=element('button',undefined,'hotspot shelf');button.type='button';button.dataset.book=doc.id;button.setAttribute('aria-label','召唤 '+doc.title);positionHotspot(button,(left+right)/2,(top+bottom)/2,right-left+16,bottom-top+12);shelfButtons.set(doc.id,button);byId('shelf-hotspots').append(button);const destination={kind:'contents',bookId:doc.id};bindSelectionClick(button,event=>{if(mode==='debug'){selectDebugBook(doc.id);return;}origin=button;selection.click(destination,event.detail,event.pointerType);});for(const event of ['pointerenter','focus'])on(button,event,()=>{if(mode==='idle'){hover=doc.id;stage.render(performance.now(),clock,hover);}});for(const event of ['pointerleave','blur'])on(button,event,()=>{if(hover===doc.id){hover=null;stage.render(performance.now(),clock,null);}});}
+ positionHotspot(crest,crestCenter.x,crestCenter.y,178,178);bindSceneControls();if(debug)bindDebug();stage.render(performance.now(),0,null);setMode('idle');ready=true;clearLater(loadTimeout);onReady();schedule();discover("visit:library");if(initialBookSearch&&semanticSearch)void showCatalog({currentTarget:crest});
  }catch(error){failLoading(error);}})();
  return ()=>{if(disposed)return;disposed=true;cancelScenePress();abort.abort();void fullscreen.close();for(const id of timers)clearTimeout(id);timers.clear();selection.cancel();cancelAnimationFrame(frame);animation=null;turning?.cancel();for(const node of [pages,cover])for(const a of node.getAnimations?.()??[])a.cancel();if(reader.open)reader.close();if(summon.open)summon.close();stage?.dispose();room.width=0;room.height=0;cover.width=0;cover.height=0;root.replaceChildren();};
 }

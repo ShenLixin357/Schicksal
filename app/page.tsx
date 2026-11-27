@@ -36,7 +36,7 @@ import { COMMITTEE_LOUNGE_ART } from "./club/lounge-access";
 
 import { HomeSection } from "./home/home-section";
 import { FeatureSuspense } from "./shell/feature-suspense";
-import { LibraryEntrance, useLibrarySidebar } from "./library/library-entrance"; import { PersonalDiscoveryToast } from "./guide/personal-discovery"; import { ProfileCrystalEmblem } from "./profile/profile-crystal-emblem";
+import { LibraryEntrance, useLibrarySidebar } from "./library/library-entrance"; import { PersonalDiscoveryToast } from "./guide/personal-discovery"; import { ProfileCrystalEmblem } from "./profile/profile-crystal-emblem"; import { PersonalExplorationSummary } from "./guide/personal-exploration-summary";
 // Parliament UI and state remain isolated from the global entry coordinator.
 const PersistentParliamentSection = lazy(() => import("./parliament/parliament-section").then(module => ({ default: module.PersistentParliamentSection })));
 import { ImperialSidebar } from "./shell/imperial-sidebar";
@@ -45,7 +45,7 @@ import { PageHead } from "./shell/page-head";
 import { HonorsPage, MarketPage } from "./points/points-pages";
 import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
-import { TechnologyMinistryPortal } from "./technology/technology-ministry";
+import { GuidePanel } from "./guide/guide-panel"; import { ExplorationVisit } from "./guide/exploration"; import { IMPERIAL_GUIDE_ENABLED, LIBRARY_COLLECTIONS_ENABLED } from "./library/library-mode"; import type { GuideTarget } from "../server/guide/registry"; import { TechnologyMinistryPortal } from "./technology/technology-ministry"; import { MinistryFeatureGate, ProfileSupplement } from "./technology/v2/runtime";
 
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import { PASSAGE_SKIP_LABEL } from "./transitions/passage-gate";
@@ -56,6 +56,7 @@ const AtlasGovernmentHandbook = lazy(() => import("./atlas/government-handbook")
 const PhotoArchiveSection = lazy(() => import("./photos/photo-archive").then(module => ({ default: module.PhotoArchiveSection })));
 const ArchivesSection = lazy(() => import("./archives/archive-section").then(module => ({ default: module.ArchivesSection })));
 const LibrarySection = lazy(() => import("./library/library-section").then(module => ({ default: module.LibrarySection })));
+const LibraryCollections = lazy(() => import("./library/library-collections").then(m=>({default:m.LibraryCollections})));
 const CommitteeLounge = lazy(() => import("./club/committee-lounge").then(module => ({ default: module.CommitteeLounge })));
 
 async function prepareLounge() {
@@ -285,15 +286,15 @@ function MarketSection() { return <MarketPage/>; }
 
 function PublicAtlasCitizenProfile({ citizen, onBack, offices }: { citizen: Citizen; onBack: () => void; offices: readonly Office[] | null }) {
   const positions = offices ? officesForCitizen(citizen.id, offices) : [];
-  return <><button className="atlas-profile-back" type="button" onClick={onBack}>← 返回天命图谱</button><PageHead eyebrow="Public Citizen Profile" title="公民公开档案" copy="这里只展示获准公开的身份与公职资料。"/><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} placement="profile-public-simple"/><span>{atlasCodename(citizen.id)}</span></div><div className="profile-copy"><small>PUBLIC CITIZEN RECORD</small><h2>{atlasName(citizen)}</h2><dl><div><dt>公民代号</dt><dd>{atlasCodename(citizen.id)}</dd></div><div><dt>现任公职</dt><dd>{offices ? positions.length ? positions.map(office => office.title).join(" · ") : "暂无现任公职" : "正在核验现任公职"}</dd></div><div><dt>身份</dt><dd>第一帝国公民</dd></div></dl><p className="atlas-visitor-disclaimer">访客只能查看公开身份；私人消息、账户设置、个人数据及编辑功能不开放。</p></div></article></>;
+  return <><button className="atlas-profile-back" type="button" onClick={onBack}>← 返回天命图谱</button><PageHead eyebrow="Public Citizen Profile" title="公民公开档案" copy="这里只展示获准公开的身份与公职资料。"/><article className="profile" style={{ "--citizen": citizenRepresentativeColor(citizen) } as CSSProperties}><div className="profile-mark"><CitizenMark citizen={citizen} placement="profile-public-simple"/><span>{atlasCodename(citizen.id)}</span></div><div className="profile-copy"><small>PUBLIC CITIZEN RECORD</small><h2>{atlasName(citizen)}</h2><dl><div><dt>公民代号</dt><dd>{atlasCodename(citizen.id)}</dd></div><div><dt>现任公职</dt><dd>{offices ? positions.length ? positions.map(office => office.title).join(" · ") : "暂无现任公职" : "正在核验现任公职"}</dd></div><div><dt>身份</dt><dd>第一帝国公民</dd></div></dl><p className="atlas-visitor-disclaimer">访客只能查看公开身份；私人消息、账户设置、个人数据及编辑功能不开放。</p></div></article><ProfileSupplement id={citizen.id}/></>;
 }
 
-function ProfileSection({ citizen, offices }: { citizen: Citizen; offices: readonly Office[] | null }) { return <SelfProfilePage citizen={citizen} offices={offices} renderMark={<CitizenMark citizen={citizen} placement="profile-personal-simple" />}/>; }
+function ProfileSection({ citizen, offices }: { citizen: Citizen; offices: readonly Office[] | null }) { return <><SelfProfilePage citizen={citizen} offices={offices} renderMark={<CitizenMark citizen={citizen} placement="profile-personal-simple" />}/><ProfileSupplement id={citizen.id}/><PersonalExplorationSummary identity={citizen.id+":citizen"}/><section aria-label="私人工作区"><h3>私人工作区</h3><p>尚未开放。</p></section></>; }
 
 function System({ citizen, accountMode, authSource, offices, onAccountModeChange, logout, initialBriefing }: {
   citizen: Citizen; accountMode:AccountMode; authSource:AuthSource; offices: readonly Office[] | null; onAccountModeChange:(mode:AccountMode)=>void; logout: () => void; initialBriefing: BriefingFeed;
 }) {
-  const [section,setSection] = useState<Section>("home");
+  const [section,setSection] = useState<Section>("home"); const [guideOpen,setGuideOpen]=useState(false); const [guideVisit,setGuideVisit]=useState<{target?:"books"|"collections";serial:number}>({serial:0}); useEffect(()=>{if(section!=="library")setGuideVisit(v=>v.target?{serial:v.serial}:v);},[section]);
   const isCurrentMinister = Boolean(offices && isCurrentTechnologyMinister(citizen.id, offices));
   const switchBusy = useRef(false);
   const [modeSwitchMessage,setModeSwitchMessage] = useState("");
@@ -433,10 +434,12 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
   const openAtlasHandbook = () => { setAtlasHandbookOpen(true); setSection("archives"); };
   const viewedCitizen = CITIZENS.find(c=>c.id===viewedCitizenId && !c.locked) ?? citizen;
   const clubOpen = section === "club" && CLUB_MEMBER_IDS.has(citizen.id);
+  const guideNavigate=(target:GuideTarget)=>{ if(target==="lounge"){if(CLUB_MEMBER_IDS.has(citizen.id))enterLounge();return;} if(target==="technology"&&!(accountMode==="technology"&&isCurrentMinister))return; if(target==="profile"||target==="technology")setViewedCitizenId(citizen.id);if(target==="archives")setAtlasHandbookOpen(false);if(target==="parliament"){setParliamentDeepLink("");setParliamentFocus("all");}if(target==="collections"&&LIBRARY_COLLECTIONS_ENABLED){setSection("gallery");}else if(target==="books"||target==="collections"||target==="library"){setGuideVisit(v=>({target:target==="library"?undefined:target,serial:v.serial+1}));setSection("library");}else setSection(target==="technology"?"profile":target);document.querySelector(".system-main")?.scrollTo({top:0,behavior:"smooth"}); };
   let content: ReactNode;
   switch (section) {
     case "messenger": content = <ShellPlaceholder kind="messenger" />; break;
-    case "library": content = <LibraryEntrance component={LibrarySection} technology={accountMode === "technology" && isCurrentMinister} onExit={()=>setSection("home")}/>; break;
+    case "library": content = <LibraryEntrance key={guideVisit.serial} component={LibrarySection} onOpenGuide={IMPERIAL_GUIDE_ENABLED?()=>setGuideOpen(true):undefined} onOpenCollectionSearch={()=>{if(LIBRARY_COLLECTIONS_ENABLED)setSection("gallery")}} initialSearch={guideVisit.target==="books"?"books":undefined} technology={accountMode === "technology" && isCurrentMinister} onExit={()=>setSection("home")}/>; break;
+    case "gallery": content = LIBRARY_COLLECTIONS_ENABLED ? <FeatureSuspense label="Gallery" onExit={()=>setSection("home")}><LibraryCollections minister={accountMode==="technology"&&isCurrentMinister}/></FeatureSuspense> : <HomeSection go={setSection}/>; break;
     case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "atlas":
     case "citizens":
@@ -514,8 +517,9 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
         onSelfLongPress={authSource === "personal" && (accountMode === "technology" || isCurrentMinister) ? switchAccountImmediately : undefined}
       />
       <section className={`system-main ${clubOpen ? "club-main" : ""}`}>
-        <div className={`content ${clubOpen ? "club-content" : ""}`}>{content}</div>
+        <div className={`content ${clubOpen ? "club-content" : ""}`}>{IMPERIAL_GUIDE_ENABLED&&<button className={clubOpen?"guide-launcher guide-launcher-lounge":"guide-launcher"} onClick={()=>setGuideOpen(true)}>帝国向导 · 帮助</button>}<MinistryFeatureGate section={section}><ExplorationVisit section={section==="profile"&&viewedCitizen.id!==citizen.id?"":section} elevated={accountMode === "technology" && isCurrentMinister && viewedCitizen.id===citizen.id}/>{content}</MinistryFeatureGate></div>
       </section>
+      {IMPERIAL_GUIDE_ENABLED&&<GuidePanel open={guideOpen} onClose={()=>setGuideOpen(false)} onNavigate={guideNavigate} currentSection={section}/>}
       {<PersonalDiscoveryToast identity={citizen.id+":"+accountMode} mark={<ProfileCrystalEmblem color={citizenRepresentativeColor(citizen)}/>}/>} {portal && <LoungePassage direction={portal} sharedMark={<Emblem compact />}
         prepareDestination={portal === "enter" ? prepareLounge : undefined}
         onSwap={swapPortalRoom} onFinish={() => setPortal(null)}

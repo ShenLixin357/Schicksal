@@ -1,4 +1,5 @@
 "use client";
+import {recordExploration} from "../guide/exploration";
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
@@ -23,6 +24,7 @@ export function WordmageGlobePassage() {
 
 export function WordmageLounge({ onBack }: { onBack: () => void }) {
   const [bookOpen, setBookOpen] = useState(false);
+  useEffect(()=>{void recordExploration("lounge:room:wordmage");},[]);
   const [incantation, setIncantation] = useState(PRESET_SPELLS[0]);
   const [effect, setEffect] = useState<{ kind: Spell; text: string; token: number } | null>(null);
   const [moonlit, setMoonlit] = useState(false);
@@ -38,6 +40,7 @@ export function WordmageLounge({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     if (!bookOpen) return;
+    void recordExploration("lounge:wordmage:book");
     inputRef.current?.focus();
     const key = (event: KeyboardEvent) => {
       if (event.key === "Escape") { setBookOpen(false); bookTriggerRef.current?.focus(); }
@@ -55,6 +58,7 @@ export function WordmageLounge({ onBack }: { onBack: () => void }) {
   const cast = (kind: Spell, text: string, message: string) => {
     if (effectTimer.current !== null) window.clearTimeout(effectTimer.current);
     setEffect({ kind, text, token: ++spellSerial.current });
+    void recordExploration("lounge:wordmage:"+kind);
     setWhisper(message);
     effectTimer.current = window.setTimeout(() => { setEffect(null); effectTimer.current = null; }, 5600);
   };
@@ -80,7 +84,7 @@ export function WordmageLounge({ onBack }: { onBack: () => void }) {
   return <section className={`wordmage-lounge ${moonlit ? "wordmage-moonlit" : ""}`} aria-label="Nishujiade 言灵师的私人 Lounge">
     <header className="wordmage-toolbar">
       <button type="button" onClick={onBack}>← 返回 Committee Lounge</button>
-      <button type="button" aria-pressed={moonlit} onClick={() => { setMoonlit((value) => !value); setWhisper(moonlit ? "烛光回到了书页上，言灵重新染上古金色。" : "只留下月光。淡紫色的影子在书页间流动。"); }}>{moonlit ? "留烛光" : "留月光"}</button>
+      <button type="button" aria-pressed={moonlit} onClick={() => { setMoonlit((value) => !value); void recordExploration("lounge:wordmage:light"); setWhisper(moonlit ? "烛光回到了书页上，言灵重新染上古金色。" : "只留下月光。淡紫色的影子在书页间流动。"); }}>{moonlit ? "留烛光" : "留月光"}</button>
     </header>
     <div className="wordmage-room-title"><MysticSigil memberId="truth" /><div><small>PRIVATE LOUNGE · ROOM NO. 03</small><h1>NISHUJIADE’S <em>LOUNGE</em></h1><p>言灵师 · 千言藏书阁</p></div></div>
     <div className="wordmage-room-stage">

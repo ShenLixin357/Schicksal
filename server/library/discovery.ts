@@ -1,0 +1,33 @@
+import {env} from 'cloudflare:workers';
+import {publicReadDb} from '../imperial-v3/public-read.ts';
+import {ApiError} from '../http.ts';
+import type {DigitalDB} from '../digital/large.ts';
+export type Kind='book'|'gallery'|'digital';
+export type Target={kind:Kind;id:string;revision:string;chapter:string};
+export type Hit=Target&{title:string;subtitle:string;snippet:string};
+export type Availability=Record<Kind,boolean>;
+const invalid=(msg:string,status=400):never=>{throw new ApiError(msg,status)};
+const id=(x:unknown,empty=false):string=>typeof x==='string'&&((empty&&x==='')||/^[A-Za-z0-9][A-Za-z0-9_-]{0,119}$/.test(x))?x:invalid('编号无效');
+export function kind(x:unknown):Kind{if(x==='book'||x==='gallery'||x==='digital')return x;return invalid('馆藏类型无效');}
+export function target(p:Record<string,unknown>):Target{const k=kind(p.kind),chapter=id(p.chapter??'',true);if(k!=='book'&&chapter)invalid('非书籍不能指定章节');return {kind:k,id:id(p.id),revision:id(p.revision),chapter};}
+const current=`WITH current_books AS (SELECT a.* FROM library_revisions a WHERE a.kind='book' AND a.state='published' AND NOT EXISTS(SELECT 1 FROM library_revisions b WHERE b.kind=a.kind AND b.entity_id=a.entity_id AND b.state='published' AND b.seq>a.seq))`;
+const gallery=`FROM gallery_works w JOIN gallery_versions v ON v.work_id=w.id JOIN gallery_blobs b ON b.sha256=v.original_sha AND b.state='ready' LEFT JOIN gallery_metadata m ON m.work_id=w.id`;
+const digital=`FROM digital_objects w JOIN digital_versions v ON v.object_id=w.id JOIN digital_blobs b ON b.sha256=v.sha256 AND b.state='ready'`;
+const head=(k:'gallery'|'digital')=>`v.ordinal=(SELECT MAX(ordinal) FROM ${k==='gallery'?'gallery_versions WHERE work_id':'digital_versions WHERE object_id'}=w.id)`;
+function check(k:Kind,enabled:Availability){if(!enabled[k])invalid('该馆藏尚未启用',503);}
+export function discovery(db:DigitalDB,enabled:Availability){db=publicReadDb(db,env);return {
+ async search(k:Kind,raw:string,limit=20,offset=0){check(k,enabled);if(raw.length>180||!Number.isInteger(limit)||limit<1||limit>50||!Number.isSafeInteger(offset)||offset<0||offset>100000)invalid('检索参数无效');const q=raw.trim();let rows:Hit[];
+ if(k==='book'){rows=(await db.prepare(`${current}, hits AS (
+ SELECT 'book' kind,entity_id id,revision,'' chapter,json_extract(payload,'$.title') title,json_extract(payload,'$.author') subtitle,'' snippet FROM current_books WHERE ?='' OR instr(lower(json_extract(payload,'$.title')),lower(?))>0 OR instr(lower(json_extract(payload,'$.author')),lower(?))>0
+ UNION ALL SELECT 'book',a.entity_id,a.revision,json_extract(c.value,'$.id'),json_extract(a.payload,'$.title'),json_extract(c.value,'$.title'),substr(json_extract(c.value,'$.markdown'),max(1,instr(lower(json_extract(c.value,'$.markdown')),lower(?))-55),180) FROM current_books a JOIN json_each(a.payload,'$.chapters') c WHERE ?<>'' AND (instr(lower(json_extract(c.value,'$.title')),lower(?))>0 OR instr(lower(json_extract(c.value,'$.note')),lower(?))>0 OR instr(lower(json_extract(c.value,'$.markdown')),lower(?))>0)) SELECT * FROM hits ORDER BY id,chapter LIMIT ? OFFSET ?`).bind(q,q,q,q,q,q,q,q,limit+1,offset).all<Hit>()).results;}
+ else{const isG=k==='gallery',from=isG?gallery:digital,name=isG?'v.original_name':'v.filename',extra=isG?`OR EXISTS(SELECT 1 FROM json_each(COALESCE(m.tags_json,'[]')) j WHERE instr(lower(j.value),lower(?))>0)`:'';rows=(await db.prepare(`SELECT '${k}' kind,w.id,v.id revision,'' chapter,w.title,w.collection subtitle,${name} snippet ${from} WHERE w.trashed_at IS NULL AND ${head(k)} AND (?='' OR instr(lower(w.title),lower(?))>0 OR instr(lower(w.collection),lower(?))>0 OR instr(lower(${name}),lower(?))>0 ${extra}) ORDER BY w.id LIMIT ? OFFSET ?`).bind(q,q,q,q,...(isG?[q]:[]),limit+1,offset).all<Hit>()).results;}
+ return {hits:rows.slice(0,limit),next:rows.length>limit?offset+limit:null};},
+ async resolve(t:Target):Promise<(Hit&{markdown?:string})|null>{check(t.kind,enabled);if(t.kind==='book'){const r=await db.prepare(`SELECT payload FROM library_revisions WHERE kind='book' AND state='published' AND entity_id=? AND revision=?`).bind(t.id,t.revision).first<{payload:string}>();if(!r)return null;const b=JSON.parse(r.payload) as {title:string;author:string;chapters:{id:string;title:string;markdown:string}[]};const c=t.chapter?b.chapters.find(x=>x.id===t.chapter):null;if(t.chapter&&!c)return null;return {...t,title:b.title,subtitle:c?.title??b.author,snippet:'',markdown:c?.markdown??b.chapters.map(x=>`# ${x.title}\n\n${x.markdown}`).join('\n\n')};}
+ const isG=t.kind==='gallery';return db.prepare(`SELECT '${t.kind}' kind,w.id,v.id revision,'' chapter,w.title,w.collection subtitle,${isG?'v.original_name':'v.filename'} snippet ${isG?gallery:digital} WHERE w.trashed_at IS NULL AND w.id=? AND v.id=?`).bind(t.id,t.revision).first<Hit>();}
+};}
+export function workspace(db:DigitalDB,enabled:Availability){const lookup=discovery(db,enabled);return {
+ async list(actor:string){return (await db.prepare("SELECT kind,entity_id id,revision,chapter,title,subtitle,'' snippet,saved_at,note,note_revision FROM library_personal_saves WHERE actor=? ORDER BY saved_at DESC,kind,entity_id,revision,chapter LIMIT 300").bind(actor).all<Hit&{saved_at:string;note:string;note_revision:number}>()).results;},
+ async save(actor:string,t:Target){const h=await lookup.resolve(t);if(!h)invalid('馆藏版本不可用',404);const r=await db.prepare(`INSERT INTO library_personal_saves(actor,kind,entity_id,revision,chapter,title,subtitle,saved_at) SELECT ?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM library_personal_saves WHERE actor=?)<300 OR EXISTS(SELECT 1 FROM library_personal_saves WHERE actor=? AND kind=? AND entity_id=? AND revision=? AND chapter=?) ON CONFLICT(actor,kind,entity_id,revision,chapter) DO UPDATE SET saved_at=excluded.saved_at`).bind(actor,t.kind,t.id,t.revision,t.chapter,h!.title,h!.subtitle,new Date().toISOString(),actor,actor,t.kind,t.id,t.revision,t.chapter).run();if(r.meta.changes!==1)invalid('个人收藏已达300项',409);},
+ async note(actor:string,t:Target,text:unknown,expected:unknown){if(typeof text!=='string'||text.length>1000||typeof expected!=='number'||!Number.isSafeInteger(expected)||expected<0)invalid('笔记字段无效');const r=await db.prepare('UPDATE library_personal_saves SET note=?,note_revision=note_revision+1 WHERE actor=? AND kind=? AND entity_id=? AND revision=? AND chapter=? AND note_revision=?').bind(text,actor,t.kind,t.id,t.revision,t.chapter,expected).run();if(r.meta.changes!==1)invalid('笔记已变化或收藏已移除，请刷新',409);},
+ async remove(actor:string,t:Target){await db.prepare('DELETE FROM library_personal_saves WHERE actor=? AND kind=? AND entity_id=? AND revision=? AND chapter=?').bind(actor,t.kind,t.id,t.revision,t.chapter).run();}
+};}

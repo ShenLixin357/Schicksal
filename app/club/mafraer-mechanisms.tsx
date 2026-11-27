@@ -1,4 +1,5 @@
 "use client";
+import {recordExploration} from "../guide/exploration";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { extractFabric, paintFabric } from "./mafraer-fabric";
@@ -332,6 +333,7 @@ export function MafraerMechanisms({ lit, paused, resonance, soundEnabled, onRead
   const recall = () => {
     const s = state.current; if (!s.ready || s.broomGesture || s.trip) return;
     const to = s.docked ? BROOM_HOME : BROOM_DOCK;
+    void recordExploration("lounge:mafraer:broom");
     s.docked = !s.docked; setDocked(s.docked); s.broomMoving = false; s.target = { ...to };
     if (s.reduced) s.broom = { ...to, vx: 0, vy: 0 };
     else s.trip = { from: { x: s.broom.x, y: s.broom.y }, to: { ...to }, started: performance.now() };
@@ -357,7 +359,7 @@ export function MafraerMechanisms({ lit, paused, resonance, soundEnabled, onRead
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     if (finalGesture.moved) {
       s.docked = true; setDocked(true); s.target = { ...BROOM_DOCK }; s.broomMoving = true;
-      if (!cancelled) { playSound("wind"); callbacks.current.onWhisper("你松开了魔力。扫帚带着最后一点飞行的惯性，慢慢归向窗边。"); }
+      if (!cancelled) { void recordExploration("lounge:mafraer:broom-flight"); playSound("wind"); callbacks.current.onWhisper("你松开了魔力。扫帚带着最后一点飞行的惯性，慢慢归向窗边。"); }
       wake();
     } else if (action === "tap" || action === "weather") recall();
   };
@@ -365,6 +367,7 @@ export function MafraerMechanisms({ lit, paused, resonance, soundEnabled, onRead
   const makeBed = () => {
     const s = state.current; if (!s.ready || s.bed !== null) return;
     s.curtain = 0; s.curtainTrip = null; setCurtainClosed(false);
+    void recordExploration("lounge:mafraer:bed");
     if (s.reduced) { s.curtain = 1; setCurtainClosed(true); callbacks.current.onWhisper("被子与枕头整理好了，床纱已经合拢。再碰床纱可以拉开。"); }
     else { s.bed = performance.now(); setBedBusy(true); callbacks.current.onWhisper("一双看不见的手托起被角。厚被子缓缓舒展，枕头正一个接一个归位…"); }
     s.dirtyFabric = true; playSound("cloth"); wake();
@@ -372,6 +375,7 @@ export function MafraerMechanisms({ lit, paused, resonance, soundEnabled, onRead
   const toggleCurtain = () => {
     const s = state.current; if (!s.ready || s.bed !== null) return;
     const to = s.curtainTrip ? 1 - s.curtainTrip.to : s.curtain > .5 ? 0 : 1;
+    void recordExploration("lounge:mafraer:curtain");
     if (s.reduced) { s.curtain = to; s.curtainTrip = null; setCurtainClosed(to === 1); s.dirtyFabric = true; }
     else s.curtainTrip = { from: s.curtain, to, started: performance.now(), duration: 1700 };
     playSound("cloth"); callbacks.current.onWhisper(to ? "床纱从两侧缓缓靠拢，把高高的床围进一片柔软的紫色月光。" : "床纱沿着两侧轻轻展开，厚厚的床垫与蓬松被子重新露出来。"); wake();
@@ -379,6 +383,7 @@ export function MafraerMechanisms({ lit, paused, resonance, soundEnabled, onRead
   const emitWeather = (strength: number) => {
     const s = state.current; s.weather = { kind: s.weatherKind, started: performance.now(), strength: clamp(strength, .15, 1), seed: ++s.serial };
     s.charge = 0; s.pulse = performance.now(); s.dirtyOrb = true;
+    void recordExploration("lounge:mafraer:weather");
     playSound("release"); callbacks.current.onWhisper(`你释放了凝聚的魔力。一小阵${WEATHER_NAMES[s.weatherKind]}从水晶球边缘散开，又安静地融回月光。`); wake();
   };
   const crystalTap = () => {
@@ -409,7 +414,7 @@ export function MafraerMechanisms({ lit, paused, resonance, soundEnabled, onRead
     if (cancelled) s.velocity = 0;
     else if (action === "tap") crystalTap();
     else if (action === "weather") emitWeather(strength);
-    else if (action === "drag") { if (now - s.orbLastTime > 100) s.velocity = 0; callbacks.current.onWhisper("你拨动了球中的星河。细小星辰掠过冰晶切面，慢慢停在新的方向。"); }
+    else if (action === "drag") { void recordExploration("lounge:mafraer:orb-rotate"); if (now - s.orbLastTime > 100) s.velocity = 0; callbacks.current.onWhisper("你拨动了球中的星河。细小星辰掠过冰晶切面，慢慢停在新的方向。"); }
     wake();
   };
 
