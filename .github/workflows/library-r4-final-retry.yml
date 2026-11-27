@@ -1,0 +1,153 @@
+name: Library R4 targeted final acceptance
+on:
+  push:
+    branches: ["intake/library-r4-20261127"]
+    paths: [".github/workflows/library-r4-final-retry.yml", "scripts/qa/r4-final-retry.py"]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: schicksal-library-r4-intake
+  cancel-in-progress: false
+env:
+  R4_BASE: e31fe637aeb629bb0a2cf42223041f2c0755871a
+  CANDIDATE_SHA: e5452b4517435c25004d15299d060c8f149ed0c8
+  SCHICKSAL_LOCAL_SHA: e5452b4517435c25004d15299d060c8f149ed0c8
+  R4_ZIP_SHA: 70686764664fd6f328717612437fe824319ab801a2380fe3bfb9045b7be7c646
+  PRIOR_RUN: "45915125752"
+  PRIOR_HEAD: f49bb65e1e25f1f6f7a35dbb59c7dd53f36fe6b2
+jobs:
+  evidence:
+    name: Verify eight passing gates and prior full Chromium motion evidence
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'intake/library-r4-20261127'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: intake
+          persist-credentials: false
+      - name: Verify immutable candidate and exact prior acceptance evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')" = "$R4_BASE"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/feature%2Flibrary-integration-20261127" --jq '.commit.sha')" = "$CANDIDATE_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN" > "$RUNNER_TEMP/previous.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN/jobs?per_page=100" > "$RUNNER_TEMP/jobs.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRIOR_RUN/artifacts?per_page=100" > "$RUNNER_TEMP/artifacts.json"
+          python3 - <<'PY'
+          import os,json,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])
+          r=json.loads((p/'previous.json').read_text())
+          assert r['head_sha']==os.environ['PRIOR_HEAD'] and r['head_branch']=='intake/library-r4-20261127' and r['status']=='completed'
+          j={x['id']:x for x in json.loads((p/'jobs.json').read_text())['jobs']}
+          for i in [140232390699,140232390971,140232390982,140232390988,140232391001,140232391115,140232826055,140232826094]:
+            assert j[i]['conclusion']=='success',j[i]['name']
+            print('PASS reused exact prior gate',j[i]['name'])
+          assert j[140232391002]['conclusion']=='failure'
+          a={x['id']:x for x in json.loads((p/'artifacts.json').read_text())['artifacts']}
+          assert a[15161159617]['name']=='library-r4-built-worker-'+os.environ['CANDIDATE_SHA'] and not a[15161159617]['expired']
+          assert a[15161849332]['name']=='library-r4-fixture-chromium-interaction' and not a[15161849332]['expired']
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: library-r4-fixture-chromium-interaction
+          run-id: ${{ env.PRIOR_RUN }}
+          github-token: ${{ github.token }}
+          path: prior-chromium
+      - name: Confirm successful eleven-book real-time Chromium sequence before failing rapid-return test
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('prior-chromium/fixture-chromium.log')
+          s=p.read_text()
+          for b in ['A','L1','L2','L3','L4','R1','R2','R3','R4','LT','AVS']:
+            assert 'PASS catalog direct / cover / return '+b+'\n' in s,b
+            assert 'PASS complete timed forward and return '+b+'\n' in s,b
+          assert 'PASS keyboard, chapter anchor and reduced motion' in s
+          assert 'Actual value: returning' in s
+          print('PASS all original real-time and direct reading sequences; failed rapid-return will be re-tested')
+          PY
+  retry:
+    name: Chromium rapid return / skip / fullscreen / touch
+    needs: evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: intake
+          persist-credentials: false
+      - name: Verify and unpack exact original R4 archive
+        run: bash intake/scripts/qa/library-r4-extract.sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Chromium
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Run remaining original browser assertions plus deterministic animated rapid-return
+        run: |
+          set -euo pipefail
+          PKG="$RUNNER_TEMP/library-r4/library-candidate"
+          REPORT="$RUNNER_TEMP/library-r4-report"
+          python intake/scripts/qa/library-r4-stabilize.py "$PKG/tests/browser-local.py"
+          python intake/scripts/qa/r4-final-retry.py "$PKG/tests/browser-local.py"
+          python -u "$PKG/tests/browser-local.py" --engine chromium 2>&1 | tee "$REPORT/chromium-final-retry.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: library-r4-chromium-final-retry
+          path: ${{ runner.temp }}/library-r4-report/
+          retention-days: 14
+  isolated_preview:
+    name: Publish dedicated preview after eight verified prior gates plus remaining Chromium assertions
+    needs: [evidence, retry]
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'intake/library-r4-20261127'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: briefing-preview
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: intake
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: site
+          ref: ${{ env.CANDIDATE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install locked dependencies
+        working-directory: site
+        run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: library-r4-built-worker-${{ env.CANDIDATE_SHA }}
+          run-id: ${{ env.PRIOR_RUN }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/library-r4-built
+      - name: Verify and restore exact already-tested build
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/library-r4-built"
+          sha256sum -c dist.tar.sha256
+          test "$(cat candidate.sha)" = "$CANDIDATE_SHA"
+          tar -xf dist.tar -C "$GITHUB_WORKSPACE/site"
+      - name: Deploy only dedicated library Worker and D1
+        working-directory: site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+          SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')" = "$R4_BASE"
+          bash ../intake/scripts/qa/library-r4-deploy-preview.sh
