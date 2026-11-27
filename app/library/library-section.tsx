@@ -1,14 +1,14 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-type Mount = (host:HTMLElement, options?:{debug?:boolean;onError?:(error:unknown)=>void})=>()=>void;
+type Mount = (host:HTMLElement, options?:{debug?:boolean;onError?:(error:unknown)=>void;onReady?:()=>void})=>()=>void;
 /** Keep the approved native drawing engine in a shadow-root; the authenticated host owns the lifecycle. */
-export function LibrarySection({technology=false}:{technology?:boolean}){
+export function LibrarySection({technology=false,onReady,onLoading,onFailure}:{technology?:boolean;onReady?:()=>void;onLoading?:()=>void;onFailure?:()=>void}){
   const host=useRef<HTMLDivElement>(null);
   const [error,setError]=useState(false);
   const [attempt,setAttempt]=useState(0);
   useEffect(()=>{
     const controller=new AbortController();let dispose:(()=>void)|undefined;
-    let mounted=false,debug=false,checking=false;let interval:ReturnType<typeof setInterval>|undefined;
+    let mounted=false,debug=false,checking=false;let generation=0;let interval:ReturnType<typeof setInterval>|undefined;
     let engine:{mountLibrary:Mount}|undefined;
     async function check(){
       if(!technology)return false;
@@ -21,11 +21,13 @@ export function LibrarySection({technology=false}:{technology?:boolean}){
     }
     function mount(allowed:boolean){
       if(controller.signal.aborted||!host.current||!engine)return;
-      dispose?.();debug=allowed;dispose=engine.mountLibrary(host.current,{debug,onError:()=>{if(!controller.signal.aborted)setError(true);}});mounted=true;
+      const current=++generation;onLoading?.();dispose?.();debug=allowed;
+      const live=()=>!controller.signal.aborted&&current===generation;
+      dispose=engine.mountLibrary(host.current,{debug,onReady:()=>{if(live())onReady?.();},onError:()=>{if(live()){setError(true);onFailure?.();}}});mounted=true;
     }
     async function recheck(){
       if(!mounted||!debug||checking||controller.signal.aborted)return;
-      checking=true;try{if(!await check()&&!controller.signal.aborted)mount(false);}catch{if(!controller.signal.aborted)setError(true);}finally{checking=false;}
+      checking=true;try{if(!await check()&&!controller.signal.aborted)mount(false);}catch{if(!controller.signal.aborted){setError(true);onFailure?.();}}finally{checking=false;}
     }
     const visible=()=>{if(!document.hidden)void recheck();};
     const boot=async()=>{
@@ -35,8 +37,8 @@ export function LibrarySection({technology=false}:{technology?:boolean}){
       mount(allowed);
       if(allowed&&!controller.signal.aborted){interval=setInterval(()=>void recheck(),30000);document.addEventListener("visibilitychange",visible,{signal:controller.signal});}
     };
-    setError(false);void boot().catch(()=>{if(!controller.signal.aborted)setError(true);});
+    setError(false);onLoading?.();void boot().catch(()=>{if(!controller.signal.aborted){setError(true);onFailure?.();}});
     return()=>{controller.abort();if(interval!==undefined)clearInterval(interval);dispose?.();};
-  },[technology,attempt]);
-  return <section aria-label="天命图书馆">{error&&<div role="alert">图书馆暂时无法打开。 <button onClick={()=>setAttempt(n=>n+1)}>重试</button></div>}<div ref={host}/></section>;
+  },[technology,attempt,onReady,onLoading,onFailure]);
+  return <section aria-label="天命图书馆">{error&&<div role="alert">图书馆暂时无法打开。 <button onClick={()=>setAttempt(n=>n+1)}>重试</button></div>}<div className="library-native-host" ref={host}/></section>;
 }

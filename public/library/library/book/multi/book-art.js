@@ -82,7 +82,7 @@ export async function loadBooks(original){
   const a={
     id:'A',route:routeBook.A,shelfSide:'right',cover:'navy',
     x:shelf.x,y:shelf.y+24,height:48,length:34,thickness:11,shelfTilt:.43,boardSlope:-.37,
-    startAngle:-48,endAngle:12,spine,repair,origin:[shelf.repairX,shelf.repairY],
+    startAngle:-48,endAngle:12,spine,repair,origin:[shelf.repairX,shelf.repairY],highlightOrigin:[1618,432],
     box:[shelf.hit.x1,shelf.hit.y1,shelf.hit.x2,shelf.hit.y2],spineCrop:[0,1,17,48],
     trim:palette.navy.trim,front:cover,back:leatherBack(palette.navy.back),bottomPages,forePages
   };
