@@ -2,7 +2,7 @@ name: Gallery isolated budget tests
 on:
   push:
     branches: [feature/gallery-b-archive-20261128]
-    paths: ["server/gallery/**", "server/digital/**", "tests/gallery-r2-budget.test.mjs", "integration/imperial-v3/foundation/gallery-r2-budget.proposed.sql", ".github/workflows/gallery-budget-local.yml"]
+    paths: ["app/library/gallery/**", "server/gallery/**", "server/digital/**", "tests/gallery-r2-budget.test.mjs", "tests/gallery-archive-plan.test.mjs", "integration/imperial-v3/foundation/gallery-r2-budget.proposed.sql", ".github/workflows/gallery-budget-local.yml"]
 permissions:
   contents: read
 jobs:
@@ -16,4 +16,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --experimental-transform-types --test tests/gallery-r2-budget.test.mjs
+      - run: node --experimental-transform-types --test tests/gallery-r2-budget.test.mjs tests/gallery-archive-plan.test.mjs
