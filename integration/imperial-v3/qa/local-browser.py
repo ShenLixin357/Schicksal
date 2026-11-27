@@ -7,7 +7,7 @@ report=Path(os.environ['V32_REPORT'])
 engine=sys.argv[1]
 with sync_playwright() as p:
     browser=getattr(p,engine).launch(headless=True)
-    context=browser.new_context(viewport={'width':1440,'height':900},reduced_motion='reduce')
+    context=browser.new_context(viewport={'width':1440,'height':900},device_scale_factor=2,reduced_motion='reduce')
     page=context.new_page()
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
@@ -23,6 +23,23 @@ with sync_playwright() as p:
         page.locator('#entry button[type=submit]').click()
         expect(page.locator('.mandatory-briefing-gate')).to_be_attached(timeout=45000)
         expect(page.locator('#imperial-sidebar')).to_have_count(0)
+        # The brief's hero must have native layout dimensions, not a 42px
+        # composited canvas scaled up by CSS. Verify each breakpoint at DPR 2.
+        for viewport_width, expected_width in [(1440,218.4),(900,205.8),(600,132.3),(1440,218.4)]:
+            page.set_viewport_size({'width':viewport_width,'height':900})
+            page.wait_for_function("""expected => {
+              const mark=document.querySelector('.imperial-briefing-emblem-art > .emblem.compact');
+              const canvas=mark?.querySelector('canvas');
+              if(!canvas)return false;
+              const rect=canvas.getBoundingClientRect();
+              return getComputedStyle(mark).transform==='none' &&
+                Math.abs(mark.getBoundingClientRect().width-expected)<1 &&
+                Math.abs(rect.width-expected)<1 &&
+                canvas.width>=Math.round(rect.width*devicePixelRatio)-1 &&
+                canvas.height>=Math.round(rect.height*devicePixelRatio)-1;
+            }""",arg=expected_width,timeout=15000)
+        page.locator('.imperial-briefing-emblem-art').screenshot(path=str(report/'briefing-emblem.png'))
+        print('PASS native-sized briefing emblem at desktop/tablet/mobile DPR 2')
         page.get_by_role('button',name='关闭帝国简报，返回天命首页').click()
         expect(page.locator('#imperial-sidebar')).to_be_visible(timeout=20000)
         nav=page.locator('#imperial-navigation')
