@@ -88,6 +88,9 @@ def main():
         gallery = module(pathlib.Path(__file__).resolve().parent / 'foundation' / 'apply-gallery-unification.py')
         print('Gallery merge preflight:', gallery.apply(root, True))
         print('Gallery merged:', gallery.apply(root, False))
+        v32 = module(pathlib.Path(__file__).resolve().parent / 'foundation' / 'apply-v32.py')
+        print('V3.2 preflight:', v32.apply(root, True))
+        print('V3.2 hooks:', v32.apply(root, False))
         # Preserve proposals outside active migrations. The original bundle stays
         # external: duplicating TS fixtures in the app tree can break typechecking.
         support = root / 'integration' / 'imperial-v3' / 'support'
