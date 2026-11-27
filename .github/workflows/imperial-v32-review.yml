@@ -1,4 +1,4 @@
-name: V3.2 focused architecture and R5 repair
+name: V3.2 business repair and local browser acceptance
 on:
   push:
     branches: [feature/imperial-v32-review]
@@ -40,11 +40,10 @@ jobs:
           path: ${{ runner.temp }}/v32-build
           retention-days: 2
           compression-level: 0
-  immersive:
-    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
-    name: Architecture and R5 targeted regression
+  business:
+    name: Canonical Gallery and book review SQLite integration
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,13 +52,48 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - run: node --experimental-transform-types --test integration/imperial-v3/qa/review-store.test.mjs
+  browser:
+    name: Real local Worker / ${{ matrix.engine }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: npm ci
-      - name: Recheck failed suites plus neighboring shell and identity contracts
+      - uses: actions/download-artifact@v4
+        with:
+          name: v32-built-worker
+          path: ${{ runner.temp }}/v32-build
+      - name: Restore exact built artifact
         run: |
           set -euo pipefail
-          npm run test:architecture
-          npm run test:library
-          npm run test:shell
-          npm run test:identity-architecture
-          npm run test:mark-placements
-          npm run test:performance
+          cd "$RUNNER_TEMP/v32-build"
+          sha256sum -c dist.tar.sha256
+          test "$(cat candidate.sha)" = "$GITHUB_SHA"
+          tar -xf dist.tar -C "$GITHUB_WORKSPACE"
+      - run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps ${{ matrix.engine }}
+      - run: bash integration/imperial-v3/qa/local-browser.sh ${{ matrix.engine }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v32-local-browser-${{ matrix.engine }}
+          path: ${{ runner.temp }}/v32-browser/
+          if-no-files-found: warn
+          retention-days: 7

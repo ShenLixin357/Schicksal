@@ -17,8 +17,8 @@ async function authority(request:Request,method:string){
  if(session.accountMode==="technology"){await requireTechnologyMinister(request);const rows=await env.DB.prepare("SELECT citizen_id,term_id FROM current_office_holders WHERE office_id='technology' LIMIT 2").all<{citizen_id:string;term_id:string}>();if(rows.results.length!==1||rows.results[0].citizen_id!==actor)throw new ApiError("部长任期已变化",403);term=rows.results[0].term_id;}
  return {actor,mode:session.accountMode,term,tokenHash:await digest(token),now:Date.now()};
 }
-function failure(e:unknown){const s=e as {status?:number;message?:string};const status=[400,401,403,404,409,413,422,429].includes(s?.status??0)?s.status!:503;return Response.json({error:status===503?"艺术作品暂时无法提交":s.message},{status,headers});}
-export async function GET(request:Request){try{gate();const a=await authority(request,"GET"),q=new URL(request.url).searchParams;if(q.get("availability")==="1"){await authority(request,"POST");return Response.json({enabled:true},{headers});}
+function failure(e:unknown){const s=e as {status?:number;message?:string};const status=[400,401,403,404,409,413,415,422,429].includes(s?.status??0)?s.status!:503;return Response.json({error:status===503?"艺术作品暂时无法提交":s.message},{status,headers});}
+export async function GET(request:Request){try{gate();const a=await authority(request,"GET"),q=new URL(request.url).searchParams;if(q.get("availability")==="1"){await authority(request,"POST");configuredGallery();const inspector=(env as unknown as {GALLERY_IMAGE_INSPECTOR?:{fetch?:unknown}}).GALLERY_IMAGE_INSPECTOR;if(typeof inspector?.fetch!=="function")throw new ApiError("可信图片解码服务未配置",503);await env.DB.prepare("SELECT version FROM imperial_review_items LIMIT 0").bind().all();await env.DB.prepare("SELECT id FROM imperial_visible_gallery_versions LIMIT 0").bind().all();return Response.json({enabled:true},{headers});}
  const work=q.get("work"),version=q.get("version");if(!id(work)||!id(version))throw new ApiError("作品版本无效",400);
  const row=await env.DB.prepare("SELECT i.author FROM imperial_review_items i WHERE i.kind='gallery' AND i.entity=? AND i.version=?").bind(work,version).first<{author:string}>();
  if(!row||(row.author!==a.actor&&a.mode!=="technology"))throw new ApiError("作品不存在或无权读取",404);
@@ -31,7 +31,7 @@ export async function POST(request:Request){try{gate();if(request.headers.get("o
  const bytes=await readGalleryBytes(request);await validateGalleryUpload(bytes,"original");
  const after=await authority(request,"POST");if(after.actor!==a.actor||after.mode!==a.mode||after.term!==a.term)throw new ApiError("会话已变化",409);
  const store=configuredGallery();
- if(base===null)await store.create(title,category,a.actor,work!);else{const owner=await env.DB.prepare("SELECT created_by FROM gallery_works WHERE id=? AND trashed_at IS NULL").bind(work).first<{created_by:string}>();if(owner?.created_by!==a.actor)throw new ApiError("只能修改自己的作品",403);}
+ if(base===null)await store.create(title,category,a.actor,work!);else{const owner=await env.DB.prepare("SELECT created_by,title,collection FROM gallery_works WHERE id=? AND trashed_at IS NULL").bind(work).first<{created_by:string;title:string;collection:string}>();if(owner?.created_by!==a.actor)throw new ApiError("只能修改自己的作品",403);if(owner.title!==title.trim()||owner.collection!==category)throw new ApiError("当前版本仅支持替换原稿；标题与分类保持不变",409);}
  const v=await store.addVersion(work!,base,name,bytes,a.actor,version!);
  const live=await authority(request,"POST");if(live.actor!==a.actor||live.mode!==a.mode||live.term!==a.term)throw new ApiError("上传已保全但权限已变化；尚未公开",409);
  const review=await submitReview(env.DB,{kind:"gallery",entity:work,version:v.id,category},live);
