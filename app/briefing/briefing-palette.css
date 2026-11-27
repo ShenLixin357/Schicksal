@@ -46,7 +46,7 @@
 /* The only large emblem is still <Emblem compact /> as used by the sidebar.
  * Avoid applying colours, masks or filters to the actual eight rays. */
 .imperial-briefing-emblem-art > .emblem.compact {
-  filter:drop-shadow(0 calc(4px * var(--briefing-emblem-scale,1)) calc(7px * var(--briefing-emblem-scale,1)) rgba(70,105,126,.10));
+  filter:drop-shadow(0 4px 7px rgba(70,105,126,.10));
 }
 
 /* Affairs = champagne and powder blue; Messages = pearl pink and lilac.

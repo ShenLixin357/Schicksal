@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: schicksal-ui-preview-deployment
@@ -53,14 +54,22 @@ jobs:
           cache: npm
       - name: Verify exact preview source commit
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Verify V3.2 preview matches accepted application source
+      - name: Require successful exact-source V3.2 acceptance before preview
         if: github.ref_name == 'feature/imperial-v32-review'
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          ACCEPTED_SHA=480878cdca6ec7a2eff5fc8fe34c1d165a4fb885
-          git merge-base --is-ancestor "$ACCEPTED_SHA" "$GITHUB_SHA"
-          git diff --name-only "$ACCEPTED_SHA" "$GITHUB_SHA" | python3 -c 'import sys; assert set(sys.stdin.read().splitlines()) <= {".github/workflows/schicksal-ui-preview-deploy.yml"}, "Application source differs from accepted V3.2"'
+          for i in $(seq 1 100); do
+            result=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/imperial-v32-review.yml/runs?head_sha=$GITHUB_SHA&per_page=10" --jq '.workflow_runs | map(select(.head_sha == "'$GITHUB_SHA'")) | first | if . == null then "missing" elif .status == "completed" then .conclusion else "pending" end')
+            case "$result" in
+              success) exit 0 ;;
+              failure|cancelled|timed_out|action_required|skipped|neutral|stale) echo "::error::Exact-source acceptance $result"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::No successful exact-source acceptance"; exit 1
       - name: Verify preview-only authorization
         shell: bash
         run: |
@@ -166,6 +175,9 @@ jobs:
           const config = JSON.parse(readFileSync(path, "utf8"));
           // Runtime SHA must identify exactly the acceptance commit.
           config.vars.SCHICKSAL_PREVIEW_COMMIT = process.env.GITHUB_SHA;
+          if (process.env.GITHUB_REF_NAME === "feature/imperial-v32-review") {
+            Object.assign(config.vars,{SCHICKSAL_MINISTRY_V2:"1",SCHICKSAL_GUIDE_ENABLED:"true",SCHICKSAL_EXPLORATION_ENABLED:"true",SCHICKSAL_GUIDE_LIBRARY_READY:"true"});
+          }
           if (process.env.SCHICKSAL_PREVIEW_R2_READY === "true") config.r2_buckets = [{ binding: "BUCKET", bucket_name: "schicksal-ui-preview-photos" }];
           if (!/^[a-f0-9]{40}$/i.test(config.vars.SCHICKSAL_PREVIEW_COMMIT)) throw Error("Invalid preview SHA");
           writeFileSync(path, JSON.stringify(config,null,2));
@@ -176,6 +188,22 @@ jobs:
         run: |
           set -euo pipefail
           npx wrangler d1 migrations apply DB --remote --config work/ui-preview-dist/server/wrangler.json
+      - name: Install guide and exploration schema ONLY in isolated preview
+        if: github.ref_name == 'feature/imperial-v32-review'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import assert from "node:assert/strict";
+          import { readFileSync } from "node:fs";
+          const c=JSON.parse(readFileSync("work/ui-preview-dist/server/wrangler.json","utf8"));
+          assert.equal(c.name,"schicksal-ui-preview");
+          assert.equal(c.d1_databases.length,1);
+          assert.equal(c.d1_databases[0].database_name,"schicksal-ui-preview-db");
+          assert.equal(c.d1_databases[0].database_id,process.env.SCHICKSAL_PREVIEW_D1_ID);
+          assert.notEqual(c.d1_databases[0].database_id,process.env.SCHICKSAL_PROD_D1_ID);
+          NODE
+          npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --file integration/imperial-v3/qa/preview-guide-exploration.sql
       - name: Inspect preview-only D1 schema used by briefing (no member data)
         shell: bash
         run: |
@@ -255,7 +283,17 @@ jobs:
           if (v.sourceSha !== process.env.GITHUB_SHA || v.preview !== true) {
             throw new Error("PREVIEW SHA MISMATCH: expected source commit was not deployed");
           }
-          console.log("Cumulative PR #9–23 acceptance SHA verified:", v.sourceSha);
+          console.log("Exact preview SHA verified:", v.sourceSha);
+          if (process.env.GITHUB_REF_NAME === "feature/imperial-v32-review") {
+            for (const path of ["/api/exploration","/api/site-guide?exploration=1"]) {
+              const r=await fetch(root+path,{headers:{Cookie:cookie},cache:"no-store"});
+              if(!r.ok)throw Error("Activated preview API "+path+" returned "+r.status);
+              const data=await r.json();
+              if(path.includes("exploration")&&!path.includes("site-guide")&&!data.basic)throw Error("Missing exploration progress");
+              if(path.includes("site-guide")&&!Array.isArray(data.cards))throw Error("Missing guide catalog");
+              console.log("Verified activated preview API: "+path);
+            }
+          }
           const ordinaryOfficeGate = await fetch(root + "/api/technology/direct-password", {headers:{Cookie:cookie}});
           if (ordinaryOfficeGate.status !== 403) throw Error("Ordinary citizen session exposed ministry credential management");
           const personalDenied = await fetch(root + "/api/member-session", {

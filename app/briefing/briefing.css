@@ -494,13 +494,10 @@
   display:grid; place-items:center;
 }
 .imperial-briefing-emblem-art > .emblem.compact {
-  /* Render at the final layout size: avoid WebKit enlarging a rasterized 42px layer. */
-  --briefing-emblem-scale:5.2;
-  --briefing-emblem-size:218.4px;
-  width:var(--briefing-emblem-size); height:var(--briefing-emblem-size); flex:0 0 var(--briefing-emblem-size);
-  transform:none;
+  width:42px; height:42px; flex:0 0 42px;
+  transform:scale(5.2);
   transform-origin:center;
-  filter:drop-shadow(0 calc(4px * var(--briefing-emblem-scale)) calc(5px * var(--briefing-emblem-scale)) rgba(91,121,145,.12));
+  filter:drop-shadow(0 4px 5px rgba(91,121,145,.12));
 }
 .imperial-briefing-hero-art .imperial-briefing-arcade {
   opacity:.13; left:-16%; bottom:-25%; height:72%;
@@ -523,12 +520,12 @@
 .imperial-briefing-desk > .imperial-briefing-canvas { z-index:-1; opacity:.56; }
 .imperial-briefing-desk > .imperial-briefing-canvas > svg { min-height:0; }
 @media (max-width:980px) {
-  .imperial-briefing-emblem-art > .emblem.compact { --briefing-emblem-scale:4.9; --briefing-emblem-size:205.8px; }
+  .imperial-briefing-emblem-art > .emblem.compact { transform:scale(4.9); }
 }
 @media (max-width:680px) {
   .imperial-briefing-paper > .imperial-briefing-canvas { opacity:.63; }
   .imperial-briefing-overlay .imperial-briefing-hero-art { width:58%; right:-8%; opacity:.76; }
-  .imperial-briefing-emblem-art > .emblem.compact { --briefing-emblem-scale:3.15; --briefing-emblem-size:132.3px; }
+  .imperial-briefing-emblem-art > .emblem.compact { transform:scale(3.15); }
   .imperial-briefing-lead-copy { width:72%; }
   .imperial-briefing-canvas > svg { min-height:1200px; }
 }

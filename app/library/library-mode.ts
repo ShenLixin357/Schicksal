@@ -12,7 +12,7 @@ export const LIBRARY_DISCOVERY_ENABLED: boolean = false;
 export const LIBRARY_SEMANTIC_SEARCH_ENABLED: boolean = false;
 
 /** Explicit independent preview only. */
-export const IMPERIAL_GUIDE_ENABLED: boolean = false;
+export const IMPERIAL_GUIDE_ENABLED: boolean = true;
 
 /** Dedicated preview only; requires matching server gate and migration. */
-export const IMPERIAL_EXPLORATION_ENABLED: boolean = false;
+export const IMPERIAL_EXPLORATION_ENABLED: boolean = true;
