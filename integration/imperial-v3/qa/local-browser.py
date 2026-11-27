@@ -36,8 +36,14 @@ with sync_playwright() as p:
         host.locator('#settings-toggle').click()
         expect(host.locator('#room-controls')).to_be_visible()
         expect(host.locator('#room-controls button')).to_have_count(4)
-        host.get_by_role('button',name='烛火',exact=True).click()
-        expect(host.get_by_role('button',name='烛火',exact=True)).to_have_attribute('aria-pressed','false')
+        candle=host.locator('#room-controls button[data-light="candle"]')
+        expect(candle).to_have_count(1)
+        expect(candle).to_have_text('烛火')
+        expect(candle).to_have_attribute('aria-pressed','true')
+        candle.click()
+        expect(candle).to_have_attribute('aria-pressed','false')
+        candle.click()
+        expect(candle).to_have_attribute('aria-pressed','true')
         host.locator('#settings-toggle').click()
         host.locator('#crest').click()
         expect(host.locator('#summon')).to_be_visible()
@@ -56,6 +62,11 @@ with sync_playwright() as p:
         print('PASS real authenticated entry, mandatory briefing, R5 first frame, 11 hotspots, settings, crest, read/cover/return and teardown')
     except Exception:
         page.screenshot(path=str(report/'failure.png'))
+        try:
+            (report/'failure-dom.html').write_text(page.content(),encoding='utf-8')
+            (report/'failure-library-shadow.html').write_text(page.locator('.library-native-host').evaluate('(el) => el.shadowRoot?.innerHTML ?? ""',timeout=2000),encoding='utf-8')
+        except Exception as diagnostic_error:
+            print('DOM diagnostic unavailable:',diagnostic_error)
         print('Failure URL:',page.url,'page errors:',errors)
         raise
     finally:
