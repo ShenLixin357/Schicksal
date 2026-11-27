@@ -1,0 +1,15 @@
+# V3 preview integration and activation contract
+
+The R4 ministry portal now contains a real, default-off V3 status panel. /api/technology/v3-status uses the existing elevated session and current sole incumbent. GET never creates tables or runs work; missing schema is distinct from empty queue. POST simulations do not save or alter access, and acknowledgement is a single conditional SQL update bound to current term, token hash, grant expiry and incident revision. The panel's gallery timeline reads the existing /api/gallery API; no alternate content ACL.
+
+Required explicit preview configuration (all absent by default):
+- SCHICKSAL_V3_STATUS_ENABLED=true and SCHICKSAL_HOSTING=cloudflare and SCHICKSAL_PREVIEW_COMMIT exact 40 hex. The marker is not proof of isolation: verify separate preview Worker/D1 UUID before any deployment.
+- SCHICKSAL_V3_MUTATIONS_ENABLED=true enables incident acknowledgement only. Do not set in production.
+- SCHICKSAL_V3_EXTERNAL_READS=true enables minister-requested GET adapters. IMPerial credentials are server-only: IMPERIAL_GITHUB_TOKEN, IMPERIAL_GITHUB_OWNER, IMPERIAL_GITHUB_REPO, IMPERIAL_GITHUB_BRANCH; IMPERIAL_CF_TOKEN, IMPERIAL_CF_ACCOUNT, IMPERIAL_CF_PREVIEW_WORKER. Use least-privilege read-only tokens. No billing/traffic or secret values. No automatic external call.
+- No Cron installation, R2 activation or model calls.
+
+SQL: after existing V2.5 domain proposals and V3 events/outbox.sql and operations.sql, review domain-events.proposed.sql. It observes successful published books/animations, new gallery/digital versions, trash/restore, gallery tags, permission/feature/account changes, reviewed caption revisions, and trusted multi-stage completion. No draft or failed domain write is emitted; rollback rolls back event. Raw private content, user queries, credentials, captions and clues are not copied into event payloads. Source-change rows are internal and not returned by status. No events from cosmetic client discovery. No historical backfill, search model calls, reward, or external notification. All proposals remain outside numbered migrations. Before installing the triggers, benchmark write overhead, quota/retention and recovery, review rollback of triggers separately; never apply to production. Queue consumers still require actual current-state handlers and idempotency.
+
+V2.5 intake: the native panel import and mount are intentionally separated from the original V2 MinistryConsole transform anchors. The new exact paths are allowed by intake preflight; ordinary three-way cherry-pick must succeed or stop, never force. The original baseline and package checks remain. No claim of merged V2.5 application until actual intake and full build pass.
+
+Outstanding: true permission matrix writes and full route enforcement, persistent templates and succession/freeze recovery, authoritative proof producers, live search/index reconciliation and provider evaluation, cross-work graph edits, scene coverage, real external credentials, preview D1 and browser acceptance. Do not label simulated or configured features as live.

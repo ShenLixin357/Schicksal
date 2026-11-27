@@ -8,7 +8,7 @@ const groups={
  policy:['imperial_policy_sets','imperial_policy_current'],
  exploration:['imperial_exploration_steps','imperial_exploration_completions'],
  art:['imperial_art_versions','imperial_art_relations'],
- producers:['imperial_source_changes','imperial_source_fanout','imperial_book_published','imperial_gallery_version','imperial_digital_version','imperial_permission_changed'],
+ producers:['imperial_source_changes','imperial_source_fanout','imperial_book_published','imperial_gallery_version','imperial_digital_version','imperial_permission_changed','imperial_gallery_visibility','imperial_digital_visibility','imperial_gallery_tags_insert','imperial_gallery_tags_update','imperial_caption_changed','imperial_verified_discovery'],
  collection:['library_revisions','gallery_versions','digital_versions','ministry_current','search_embeddings','exploration_discoveries']
 };
 const members=['amberina','zxy','truth','kaito','harry'];
