@@ -1,0 +1,19 @@
+name: Gallery isolated budget tests
+on:
+  push:
+    branches: [feature/gallery-b-archive-20261128]
+    paths: ["server/gallery/**", "server/digital/**", "tests/gallery-r2-budget.test.mjs", "integration/imperial-v3/foundation/gallery-r2-budget.proposed.sql", ".github/workflows/gallery-budget-local.yml"]
+permissions:
+  contents: read
+jobs:
+  local-budget:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --experimental-transform-types --test tests/gallery-r2-budget.test.mjs

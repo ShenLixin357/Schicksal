@@ -1,0 +1,9 @@
+# Gallery shared R2 budget candidate
+
+This is not a Cloudflare billing cap. No production database migration, bucket binding, remote account query or upload is performed. The owner has created private Standard bucket schicksal-gallery and configured a billing alert. Do not use real data until authorized integration and validation.
+
+Both gallery and digital physical object ports use the same D1 atomic reservation. The limit is decimal 8 GB, 500k A and 5m B operations each month, 5k A and 20k B daily; warning targets 6 and 7.2 GB. All attempted operations count before R2, including misses and failures; writes conservatively reserve full attempted bytes. The budget does not auto-reset a month, does not refund failures, and fails closed if missing, disabled, unverified or expired. An attestation is valid at most 24 hours. Storage reservations survive month rollover. Actual usage is not inferred from logical version counts.
+
+Before real activation: reconcile whole-account Standard storage and current billing-cycle operations (including external buckets, preview and photos), establish a verified account-wide usage feed or safe operator reconciliation, provide budget state UI and warning notices, verify no other uncontrolled R2 path, enforce digital review and private archive policies, test D1 concurrency and quota behavior, configure separated preview bindings/migrations. The attestation fields are not a real account usage feed. No seed is included and no flags changed. Real R2 and D1 may have other account costs/limits. Never present this application guard as absolute zero-cost insurance.
+
+No monthly automatic reset or permanent deletion. A reviewed reconciliation is necessary to reclaim conservative reservations. Current media limits unchanged; existing large-file segmented path uses the same port. Separate logical quota still exists. Mixed-file intake and actual restoration remain future work.
