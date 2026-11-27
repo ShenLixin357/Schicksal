@@ -1,5 +1,5 @@
 "use client";
-import {Component,Suspense,useCallback,useState,type ComponentType,type ReactNode} from "react";
+import {Component,Suspense,useCallback,useEffect,useState,type ComponentType,type ReactNode} from "react";
 import {EmblemCanvas} from "../emblem/compact-emblem";
 import "./library-entrance.css";
 
@@ -22,4 +22,11 @@ export function LibraryEntrance({component:Scene,technology,onExit}:{component:C
    {phase==="loading"&&<div className="library-loading-cover" role="status" aria-label="正在加载天命图书馆"><span className="library-loading-mark"><EmblemCanvas mode="loading"/></span><span>正在布置图书馆…</span></div>}
    {phase==="error"&&<div className="library-entrance-error" role="alert"><p>图书馆暂时无法打开。</p><button type="button" onClick={()=>{setPhase("loading");setAttempt(v=>v+1)}}>重试</button><button type="button" onClick={onExit}>返回首页</button></div>}
  </div></EntranceBoundary>;
+}
+
+/** Do not overwrite the global persisted sidebar setting when entering this immersive room. */
+export function useLibrarySidebar(inLibrary:boolean,globalCollapsed:boolean){
+ const [expanded,setExpanded]=useState(false);
+ useEffect(()=>{if(!inLibrary)setExpanded(false)},[inLibrary]);
+ return {collapsed:inLibrary?!expanded:globalCollapsed,toggle:()=>setExpanded(v=>!v)};
 }

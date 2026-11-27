@@ -106,7 +106,8 @@ dialog::backdrop {background:#100a15a1}
 /* Immersive R4 scene: no masthead, page frame or persistent hint strip. */
 :host{position:relative;display:block;height:100%;width:100%;min-width:0;overflow:hidden;background:#352b34}
 .scene-wrap{width:100%;height:100%;max-width:none;padding:0;margin:0;position:relative}
-.scene{height:100%;width:100%;aspect-ratio:auto;display:grid;place-items:center;container-type:size;border:0;border-radius:0;box-shadow:none;background:linear-gradient(#30263280,#30263280),url('../../assets/master/library-master-v1.png') center/cover no-repeat}
+.scene{height:100%;width:100%;aspect-ratio:auto;display:grid;place-items:center;container-type:size;border:0;border-radius:0;box-shadow:none;background:#352b34}
+.scene::before{content:'';position:absolute;inset:-28px;z-index:-1;background:linear-gradient(#30263250,#30263250),url('../../assets/master/library-master-v1.png') center/cover no-repeat;filter:blur(22px);pointer-events:none}
 .scene-plane{width:min(100cqw,calc(100cqh * 1671 / 941));height:auto;aspect-ratio:1671/941;position:relative}
 #room{width:100%;height:100%}
 .room-settings{position:absolute;z-index:3;right:clamp(12px,2vw,28px);bottom:clamp(12px,2vw,28px)}

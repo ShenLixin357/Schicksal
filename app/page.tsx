@@ -1,5 +1,4 @@
 "use client";
-
 import { BriefingDesk, BriefingOverlay } from "./briefing/briefing";
 import type { BriefingTarget } from "./briefing/briefing-data";
 import { useBriefingFeed } from "./briefing/use-briefing-feed";
@@ -37,7 +36,7 @@ import { COMMITTEE_LOUNGE_ART } from "./club/lounge-access";
 
 import { HomeSection } from "./home/home-section";
 import { FeatureSuspense } from "./shell/feature-suspense";
-import { LibraryEntrance } from "./library/library-entrance";
+import { LibraryEntrance, useLibrarySidebar } from "./library/library-entrance";
 // Parliament UI and state remain isolated from the global entry coordinator.
 const PersistentParliamentSection = lazy(() => import("./parliament/parliament-section").then(module => ({ default: module.PersistentParliamentSection })));
 import { ImperialSidebar } from "./shell/imperial-sidebar";
@@ -325,9 +324,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
   const portalReturnSection = useRef<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [librarySidebarExpanded,setLibrarySidebarExpanded] = useState(false);
-  useEffect(()=>{if(section!=="library")setLibrarySidebarExpanded(false);},[section]);
-  const effectiveSidebarCollapsed=section==="library"?!librarySidebarExpanded:sidebarCollapsed;
+  const {collapsed:effectiveSidebarCollapsed,toggle:toggleLibrarySidebar}=useLibrarySidebar(section==="library",sidebarCollapsed);
   // Mandatory post-login gate: the application shell is never rendered until
   // a validated live briefing has actually been displayed and acknowledged.
   const [entryBriefingPending, setEntryBriefingPending] = useState(true);
@@ -482,7 +479,6 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
       />
   );
   if (!mayMountSiteAfterBriefing(entryBriefingPending)) return <main className="mandatory-briefing-gate">{briefingDialog}</main>;
-
   return (
     <main className={`system ${clubOpen ? "club-system" : ""} ${effectiveSidebarCollapsed ? "sidebar-collapsed" : ""} ${section==="library"?"library-system":""}`}>
       <ImperialLoadingScope enabled={!clubOpen && !portal}>
@@ -501,7 +497,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
           const member = CITIZENS.find(entry => entry.id === memberId);
           return member && accountMode==="technology" && member.id===citizen.id ? <TechnologyEmblem compact/> : member ? <CitizenMark citizen={member} placement={member.id === citizen.id ? (clubOpen ? "sidebar-lounge-self" : "sidebar-main-self") : "sidebar-main-other-member"} /> : null;
         }}
-        onToggle={section==="library"?()=>setLibrarySidebarExpanded(v=>!v):toggleSidebar}
+        onToggle={section==="library"?toggleLibrarySidebar:toggleSidebar}
         onLogo={() => { if (clubOpen) exitLounge(); else if (CLUB_MEMBER_IDS.has(citizen.id)) enterLounge(); }}
         onNavigate={(target: SidebarDestination) => {
           if (target === "collection") return;
