@@ -1,0 +1,12 @@
+"use client";
+import {useEffect,useRef,useState} from "react";
+type Item={kind:string;entity:string;version:string;author:string;category:string;state:string;revision:number;submitted_at:number;reason:string};
+const labels:Record<string,string>={book:"书籍",gallery:"图像",digital:"数字作品",pending:"临时上架 · 待审核",approved:"正式上架",rejected:"已下架 · 原件保留"};
+export function CollectionReviewPanel(){
+ const [items,I]=useState<Item[]|null>(null),[reason,R]=useState(""),[filter,F]=useState("pending"),[busy,B]=useState(false),[error,E]=useState("");const active=useRef(false);
+ async function load(){const r=await fetch("/api/technology/collection-review",{cache:"no-store",credentials:"same-origin"});if(r.status===404){if(active.current)I(null);return}const p=await r.json();if(!r.ok)throw Error(p.error);if(p.mode!=="technology")throw Error("请切换至现任科技部长");if(active.current)I(p.items);}
+ useEffect(()=>{active.current=true;void load().catch(e=>{if(active.current)E(String(e))});return()=>{active.current=false}},[]);
+ async function decide(x:Item,state:string){if(busy||!reason.trim())return;B(true);E("");try{const r=await fetch("/api/technology/collection-review",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"decision",kind:x.kind,entity:x.entity,version:x.version,expected:x.revision,state,reason})});if(!r.ok)throw Error((await r.json()).error);await load();R("")}catch(e){if(active.current)E(String(e))}finally{if(active.current)B(false)}}
+ if(!items)return error?<p role="alert">{error}</p>:null;
+ return <section className="iv3-console"><h3>馆藏统一审核</h3><p>读取正式的版本审核记录。待审核内容须由完成可见性验收的馆藏入口展示，拒绝不删除原件。</p><nav>{["pending","approved","rejected","all"].map(s=><button key={s} aria-pressed={filter===s} onClick={()=>F(s)}>{labels[s]||"全部"}</button>)}</nav><button disabled={busy} onClick={()=>void load().catch(e=>E(String(e)))}>刷新待办</button><label>审核原因<input value={reason} maxLength={500} onChange={e=>R(e.target.value)}/></label>{error&&<p role="alert">{error}</p>}{items.filter(x=>filter==="all"||x.state===filter).map(x=><article className="iv3-row" key={x.kind+":"+x.version}><div><strong>{labels[x.kind]} · {x.category}</strong><small>作者 {x.author} · {x.entity} / {x.version}</small><small>{labels[x.state]} · {x.reason}</small></div><div>{["approved","rejected","pending"].filter(s=>s!==x.state).map(s=><button key={s} disabled={busy||!reason.trim()} onClick={()=>void decide(x,s)}>{s==="approved"?"通过／重新上架":s==="rejected"?"拒绝并下架":"撤销决定"}</button>)}</div></article>)}</section>;
+}
