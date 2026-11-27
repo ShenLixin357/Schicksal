@@ -37,7 +37,7 @@ export async function loadSceneHost(room,{signal,reduced=()=>false}={}){
   if(slotKey!==profile.id)throw Error('书位与该定稿轨迹不兼容');active=books[slotKey];track=multiTrack(active,{...profile.parameters,...settings},renderContext);state={inShelf:true};return track;};
  function render(now,time,highlight){if(disposed)return;const dt=lastRender===null?0:Math.min(100,Math.max(0,now-lastRender));lastRender=now;if(!reduced()){elapsed+=dt;if(corePlaying)coreElapsed+=dt;}for(const k of Object.keys(lights)){const d=lights[k]-lightLevel[k];lightLevel[k]+=reduced()?d:Math.sign(d)*Math.min(Math.abs(d),dt/1050);}
   state=track?track.sample(time):{inShelf:true};const crestTime=lockedCore===null?(reduced()?0:coreElapsed):lockedCore;scene.draw(positions(),{compare,guides,elapsed:crestTime,windElapsed:elapsed,lightLevel});if(compare)return;
-  if(highlight&&state.inShelf){const b=books[highlight];if(b){ctx.save();ctx.globalCompositeOperation='screen';ctx.shadowColor='#ffe3a4';ctx.shadowBlur=14;ctx.globalAlpha=.92;ctx.drawImage(b.spine,...b.origin);ctx.restore();}}
+  if(highlight&&state.inShelf){const b=books[highlight];if(b){ctx.save();ctx.globalCompositeOperation='screen';ctx.shadowColor='#ffe3a4';ctx.shadowBlur=14;ctx.globalAlpha=.92;ctx.drawImage(b.spine,...(b.highlightOrigin??b.origin));ctx.restore();}}
   if(state.effectsBehindBook)drawArchiveEffects(ctx,state.effects,archiveMarks);
   if(state.pose&&track){actorContext.clearRect(0,0,room.width,room.height);track.draw(state,crestTime);ctx.drawImage(actor,0,0);}
   if(state.flash)drawTeleportFlashes(ctx,state.flash);if(state.effects&&!state.effectsBehindBook)drawArchiveEffects(ctx,state.effects,archiveMarks);

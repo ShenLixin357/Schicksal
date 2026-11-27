@@ -6,15 +6,19 @@ import {commonFields,aFields,teleportFields,archiveFields,returnBufferField,rout
 import {createSelection} from './selection.js';
 import {createSceneFullscreen} from './fullscreen.js';
 
-export function mountLibrary(host,{debug=false,onError=()=>{}}={}){
+export function mountLibrary(host,{debug=false,onError=()=>{},onReady=()=>{}}={}){
 const root=host.shadowRoot??host.attachShadow({mode:'open'});
-root.innerHTML='<link rel="stylesheet" href="'+new URL('./catalog.css',import.meta.url).href+'">'+template;
-const abort=new AbortController();let disposed=false,frame=0;
+root.innerHTML=template;
+const abort=new AbortController();let disposed=false,frame=0,ready=false,failed=false;
+const stylesheet=document.createElement('link');stylesheet.rel='stylesheet';
+const styleReady=new Promise((resolve,reject)=>{stylesheet.addEventListener('load',resolve,{once:true,signal:abort.signal});stylesheet.addEventListener('error',()=>reject(Error('图书馆样式无法加载')),{once:true,signal:abort.signal});});
+stylesheet.href=new URL('./catalog.css',import.meta.url).href;root.prepend(stylesheet);
 const on=(target,name,fn,opts={})=>target.addEventListener(name,fn,{...opts,signal:abort.signal});
 const byId=id=>root.getElementById(id);
 const room=byId('room'), crest=byId('crest'), shelfButtons=new Map();
 const fullscreen=createSceneFullscreen(room.closest('.scene'),root,document,{isDisposed:()=>disposed});
-const openCatalog=byId('open-catalog'), skip=byId('skip'), status=byId('scene-status');
+const settingsToggle=byId('settings-toggle'),settings=byId('room-controls'),skip=byId('skip'),status=byId('scene-status');
+const closeSettings=()=>{settings.hidden=true;settingsToggle.setAttribute('aria-expanded','false');};
 const summon=byId('summon'), query=byId('query'), results=byId('results');
 const reader=byId('reader'), pages=byId('reading-pages'), content=byId('reading-content');
 const coverView=byId('cover-view'), cover=byId('cover'), resume=byId('resume-button');
@@ -56,7 +60,7 @@ function setMode(next){
   const available=next==='idle';
   if(!available)cancelScenePress();
   for(const button of shelfButtons.values())button.disabled=!available&&next!=='debug';
-  for(const button of [crest,openCatalog])button.disabled=!available;
+  crest.disabled=!available;settingsToggle.disabled=!available;if(!available)closeSettings();
   skip.hidden=next!=='summoning';
   const message={summoning:'正在召唤书籍…',returning:'书本正在归位…'}[next];
   status.textContent=message??'';
@@ -71,7 +75,7 @@ function moveThrough(from,to,ended){
 }
 
 function animate(now){
-  frame=0;if(disposed||document.hidden)return;
+  frame=0;if(disposed||failed||!ready||document.hidden)return;
   const dt=lastFrame===null?0:Math.min(100,now-lastFrame)/1000;lastFrame=now;
   if(animation){
     const {to,ended}=animation;
@@ -115,7 +119,7 @@ function renderResults(){
 
 async function showCatalog(event){
   if(mode!=='idle'||viewCompare||summon.open)return;selection.cancel();
-  origin=event.currentTarget;
+  origin=event.currentTarget;closeSettings();
   query.value='';
   renderResults();
   if(fullscreen.active()){setMode('opening-catalog');await fullscreen.close();if(disposed)return;setMode('idle');}
@@ -246,7 +250,7 @@ function rotate(dx,dy){
   stage.drawCover(cover,yaw,pitch);
 }
 
-for(const button of [crest,openCatalog])button.addEventListener('click',showCatalog);
+crest.addEventListener('click',showCatalog);
 byId('close-catalog').addEventListener('click',()=>summon.close());
 summon.addEventListener('close',()=>selection.cancel());
 query.addEventListener('input',event=>{
@@ -318,15 +322,15 @@ function bindSceneControls(){
  const repaint=()=>stage.render(performance.now(),clock,hover);
  const addButton=(label,fn)=>{const b=element('button',label);b.type='button';on(b,'click',fn);container.append(b);return b;};
  const toggled=(label,initial,fn)=>{const b=addButton(label,()=>{const state=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(state));fn(state);repaint();});b.setAttribute('aria-pressed',String(initial));return b;};
- const sliderBySide={};for(const [side,name] of [['left','左梯'],['right','右梯']]){const label=element('label',name+' 位置 '),slider=element('input');slider.type='range';slider.min=0;slider.max=100;slider.value=Math.round(stage.position(side)*100);slider.setAttribute('aria-label',name+'轨道位置');on(slider,'input',()=>{stage.move(side,+slider.value/100);repaint();});label.append(slider);container.append(label);sliderBySide[side]=slider;}
- sceneTick=()=>{for(const [side,slider] of Object.entries(sliderBySide))if(root.activeElement!==slider)slider.value=Math.round(stage.position(side)*100);};
- toggled('徽记动画',true,corePlaying=>stage.setView({corePlaying}));toggled('轨道定位',false,guides=>stage.setView({guides}));toggled('原画对照',false,compare=>{viewCompare=compare;stage.setView({compare});selection.cancel();}).dataset.compare='true';
- addButton('全部灯光开 / 关',()=>{const on=Object.values(stage.lights).every(v=>!v);for(const k of Object.keys(stage.lights))stage.lights[k]=Number(on);for(const b of container.querySelectorAll('[data-light]')){b.textContent=b.dataset.label+' · '+(on?'开':'关');b.setAttribute('aria-pressed',String(on));}repaint();});
- addButton('全屏查看',()=>{void fullscreen.toggle();});
- on(document,'keydown',e=>{if(e.key==='Escape')fullscreen.escape();});
- for(const [side,name] of [['left','左梯'],['right','右梯']])for(const [target,label] of [[0,'←'],['home','原位'],[1,'→']]){const b=element('button',name+' '+label);b.type='button';on(b,'click',()=>{stage.move(side,target);stage.render(performance.now(),clock,hover)});container.append(b);}
- for(const [key,label] of [['candle','烛火'],['dome','穹顶'],['window','花窗']]){const b=element('button',label+' · 开');b.type='button';b.dataset.light=key;b.dataset.label=label;b.setAttribute('aria-pressed','true');on(b,'click',()=>{stage.lights[key]=1-stage.lights[key];b.textContent=label+' · '+(stage.lights[key]?'开':'关');b.setAttribute('aria-pressed',String(!!stage.lights[key]));stage.render(performance.now(),clock,hover)});container.append(b);}
- for(const [id,label] of [['left','左旗'],['inner','内旗'],['outer','外旗']])for(const windMode of ['gentle','strong']){const b=element('button',label+(windMode==='gentle'?' · 微风':' · 强风'));b.type='button';on(b,'click',()=>stage.wind(id,windMode));container.append(b);}
+ const heading=element('p','灯光调节','settings-heading');container.append(heading);
+ for(const [key,label] of [['candle','烛火'],['window','花窗'],['dome','穹顶']]){
+   const b=addButton(label,()=>{stage.lights[key]=1-stage.lights[key];b.setAttribute('aria-pressed',String(!!stage.lights[key]));repaint();schedule();});
+   b.setAttribute('aria-pressed','true');b.dataset.light=key;
+ }
+ toggled('原画',false,compare=>{viewCompare=compare;stage.setView({compare});selection.cancel();}).dataset.compare='true';
+ on(settingsToggle,'click',()=>{if(mode!=='idle')return;settings.hidden=!settings.hidden;settingsToggle.setAttribute('aria-expanded',String(!settings.hidden));});
+ on(root,'pointerdown',e=>{if(!settings.hidden&&!e.composedPath().includes(settings)&&!e.composedPath().includes(settingsToggle))closeSettings();});
+ on(document,'keydown',e=>{if(e.key==='Escape'&&!settings.hidden){closeSettings();settingsToggle.focus();}});
  let press=null,handled=false;
  const cancelPress=()=>{if(press){const {id,timer}=press;press=null;clearLater(timer);if(room.hasPointerCapture?.(id))room.releasePointerCapture(id);}};cancelScenePress=cancelPress;
  on(room,'pointerdown',e=>{if(mode!=='idle'||viewCompare||e.button!==0)return;const hit=stage.hit(e);if(!hit?.banner)return;handled=false;const p={id:e.pointerId,x:e.clientX,y:e.clientY,banner:hit.banner,strong:false};p.timer=later(()=>{if(press===p){p.strong=true;stage.wind(p.banner,'strong');}},420);press=p;room.setPointerCapture?.(e.pointerId);});
@@ -336,14 +340,16 @@ function bindSceneControls(){
  on(room,'click',e=>{if(handled){handled=false;return;}if(mode!=='idle'||viewCompare)return;const hit=stage.hit(e);if(hit?.banner)stage.wind(hit.banner,'gentle');else if(hit?.side){if(hit.ladder)stage.activateLadder(hit.side);else stage.move(hit.side,hit.t);repaint();}});
 
 }
-function schedule(){if(!frame&&!disposed&&!document.hidden){lastFrame=null;frame=requestAnimationFrame(animate);}}
-on(document,'visibilitychange',()=>{if(document.hidden){selection.cancel();cancelScenePress();pauseDebug();cancelAnimationFrame(frame);frame=0;lastFrame=null;stage?.suspend();}else if(stage){stage.render(performance.now(),clock,hover);schedule();}});
-on(reduced,'change',()=>{stage?.reducedChanged();if(reduced.matches&&animation){const end=animation.ended;animation=null;end();}if(stage){stage.render(performance.now(),clock,hover);schedule();}});
+function schedule(){if(!frame&&!disposed&&!failed&&!document.hidden){lastFrame=null;frame=requestAnimationFrame(animate);}}
+on(document,'visibilitychange',()=>{if(document.hidden){selection.cancel();cancelScenePress();pauseDebug();cancelAnimationFrame(frame);frame=0;lastFrame=null;stage?.suspend();}else if(stage&&ready&&!failed){stage.render(performance.now(),clock,hover);schedule();}});
+on(reduced,'change',()=>{stage?.reducedChanged();if(reduced.matches&&animation){const end=animation.ended;animation=null;end();}if(stage&&ready&&!failed){stage.render(performance.now(),clock,hover);schedule();}});
+function failLoading(error){if(disposed||failed)return;failed=true;abort.abort();stage?.dispose();clearLater(loadTimeout);onError(error);}
+const loadTimeout=later(()=>{if(!ready)failLoading(Error('图书馆加载超时'));},60000);
 (async()=>{try{
- [stage,documents]=await Promise.all([loadSceneHost(room,{signal:abort.signal,reduced:()=>reduced.matches}).then(value=>{if(disposed||abort.signal.aborted){value.dispose();throw new DOMException('Aborted','AbortError');}stage=value;return value;}),loadDocuments(abort.signal)]);
- if(disposed){stage.dispose();return;}
+ [stage,documents]=await Promise.all([loadSceneHost(room,{signal:abort.signal,reduced:()=>reduced.matches}).then(value=>{if(disposed||failed||abort.signal.aborted){value.dispose();throw new DOMException('Aborted','AbortError');}stage=value;return value;}),loadDocuments(abort.signal),styleReady]);
+ if(disposed||failed||abort.signal.aborted){stage.dispose();return;}
  for(const doc of documents){const slot=stage.slots.find(s=>s.id===bindingForBook(doc.id).slotId);const [left,top,right,bottom]=slot.box;const button=element('button',undefined,'hotspot shelf');button.type='button';button.dataset.book=doc.id;button.setAttribute('aria-label','召唤 '+doc.title);positionHotspot(button,(left+right)/2,(top+bottom)/2,right-left+16,bottom-top+12);shelfButtons.set(doc.id,button);byId('shelf-hotspots').append(button);const destination={kind:'contents',bookId:doc.id};bindSelectionClick(button,event=>{if(mode==='debug'){selectDebugBook(doc.id);return;}origin=button;selection.click(destination,event.detail,event.pointerType);});for(const event of ['pointerenter','focus'])on(button,event,()=>{if(mode==='idle'){hover=doc.id;stage.render(performance.now(),clock,hover);}});for(const event of ['pointerleave','blur'])on(button,event,()=>{if(hover===doc.id){hover=null;stage.render(performance.now(),clock,null);}});}
- positionHotspot(crest,crestCenter.x,crestCenter.y,178,178);bindSceneControls();if(debug)bindDebug();setMode('idle');stage.render(performance.now(),0,null);schedule();
- }catch(error){if(!disposed){abort.abort();stage?.dispose();console.error(error);status.hidden=false;status.textContent='图书馆暂时无法打开，请退出重试。';onError(error);}}})();
+ positionHotspot(crest,crestCenter.x,crestCenter.y,178,178);bindSceneControls();if(debug)bindDebug();stage.render(performance.now(),0,null);setMode('idle');ready=true;clearLater(loadTimeout);onReady();schedule();
+ }catch(error){failLoading(error);}})();
  return ()=>{if(disposed)return;disposed=true;cancelScenePress();abort.abort();void fullscreen.close();for(const id of timers)clearTimeout(id);timers.clear();selection.cancel();cancelAnimationFrame(frame);animation=null;turning?.cancel();for(const node of [pages,cover])for(const a of node.getAnimations?.()??[])a.cancel();if(reader.open)reader.close();if(summon.open)summon.close();stage?.dispose();room.width=0;room.height=0;cover.width=0;cover.height=0;root.replaceChildren();};
 }
