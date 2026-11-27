@@ -51,7 +51,7 @@ def page(s):
     s=rep(s,'import { ProfileCrystalEmblem } from "./profile/profile-crystal-emblem";','import { ProfileCrystalEmblem } from "./profile/profile-crystal-emblem"; import { PersonalExplorationSummary } from "./guide/personal-exploration-summary";')
     anchor='const LibrarySection = lazy(() => import("./library/library-section").then(module => ({ default: module.LibrarySection })));'
     s=rep(s,anchor,anchor+'\nconst LibraryCollections = lazy(() => import("./library/library-collections").then(m=>({default:m.LibraryCollections})));')
-    s=rep(s,'<ProfileSupplement id={citizen.id}/>', '<ProfileSupplement id={citizen.id}/><PersonalExplorationSummary identity={citizen.id+":citizen"}/><section aria-label="私人工作区"><h3>私人工作区</h3><p>尚未开放。</p></section>')
+    s=rep(s,'placement="profile-personal-simple" />}/><ProfileSupplement id={citizen.id}/>', 'placement="profile-personal-simple" />}/><ProfileSupplement id={citizen.id}/><PersonalExplorationSummary identity={citizen.id+":citizen"}/><section aria-label="私人工作区"><h3>私人工作区</h3><p>尚未开放。</p></section>')
     s=rep(s,'if(target==="books"||target==="collections"||target==="library")','if(target==="collections"&&LIBRARY_COLLECTIONS_ENABLED){setSection("gallery");}else if(target==="books"||target==="collections"||target==="library")')
     return s
 edit(p,page)
