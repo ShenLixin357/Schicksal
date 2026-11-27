@@ -31,7 +31,7 @@ jobs:
           test "$GITHUB_REF" = refs/heads/feature/imperial-integration-v3
           BASE=e5452b4517435c25004d15299d060c8f149ed0c8
           git merge-base --is-ancestor "$BASE" HEAD
-          git diff --name-only "$BASE" HEAD | python3 -c 'import sys; paths=sys.stdin.read().splitlines(); assert all(p.startswith("integration/imperial-v3/") or p==".github/workflows/imperial-v3-intake.yml" for p in paths), "Candidate already imported or unexpected changes: review manually"'
+          git diff --name-only "$BASE" HEAD | python3 -c 'import sys; paths=sys.stdin.read().splitlines(); assert all(p.startswith("integration/imperial-v3/") or p in (".github/workflows/imperial-v3-intake.yml",".github/workflows/imperial-v3-foundation.yml") for p in paths), "Candidate already imported or unexpected changes: review manually"'
           PACKAGE="$PWD/integration/imperial-v3/Schicksal_Integrated_Development_Handoff_V2_5_2026-11-27.zip"
           test -f "$PACKAGE"
           python3 integration/imperial-v3/prepare-intake.py "$PACKAGE" --repo "$PWD" --worktree "$RUNNER_TEMP/imperial-v3-candidate"

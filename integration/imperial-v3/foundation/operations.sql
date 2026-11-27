@@ -45,3 +45,27 @@ CREATE TABLE imperial_exploration_completions (
  member TEXT NOT NULL, secret TEXT NOT NULL, completed_at INTEGER NOT NULL,
  PRIMARY KEY(member,secret)
 );
+
+-- Health sample watermarks include healthy and unknown samples; neither creates an incident.
+CREATE TABLE imperial_probe_watermarks (
+ code TEXT PRIMARY KEY, at INTEGER NOT NULL, token TEXT NOT NULL
+);
+-- Separate version/edge persistence candidate, no collection content duplicated.
+CREATE TABLE imperial_art_versions (
+ id TEXT PRIMARY KEY, work TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision>=1), title TEXT NOT NULL,
+ UNIQUE(work,revision)
+);
+CREATE TABLE imperial_art_relations (
+ source TEXT NOT NULL REFERENCES imperial_art_versions(id), target TEXT NOT NULL REFERENCES imperial_art_versions(id),
+ kind TEXT NOT NULL CHECK(kind IN ('inspired-by','variant-of','supersedes','derived-from','related')),
+ PRIMARY KEY(source,target,kind), CHECK(source<>target)
+);
+CREATE UNIQUE INDEX imperial_art_single_parent ON imperial_art_relations(source) WHERE kind='supersedes';
+CREATE TRIGGER imperial_art_lineage BEFORE INSERT ON imperial_art_relations WHEN NEW.kind='supersedes' BEGIN
+ SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM imperial_art_versions a JOIN imperial_art_versions b ON a.work=b.work WHERE a.id=NEW.source AND b.id=NEW.target AND a.revision>b.revision) THEN RAISE(ABORT,'invalid lineage') END;
+END;
+CREATE TRIGGER imperial_art_cycle BEFORE INSERT ON imperial_art_relations WHEN NEW.kind IN ('supersedes','derived-from','variant-of') BEGIN
+ SELECT CASE WHEN EXISTS(WITH RECURSIVE walk(id) AS (SELECT NEW.target UNION SELECT r.target FROM imperial_art_relations r JOIN walk w ON r.source=w.id WHERE r.kind IN ('supersedes','derived-from','variant-of')) SELECT 1 FROM walk WHERE id=NEW.source) THEN RAISE(ABORT,'dependency cycle') END;
+END;
+CREATE TRIGGER imperial_art_versions_immutable BEFORE UPDATE ON imperial_art_versions BEGIN SELECT RAISE(ABORT,'immutable version'); END;
+CREATE TRIGGER imperial_art_relations_immutable BEFORE UPDATE ON imperial_art_relations BEGIN SELECT RAISE(ABORT,'immutable relation'); END;

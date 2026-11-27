@@ -1,0 +1,24 @@
+name: Imperial V3 foundation tests
+on:
+  push:
+    branches: [feature/imperial-integration-v3]
+    paths:
+      - integration/imperial-v3/foundation/**
+      - .github/workflows/imperial-v3-foundation.yml
+permissions:
+  contents: read
+jobs:
+  test:
+    if: github.repository == 'ShenLixin357/Schicksal' && github.event.repository.private == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - run: node --test integration/imperial-v3/foundation/*.test.mjs integration/imperial-v3/foundation/events/*.test.mjs

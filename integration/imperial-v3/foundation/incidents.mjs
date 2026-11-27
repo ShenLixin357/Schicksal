@@ -4,9 +4,14 @@ function validate(code,at){if(typeof code!=='string'||!codePattern.test(code)||!
 export async function observe(db,{code,status,severity='warning',at}){
   validate(code,at);
   if(!['healthy','fault','unknown'].includes(status)||!severities.has(severity))throw new TypeError('Invalid observation');
-  if(status==='unknown')return null; // an absent/failed probe is not recovery
-  if(status==='healthy')return db.prepare("UPDATE imperial_incidents SET state='resolved',revision=revision+1,resolved_at=?,observed_at=? WHERE code=? AND state<>'resolved' AND observed_at<? RETURNING *").bind(at,at,code,at).first();
-  return db.prepare(`INSERT INTO imperial_incidents(code,severity,state,generation,revision,observed_at,opened_at) VALUES(?,?,'open',1,1,?,?)
+  // A unique sample token makes the watermark and transition atomic even across concurrent probes.
+  const token=crypto.randomUUID();
+  const watermark=db.prepare("INSERT INTO imperial_probe_watermarks(code,at,token) VALUES(?,?,?) ON CONFLICT(code) DO UPDATE SET at=excluded.at,token=excluded.token WHERE at<excluded.at").bind(code,at,token);
+  if(status==='unknown'){await watermark.run();return null;}
+  let transition;
+  if(status==='healthy')transition=db.prepare("UPDATE imperial_incidents SET state='resolved',revision=revision+1,resolved_at=?,observed_at=? WHERE code=? AND state<>'resolved' AND EXISTS(SELECT 1 FROM imperial_probe_watermarks WHERE code=? AND token=?) RETURNING *").bind(at,at,code,code,token);
+  else transition=db.prepare(`INSERT INTO imperial_incidents(code,severity,state,generation,revision,observed_at,opened_at)
+  SELECT ?,?,'open',1,1,?,? WHERE EXISTS(SELECT 1 FROM imperial_probe_watermarks WHERE code=? AND token=?)
   ON CONFLICT(code) DO UPDATE SET
   state=CASE WHEN state='resolved' OR severity<>excluded.severity THEN 'open' ELSE state END,
   generation=generation+CASE WHEN state='resolved' THEN 1 ELSE 0 END,
@@ -15,7 +20,8 @@ export async function observe(db,{code,status,severity='warning',at}){
   acknowledged_by=CASE WHEN state='resolved' OR severity<>excluded.severity THEN NULL ELSE acknowledged_by END,
   acknowledged_at=CASE WHEN state='resolved' OR severity<>excluded.severity THEN NULL ELSE acknowledged_at END,
   resolved_at=NULL,severity=excluded.severity,observed_at=excluded.observed_at
-  WHERE observed_at<excluded.observed_at RETURNING *`).bind(code,severity,at,at).first();
+  RETURNING *`).bind(code,severity,at,at,code,token);
+  const results=await db.batch([watermark,transition]);return results[1].results?.[0]??null;
 }
 // Call only behind requireTechnologyMinister with a fresh office check.
 export async function acknowledge(db,{code,actor,expectedRevision,at}){
