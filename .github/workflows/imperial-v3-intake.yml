@@ -4,6 +4,7 @@ on:
     branches: [feature/imperial-integration-v3]
     paths:
       - integration/imperial-v3/Schicksal_Integrated_Development_Handoff_V2_5_2026-11-27.zip
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:

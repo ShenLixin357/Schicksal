@@ -85,6 +85,9 @@ def main():
         v3_policy = module(pathlib.Path(__file__).resolve().parent / 'foundation' / 'apply-v3-policy.py')
         print('V3 policy preflight:', v3_policy.apply(root, True))
         print('V3 policy hooked:', v3_policy.apply(root, False))
+        gallery = module(pathlib.Path(__file__).resolve().parent / 'foundation' / 'apply-gallery-unification.py')
+        print('Gallery merge preflight:', gallery.apply(root, True))
+        print('Gallery merged:', gallery.apply(root, False))
         # Preserve proposals outside active migrations. The original bundle stays
         # external: duplicating TS fixtures in the app tree can break typechecking.
         support = root / 'integration' / 'imperial-v3' / 'support'
@@ -99,6 +102,8 @@ def main():
                 (dest / folder).mkdir()
                 for proposal in (source / folder).glob('*.sql'):
                     shutil.copy2(proposal, dest / folder / proposal.name)
+                if folder == 'sql' and (source / folder / 'seed-local.json').is_file():
+                    shutil.copy2(source / folder / 'seed-local.json', dest / folder / 'seed-local.json')
         shutil.copy2(stage / ROOTS[2] / 'docs' / 'V2.5-DELIVERY.md', support / 'V2.5-DELIVERY.md')
         print('Local candidate prepared; review git status/diff and build before committing.')
         print('No push, SQL execution, activation, deployment or production change.')
