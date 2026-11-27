@@ -1,0 +1,9 @@
+import type {DigitalDB} from '../digital/large.ts';
+import type {Availability} from '../library/discovery.ts';
+import {corpus} from './corpus.ts';
+import {cached} from './engine.ts';
+export type Outcome='keyword'|'ready'|'partial'|'unavailable'|'conflict'|'failure';
+export async function metric(db:DigitalDB,scope:'books'|'all',outcome:Outcome,elapsed:number,empty:boolean){const ms=Math.min(600000,Math.max(0,Math.round(elapsed)));await db.prepare(`INSERT INTO search_daily_metrics(day,scope,outcome,requests,empty_results,elapsed_ms,max_ms) VALUES(?,?,?,1,?,?,?) ON CONFLICT(day,scope,outcome) DO UPDATE SET requests=requests+1,empty_results=empty_results+excluded.empty_results,elapsed_ms=elapsed_ms+excluded.elapsed_ms,max_ms=max(max_ms,excluded.max_ms)`).bind(new Date().toISOString().slice(0,10),scope,outcome,empty?1:0,ms,ms).run();}
+export async function diagnostics(db:DigitalDB,available:Availability,model:string|null){const stats=(await db.prepare('SELECT day,scope,outcome,requests,empty_results,elapsed_ms,max_ms FROM search_daily_metrics WHERE day>=? ORDER BY day DESC,scope,outcome').bind(new Date(Date.now()-6*86400000).toISOString().slice(0,10)).all<{day:string;scope:string;outcome:Outcome;requests:number;empty_results:number;elapsed_ms:number;max_ms:number}>()).results;
+ const counts=await db.prepare('SELECT COUNT(*) n FROM search_embeddings').bind().first<{n:number}>();let historical:{total:number;indexed:number;error:string|null}={total:0,indexed:0,error:null};try{const all=await corpus(db,available,'all',{kind:'all',history:true,from:'',to:''});const rows=all.filter(p=>p.historical);historical.total=new Set(rows.map(x=>x.digest)).size;historical.indexed=model?(await cached(db,model,rows)).size:0;}catch{historical.error='历史版本索引超过容量或暂不可用';}
+ return {stats,storedVectors:counts?.n??0,historical};}

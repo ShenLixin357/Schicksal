@@ -6,6 +6,7 @@ import { PageHead } from "../shell/page-head";
 import { MemberAccessSettings } from "../member-access-settings";
 import { TechnologyDirectPasswordSettings } from "./direct-password-settings";
 import "./technology-ministry.css";
+import { MinistryV2Console } from "./v2/console";
 
 /** The ministry uses the approved shared imperial mark, never a personal mark.
  * It does not create a ninth citizen; it has a separately authenticated minister identity.
@@ -35,14 +36,14 @@ export function TechnologyMinistryPortal({ sharedMark, onOpenPhotos, onOpenLibra
     </div>
     {access === "checking" ? <p role="status" className="technology-ministry-state"><ImperialLoading size={48}/>正在验证现任科技部部长身份…</p>
       : access === "denied" ? <p role="alert" className="technology-ministry-state">当前身份没有管理权限，或身份核验暂时失败。请重新登录后再试。</p>
-      : <section className="technology-ministry-functions">
+      : <MinistryV2Console legacy={<section className="technology-ministry-functions">
           <h3>档案管理</h3>
           <p>家庭影像馆的上传、照片编辑、回收与恢复仍按现有接口执行；完整隐私、历史审计及当事人权利规则尚待确认。</p>
           <button type="button" onClick={onOpenPhotos}>进入家庭影像馆管理 <span aria-hidden="true">→</span></button>
           <button type="button" onClick={onOpenLibrary}>进入图书馆调试 <span aria-hidden="true">→</span></button>
           <MemberAccessSettings />
           <TechnologyDirectPasswordSettings />
-        </section>}
+        </section>}/> }
     <button type="button" className="technology-ministry-back" onClick={onBack}>← 返回首页</button>
   </section>;
 }

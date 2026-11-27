@@ -4,6 +4,7 @@ import handler from "vinext/server/app-router-entry";
 import { currentMember } from "../app/member-session";
 import { standaloneBoundary } from "../app/standalone-access";
 import { privateSiteResponse } from "../app/private-login";
+import { ministryFeatureBoundary } from "../server/ministry/guard.ts";
 
 interface Env {
   ASSETS: Fetcher;
@@ -30,11 +31,16 @@ interface ExecutionContext {
 // dangerouslyAllowSVG: true in next.config.js and uncomment below:
 // const imageConfig: ImageConfig = { dangerouslyAllowSVG: true };
 
+import { scheduledDocumentBatch } from "../server/operations/document-jobs";
+import { scheduledSearchIndex } from "../server/search/service";
 const worker = {
+  async scheduled(_event: unknown, _env: Env, ctx: ExecutionContext) { ctx.waitUntil(Promise.allSettled([scheduledSearchIndex(),scheduledDocumentBatch()])); },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const guarded = await standaloneBoundary(request, env, currentMember);
     if (guarded instanceof Response) return privateSiteResponse(guarded, env);
     request = guarded;
+    const ministryDenied = await ministryFeatureBoundary(request);
+    if (ministryDenied) return privateSiteResponse(ministryDenied, env);
     const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {

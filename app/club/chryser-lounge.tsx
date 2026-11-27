@@ -1,4 +1,5 @@
 "use client";
+import {recordExploration} from "../guide/exploration";
 
 import Image from "next/image";
 import { CelloCorner } from "./cello/cello-corner";
@@ -35,6 +36,7 @@ function readRoomMemory(): RoomMemory {
 
 export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () => void; emblemBlades: readonly EmblemBlade[]; citizenId: string }) {
   const [memory, setMemory] = useState(readRoomMemory);
+  useEffect(()=>{void recordExploration("lounge:room:chryser");},[]);
   const [journalOpen, setJournalOpen] = useState(false);
   const [seated, setSeated] = useState(false);
   const [aquariumOpen, setAquariumOpen] = useState(false);
@@ -65,7 +67,7 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
     if (audioRef.current) void audioRef.current.close();
   }, []);
 
-  const discover = (id: MechanismId) => setMemory((current) => current.discovered.includes(id) ? current : { ...current, discovered: [...current.discovered, id] });
+  const discover = (id: MechanismId) => {void recordExploration("lounge:chryser:"+id);setMemory((current) => current.discovered.includes(id) ? current : { ...current, discovered: [...current.discovered, id] });};
 
   const chime = (melody: readonly number[], low = false) => {
     if (!soundEnabled) return;
@@ -138,7 +140,7 @@ export function ChryserLounge({ onBack, emblemBlades, citizenId }: { onBack: () 
   return <section className={`chryser-lounge ${memory.rain ? "night-rain" : "star-night"} ${memory.moonlit ? "moonlit-study" : "candlelit-study"} ${seated ? "seated" : ""} ${effect ? `answer-${effect.kind}` : ""}`} aria-label="Lord Chryser the Jade Ember 的私人 Lounge">
     <header className="chryser-lounge-toolbar">
       <button type="button" onClick={onBack}>返回 Committee Lounge</button>
-      <div className="chryser-toolbar-actions"><button type="button" aria-pressed={memory.moonlit} onClick={() => { setMemory((current) => ({ ...current, moonlit: !current.moonlit })); setWhisper(memory.moonlit ? "古金色烛光重新铺开。" : "月色落在翡翠丝绒上，夜雨也显得更轻了。"); }}>{memory.moonlit ? "留烛光" : "留月光"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((current) => !current)}>{soundEnabled ? "声音开" : "声音关"}</button><button type="button" className="chryser-journal-button" onClick={() => { setJournalOpen((current) => !current); discover("books"); }}>书房札记 <small>{memory.discovered.length}/{MECHANISMS.length}</small></button></div>
+      <div className="chryser-toolbar-actions"><button type="button" aria-pressed={memory.moonlit} onClick={() => { setMemory((current) => ({ ...current, moonlit: !current.moonlit })); void recordExploration("lounge:chryser:light"); setWhisper(memory.moonlit ? "古金色烛光重新铺开。" : "月色落在翡翠丝绒上，夜雨也显得更轻了。"); }}>{memory.moonlit ? "留烛光" : "留月光"}</button><button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((current) => !current)}>{soundEnabled ? "声音开" : "声音关"}</button><button type="button" className="chryser-journal-button" onClick={() => { setJournalOpen((current) => !current); discover("books"); }}>书房札记 <small>{memory.discovered.length}/{MECHANISMS.length}</small></button></div>
     </header>
     <div className="chryser-lounge-stage">
       <Image className="chryser-lounge-art" src="/chryser-private-lounge.png" alt="暗翡翠与古金色的欧洲古典私人 Lounge：壁炉、炉台座钟、翡翠扶手椅、书桌与拱窗" fill sizes="(max-width: 760px) 100vw, calc(100vw - 248px)" priority unoptimized />

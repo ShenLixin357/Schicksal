@@ -1,0 +1,8 @@
+import {env} from 'cloudflare:workers';
+import {ApiError} from '../http.ts';
+import {requireTechnologyMinister} from '../auth/member.ts';
+import {ACTIVE} from '../ministry/policy.ts';
+import {incumbentTerm} from '../search/settings.ts';
+import {authority,authArgs,validAuthority,gate} from './authority.ts';
+export async function sessionOverview(r:Request){const actor=await requireTechnologyMinister(r);gate();const rows=(await env.DB.prepare('SELECT citizen_id id,COUNT(*) count FROM member_sessions WHERE expires_at>? GROUP BY citizen_id').bind(Date.now()).all<{id:string;count:number}>()).results;return {term:await incumbentTerm(actor),members:ACTIVE.map(id=>({id,count:rows.find(x=>x.id===id)?.count??0,canRevoke:id!==actor})),history:(await env.DB.prepare('SELECT id,target,actor,term,reason,session_count,created_at FROM operations_session_revocations ORDER BY id DESC LIMIT 40').all()).results};}
+export async function revokeSessions(r:Request,p:Record<string,unknown>){const a=await authority(r,p);const id=p.target;if(typeof id!=='string'||!ACTIVE.some(x=>x===id)||id===a.actor||p.confirm!==true)throw new ApiError('仅可明确撤销其他已有登录身份的会话',400);const row=await env.DB.prepare(`INSERT INTO operations_session_revocations(target,actor,term,reason,session_count,created_at) SELECT ?,?,o.term_id,?,(SELECT COUNT(*) FROM member_sessions WHERE citizen_id=? AND expires_at>?),? FROM current_office_holders o WHERE ${validAuthority} RETURNING id,session_count`).bind(id,a.actor,a.reason,id,a.now,a.now,...authArgs(a)).first<{id:number;session_count:number}>();if(!row)throw new ApiError('部长任期或会话已变化',409);return row;}

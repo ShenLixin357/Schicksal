@@ -1,4 +1,5 @@
 "use client";
+import {recordExploration} from "../guide/exploration";
 
 import Image from "next/image";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
@@ -38,6 +39,7 @@ export function MafraerLounge({ onBack, ownerName, visitorName, isOwner, ownerAv
   onBack: () => void; ownerName: string; visitorName: string; isOwner: boolean; ownerAvatar: ReactNode;
 }) {
   const [lighting, setLighting] = useState<"moonlit" | "loading" | "lit">("moonlit");
+  useEffect(()=>{void recordExploration("lounge:room:mafraer");},[]);
   const [lightSpell, setLightSpell] = useState(0);
   const [magic, setMagic] = useState<{ kind: Magic; token: number } | null>(null);
   const [observing, setObserving] = useState(false);
@@ -85,6 +87,7 @@ export function MafraerLounge({ onBack, ownerName, visitorName, isOwner, ownerAv
       if (lightTimer.current !== null) window.clearTimeout(lightTimer.current);
       lightTimer.current = null;
       setLighting(loaded ? "lit" : "moonlit");
+      if(loaded)void recordExploration("lounge:mafraer:light");
       setWhisper(loaded ? "巨大的冰晶吊灯被你的魔力点亮。细碎的银蓝与淡紫折光洒在地板上，围着中央雪花轻轻闪耀。" : "冰晶暂时没有聚起光线。房间仍留着月光，可以再试一次。");
     };
     lightTimer.current = window.setTimeout(() => finish(false), 12000);
@@ -95,6 +98,7 @@ export function MafraerLounge({ onBack, ownerName, visitorName, isOwner, ownerAv
   const cast = (kind: Magic) => {
     if (magicTimer.current !== null) window.clearTimeout(magicTimer.current);
     setMagic({ kind, token: ++serial.current });
+    void recordExploration("lounge:mafraer:"+kind);
     const notes: Record<Magic, string> = {
       moon: "月亮认出了冰晶印记。星尘沿着月光落入水晶球，银河在玻璃里缓缓舒展。",
       crystal: "悬浮水晶球里的魔力凝成星辰，把一缕冰蓝光送回窗外的冰晶弯月。",
@@ -135,7 +139,7 @@ export function MafraerLounge({ onBack, ownerName, visitorName, isOwner, ownerAv
         <button type="button" className="mafraer-object" style={objectStyle("chandelier")} onClick={toggleLight} disabled={lighting === "loading"} aria-pressed={lighting === "lit"} aria-label={lighting === "lit" ? "收回魔力，关掉冰晶吊灯" : "调动魔力，点亮巨大冰晶吊灯"}><span>{lighting === "lit" ? "收回吊灯魔力" : "以月亮魔力点灯"}</span></button>
         <button type="button" className="mafraer-object" style={objectStyle("moon")} onClick={() => cast("moon")} aria-label="触碰窗外的冰晶弯月，让星尘落进悬浮水晶球"><span>向冰晶弯月伸手</span></button>
         {!mechanismsReady && <button type="button" className="mafraer-object mafraer-crystal-object" style={objectStyle("crystal")} onClick={() => cast("crystal")} aria-label="让雪花中心上方的悬浮水晶球盛满星尘，与冰晶弯月共鸣"><span>凝聚水晶球中的星尘</span></button>}
-        <button ref={telescopeRef} type="button" className="mafraer-object" style={objectStyle("telescope")} onClick={() => { setObserving(true); setWhisper("反射望远镜已对准北极星。拖动镜中的星空，寻找真正属于夜空的星辰。"); }} aria-label="使用大型牛顿式反射望远镜观测真实星表，默认对准北极星"><span>从北极星开始观星</span></button>
+        <button ref={telescopeRef} type="button" className="mafraer-object" style={objectStyle("telescope")} onClick={() => { setObserving(true); void recordExploration("lounge:mafraer:observatory"); setWhisper("反射望远镜已对准北极星。拖动镜中的星空，寻找真正属于夜空的星辰。"); }} aria-label="使用大型牛顿式反射望远镜观测真实星表，默认对准北极星"><span>从北极星开始观星</span></button>
         <button type="button" className="mafraer-object" style={objectStyle("snowflake")} onClick={() => cast("snowflake")} aria-label="唤醒地板中央巨大雪花的冰晶星轨"><span>唤醒雪花星轨</span></button>
         {lightSpell > 0 && <svg key={`light-${lightSpell}`} className="mafraer-light-invocation" style={originStyle(CHANDELIER)} viewBox="0 0 1600 900" aria-hidden="true"><path d={`M${CRYSTAL.x} ${CRYSTAL.y} Q${CRYSTAL.x + 80} ${(CRYSTAL.y + CHANDELIER.y) / 2} ${CHANDELIER.x} ${CHANDELIER.y}`} /><circle cx={CHANDELIER.x} cy={CHANDELIER.y} r="76" /><circle cx={CHANDELIER.x} cy={CHANDELIER.y} r="95" /></svg>}
         {magic && <div key={magic.token} className={`mafraer-magic magic-${magic.kind}`} aria-hidden="true">

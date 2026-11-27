@@ -1,0 +1,9 @@
+import {env} from 'cloudflare:workers';
+import {requireTechnologyMinister} from '../../../../server/auth/member.ts';
+import {ApiError,readJson} from '../../../../server/http.ts';
+import {requireLibraryPreview} from '../../../../server/library/preview-gate.ts';
+import {assetGovernance} from '../../../../server/assets/governance.ts';
+const headers={'Cache-Control':'private, no-store','Vary':'Cookie'};
+const error=(e:unknown)=>Response.json({error:e instanceof ApiError?e.message:'素材管理暂时不可用'},{status:e instanceof ApiError?e.status:503,headers});
+export async function GET(request:Request){try{await requireTechnologyMinister(request);requireLibraryPreview(env,'governance');const g=assetGovernance(env.DB),q=new URL(request.url).searchParams,limit=Number(q.get('limit')??50),offset=Number(q.get('offset')??0);return Response.json(q.has('manifest')?await g.manifest(limit,offset):q.has('version')?await g.links(q.get('namespace')??'',q.get('version')??'',limit,offset):await g.audit(limit,offset),{headers});}catch(e){return error(e);}}
+export async function POST(request:Request){try{if(request.headers.get('origin')!==new URL(request.url).origin)throw new ApiError('必须从本站提交',403);const actor=await requireTechnologyMinister(request);requireLibraryPreview(env,'governance');const g=assetGovernance(env.DB),p=await readJson(request,16384);const str=(k:string)=>{if(typeof p[k]!=='string')throw new ApiError('字段无效',400);return p[k] as string;};if(p.action==='revoke'){await g.revoke(str('id'),actor);return Response.json({ok:true},{headers});}if(p.action!=='link')throw new ApiError('未知操作',400);const namespace=str('namespace');if(namespace!=='gallery'&&namespace!=='digital')throw new ApiError('类型无效',400);return Response.json(await g.addLink({id:str('id'),sourceType:str('sourceType'),sourceId:str('sourceId'),sourceRevision:str('sourceRevision'),namespace,versionId:str('versionId')},actor),{status:201,headers});}catch(e){return error(e);}}

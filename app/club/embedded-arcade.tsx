@@ -1,4 +1,6 @@
 "use client";
+import {recordExploration} from "../guide/exploration";
+import {useEffect} from "react";
 
 import { Component, lazy, Suspense, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -25,6 +27,7 @@ class ArcadeErrorBoundary extends Component<{ children: ReactNode; onClose: () =
 }
 
 export function EmbeddedArcade({ game, onClose }: { game: ArcadeRoute; onClose: () => void }) {
+  useEffect(()=>{void recordExploration("lounge:game:"+game);},[game]);
   // Called only from an actual browser-side click, never at SSR.
   return createPortal(
     <div className="lounge-embedded-game" data-lounge-embedded-game={game}>

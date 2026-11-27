@@ -1,4 +1,5 @@
 "use client";
+import {recordExploration} from "../guide/exploration";
 
 // Private Lounge scenery is 158 KiB of uncompressed authored CSS.
 // Resolve it only when the Lounge route chunk is visited, keeping the
@@ -109,6 +110,8 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
   const [historyBusy, setHistoryBusy] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [maskOpen, setMaskOpen] = useState(false);
+  useEffect(()=>{if(maskOpen)void recordExploration("lounge:committee:mask");},[maskOpen]);
+  useEffect(()=>{if(rankingsOpen)void recordExploration("lounge:committee:rankings");},[rankingsOpen]);
   const miniGames = useMiniGameSystem();
   const [clubData, setClubData] = useState<ClubData>({ profiles: [], messages: [], seats: [], room: { id: "main", vaseSelection: "autumn", updatedByCitizenId: "", updatedAt: "" } });
   const [chatText, setChatText] = useState("");
@@ -206,6 +209,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
 
   const reveal = (nextEffect: typeof effect, message: string) => {
     setEffect(nextEffect);
+    if (["moon","portrait","cat","pumpkin","scroll"].includes(nextEffect)) void recordExploration("lounge:committee:"+nextEffect);
     setWhisper(message);
   };
 
@@ -346,7 +350,7 @@ export function CommitteeLounge({ citizen, leave, seatingUnlocked, initialRoom =
         <button type="button" onClick={leave}><span aria-hidden="true">←</span> 返回帝国</button>
         <button type="button" onClick={() => setRankingsOpen(true)}>月光成绩簿 · 排行榜</button>
         <div><i /> COMMITTEE LOUNGE · {clubData.seats?.length ?? 0}/3 SEATED</div>
-        <button type="button" aria-pressed={moonlight} onClick={() => { setMoonlight((value) => !value); setWhisper(moonlight ? "烛火重新亮起，壁炉又暖了起来。" : "烛火熄下，月光接管了整个房间。"); }}>{moonlight ? "点亮烛火" : "只留月光"}</button>
+        <button type="button" aria-pressed={moonlight} onClick={() => { setMoonlight((value) => !value); void recordExploration("lounge:committee:light"); setWhisper(moonlight ? "烛火重新亮起，壁炉又暖了起来。" : "烛火熄下，月光接管了整个房间。"); }}>{moonlight ? "点亮烛火" : "只留月光"}</button>
       </header>
 
       <div className="club-room-stage">

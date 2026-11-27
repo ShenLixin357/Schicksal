@@ -1,0 +1,6 @@
+import {env} from 'cloudflare:workers';
+import {ApiError,apiFailure} from '../../../../server/http.ts';
+import {sourceAccess} from '../../../../server/search/service.ts';
+import {readDocumentPage} from '../../../../server/search/documents.ts';
+import {discovery,target} from '../../../../server/library/discovery.ts';
+export async function GET(r:Request){try{const allowed=await sourceAccess(r),t=target(Object.fromEntries(new URL(r.url).searchParams));if(!allowed[t.kind])throw new ApiError('馆藏不可访问',403);if(t.kind==='book'&&!await env.DB.prepare("SELECT 1 FROM library_revisions a WHERE kind='book' AND state='published' AND entity_id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM library_revisions b WHERE b.kind='book' AND b.state='published' AND b.entity_id=a.entity_id AND b.seq>a.seq)").bind(t.id,t.revision).first())throw new ApiError('该书稿已不是当前正式版本',404);const h=await discovery(env.DB,allowed).resolve(t);if(!h)throw new ApiError('馆藏版本不可用',404);const page=new URL(r.url).searchParams.get('page');const documentPage=page!==null&&t.kind==='digital'?await readDocumentPage(t.id,t.revision,Number(page)):undefined;return Response.json({...h,...(documentPage?{documentPage}:{})},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}});}catch(e){return apiFailure(e,'馆藏读取失败');}}
