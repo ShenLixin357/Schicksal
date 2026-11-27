@@ -1,0 +1,103 @@
+name: Library R4 deployed preview verification only
+on:
+  push:
+    branches: ["intake/library-r4-20261127"]
+    paths: [".github/workflows/library-r4-online-verify.yml"]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: schicksal-library-r4-intake
+  cancel-in-progress: false
+env:
+  R4_BASE: e31fe637aeb629bb0a2cf42223041f2c0755871a
+  CANDIDATE_SHA: e5452b4517435c25004d15299d060c8f149ed0c8
+jobs:
+  verify:
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'intake/library-r4-20261127'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    environment: briefing-preview
+    steps:
+      - name: Verify exact branch and accepted test evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')" = "$R4_BASE"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/feature%2Flibrary-integration-20261127" --jq '.commit.sha')" = "$CANDIDATE_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/45916526039" > "$RUNNER_TEMP/run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/45916526039/jobs?per_page=100" > "$RUNNER_TEMP/jobs.json"
+          python3 - <<'PY'
+          import os,json,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])
+          r=json.loads((p/'run.json').read_text())
+          assert r['head_sha']=='47e7d0f1a21b292397f6d410103e0aef5e2a6ae5' and r['status']=='completed'
+          j={x['id']:x for x in json.loads((p/'jobs.json').read_text())['jobs']}
+          assert j[140236973189]['conclusion']=='success'
+          assert j[140237084181]['conclusion']=='success'
+          assert j[140237925867]['conclusion']=='failure'
+          print('PASS exact prior acceptance and targeted retry evidence')
+          PY
+      - name: Check deployed Worker, dedicated D1 and authenticated runtime (no writes except test session)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.SCHICKSAL_PREVIEW_CF_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.SCHICKSAL_PREVIEW_CF_ACCOUNT_ID }}
+          SCHICKSAL_PREVIEW_PASSWORDS: ${{ secrets.SCHICKSAL_PREVIEW_PASSWORDS }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import assert from "node:assert/strict";
+          const account=process.env.CLOUDFLARE_ACCOUNT_ID,token=process.env.CLOUDFLARE_API_TOKEN,sha=process.env.CANDIDATE_SHA;
+          assert.match(account,/^[a-f0-9]{32}$/);assert.ok(token);
+          const api="https://api.cloudflare.com/client/v4/accounts/"+account;
+          const cf=async path=>{const r=await fetch(api+path,{headers:{Authorization:"Bearer "+token},signal:AbortSignal.timeout(15000)});assert.ok(r.ok,"Cloudflare API status "+r.status);const x=await r.json();assert.equal(x.success,true);return x.result};
+          const name="schicksal-library-r4-preview-20261127";
+          const settings=await cf("/workers/scripts/"+name+"/settings");
+          const bindings=settings.bindings||[];
+          assert.equal(bindings.find(x=>x.name==="SCHICKSAL_PREVIEW_COMMIT")?.text,sha);
+          assert.equal(bindings.find(x=>x.name==="SCHICKSAL_HOSTING")?.text,"cloudflare");
+          const db=bindings.filter(x=>x.type==="d1");assert.equal(db.length,1);assert.equal(db[0].name,"DB");
+          const info=await cf("/d1/database/"+(db[0].id??db[0].database_id));
+          assert.equal(info.name,name+"-db");
+          assert.ok(!bindings.some(x=>x.type==="r2_bucket"));
+          const secret=bindings.find(x=>x.name==="SCHICKSAL_MEMBER_PASSWORDS");
+          assert.equal(secret?.type,"secret_text","Preview password binding absent or wrong type");
+          console.log("PASS deployed version marker, exact dedicated D1 and secret binding; no R2");
+          const root="https://"+name+".m17686100216.workers.dev";
+          const headers={Origin:root,"Content-Type":"application/json","Cache-Control":"no-cache"};
+          const request=(p,o={})=>fetch(root+p,{cache:"no-store",signal:AbortSignal.timeout(15000),...o,headers:{...headers,...o.headers}});
+          let ready=false,last;
+          for(let i=0;i<12;i++){
+            const r=await request("/?library-qa="+sha+"&attempt="+i);
+            last=r.status;await r.body?.cancel();
+            console.log("Anonymous readiness attempt "+(i+1)+": HTTP "+last);
+            if(last===401){ready=true;break;}
+            assert.ok([429,500,502,503,504].includes(last),"Unexpected anonymous response "+last+" (fail closed)");
+            if(i<11)await new Promise(r=>setTimeout(r,5000));
+          }
+          assert.ok(ready,"Preview did not become ready; last HTTP "+last);
+          for(const p of ["/library/data/nation-building.json","/api/library/debug"]){const r=await request(p);assert.equal(r.status,401,p);await r.body?.cancel();}
+          const password=JSON.parse(process.env.SCHICKSAL_PREVIEW_PASSWORDS).amberina;
+          assert.ok(typeof password==="string"&&password.length>=12);
+          const login=await request("/api/member-session",{method:"POST",body:JSON.stringify({citizenId:"amberina",password})});
+          assert.equal(login.status,200,"Preview login");const cookie=login.headers.get("set-cookie")?.split(";")[0];assert.ok(cookie);
+          const auth=(p,o={})=>request(p,{...o,headers:{...o.headers,Cookie:cookie}});
+          try{
+            const version=await auth("/api/preview-version");assert.equal(version.status,200);assert.deepEqual(await version.json(),{preview:true,sourceSha:sha});
+            assert.equal((await auth("/api/library/debug")).status,403);
+            const catalog=await auth("/library/data/nation-building.json");assert.equal(catalog.status,200);assert.equal((await catalog.json()).chapters.length,7);
+            assert.equal((await auth("/api/member-session/switch",{method:"POST",body:JSON.stringify({target:"technology"})})).status,200);
+            const dbg=await auth("/api/library/debug");assert.equal(dbg.status,200);assert.deepEqual(await dbg.json(),{authorized:true,mode:"local-preview-only",publish:false});
+          }finally{assert.equal((await auth("/api/member-session",{method:"DELETE"})).status,200);}
+          console.log("PASS live login, version, protected catalog, 7 chapters, citizen 403 and minister 200, logout");
+          NODE
+      - name: Record verified dedicated preview
+        run: |
+          {
+            echo "### Library R4 verified preview"
+            echo "Candidate: $CANDIDATE_SHA"
+            echo "https://schicksal-library-r4-preview-20261127.m17686100216.workers.dev"
+            echo "All automated gates passed across the linked runs; manual visual review and physical-device testing remain separate."
+            echo "No main merge, production changes, R2 or V1.1."
+          } >> "$GITHUB_STEP_SUMMARY"
