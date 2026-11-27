@@ -21,10 +21,13 @@ export async function submitReview(db,p,a){
  // Existing immutable version must belong to the submitting account; the
  // canonical upload adapter must complete bytes before registering this item.
  // Visibility stays fail-closed between canonical insert and this atomic batch.
- const i=query(db,"INSERT INTO imperial_review_items(kind,entity,version,author,category,submitted_at) SELECT ?,?,?,?,?,? WHERE "+live+" AND EXISTS(SELECT 1 FROM "+s.table+" WHERE "+s.entity+"=? AND "+s.version+"=? AND "+s.author+"=?"+s.extra+") ON CONFLICT(kind,entity,version) DO NOTHING",[p.kind,p.entity,p.version,a.actor,p.category,at,...authArgs(a),p.entity,p.version,a.actor]);
- const h=query(db,"INSERT INTO imperial_review_history(kind,entity,version,revision,state,actor,term,reason,at) SELECT ?,?,?,1,?,?,?,?,? WHERE changes()=1 AND "+live+" AND EXISTS(SELECT 1 FROM imperial_review_items WHERE kind=? AND entity=? AND version=? AND author=?)",[p.kind,p.entity,p.version,state,a.actor,a.term??null,a.mode==='technology'?'现任科技部长直接发布':'公民提交，待审核',at,...authArgs(a),p.kind,p.entity,p.version,a.actor]);
- const result=await db.batch([i,h]);
- if(result[1].meta.changes!==1)fail('作品不存在、已提交或会话已变化',409);
+ if(a.mode==='technology'&&!a.term)fail('部长任期无效',403);
+ const inserted=await query(db,"INSERT INTO imperial_review_items(kind,entity,version,author,category,submitted_at,initial_state,initial_term) SELECT ?,?,?,?,?,?,?,? WHERE "+live+" AND EXISTS(SELECT 1 FROM "+s.table+" WHERE "+s.entity+"=? AND "+s.version+"=? AND "+s.author+"=?"+s.extra+") ON CONFLICT(kind,entity,version) DO NOTHING RETURNING version",[p.kind,p.entity,p.version,a.actor,p.category,at,state,a.mode==='technology'?a.term:null,...authArgs(a),p.entity,p.version,a.actor]).first();
+ if(!inserted){
+   const existing=await query(db,"SELECT r.state,r.revision FROM imperial_review_items i JOIN imperial_review_current r USING(kind,entity,version) WHERE i.kind=? AND i.entity=? AND i.version=? AND i.author=? AND i.category=? AND "+live,[p.kind,p.entity,p.version,a.actor,p.category,...authArgs(a)]).first();
+   if(existing)return existing;
+   fail('作品不存在、类别不一致或会话已变化',409);
+ }
  return {state,revision:1};
 }
 export async function reviewDecision(db,p,a){
@@ -44,7 +47,7 @@ export async function assignSlot(db,p,a){
  authority(a);if(a.mode!=='technology'||!a.term)fail('需要现任科技部长',403);
  if(!id(p.book)||p.slot!==null&&!id(p.slot)||!Number.isSafeInteger(p.expected)||p.expected<0)fail('书位配置无效');
  // Derive author from immutable original submission, never trust client owner.
- const row=await query(db,"INSERT INTO imperial_book_bindings(book,revision,slot,author,actor,term,at) SELECT ?,?,?,i.author,?,?,? FROM imperial_review_items i JOIN imperial_review_current r USING(kind,entity,version) WHERE i.kind='book' AND i.entity=? AND r.state='approved' AND i.submitted_at=(SELECT MIN(x.submitted_at) FROM imperial_review_items x WHERE x.kind='book' AND x.entity=i.entity) AND "+live+" AND COALESCE((SELECT MAX(revision) FROM imperial_book_bindings WHERE book=?),0)=? AND (? IS NULL OR EXISTS(SELECT 1 FROM imperial_book_slots s WHERE s.id=? AND (s.owner IS NULL OR s.owner=i.author))) AND (?<>'AVS' OR (?='AVS' AND i.author='amberina')) ORDER BY i.version LIMIT 1 RETURNING book,revision,slot",[p.book,p.expected+1,p.slot,a.actor,a.term,Math.floor(a.now/1000),p.book,...authArgs(a),p.book,p.expected,p.slot,p.slot,p.book,p.slot]).first();
+ const row=await query(db,"INSERT INTO imperial_book_bindings(book,revision,slot,author,actor,term,at) SELECT ?,?,?,i.author,?,?,? FROM imperial_review_items i JOIN imperial_review_current r USING(kind,entity,version) WHERE i.kind='book' AND i.entity=? AND EXISTS(SELECT 1 FROM imperial_review_current c WHERE c.kind='book' AND c.entity=i.entity AND c.state='approved') AND i.version=(SELECT x.version FROM imperial_review_items x WHERE x.kind='book' AND x.entity=i.entity ORDER BY x.submitted_at,x.version LIMIT 1) AND "+live+" AND COALESCE((SELECT MAX(revision) FROM imperial_book_bindings WHERE book=?),0)=? AND (? IS NULL OR EXISTS(SELECT 1 FROM imperial_book_slots s WHERE s.id=? AND (s.owner IS NULL OR s.owner=i.author))) AND (?<>'AVS' OR (?='AVS' AND i.author='amberina')) ORDER BY i.version LIMIT 1 RETURNING book,revision,slot",[p.book,p.expected+1,p.slot,a.actor,a.term,Math.floor(a.now/1000),p.book,...authArgs(a),p.book,p.expected,p.slot,p.slot,p.book,p.slot]).first();
  if(!row)fail('书籍、书位、权限或版本不匹配',409);return row;
 }
 export async function displayBook(db,p,a){

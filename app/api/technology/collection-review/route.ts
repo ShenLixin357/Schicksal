@@ -24,6 +24,7 @@ export async function POST(request:Request){try{gate();if(request.headers.get("o
  // Do not expose this switch until public visibility and owner upload adapters are installed.
  if(p.action==="submit"){if((env as unknown as Record<string,string>).SCHICKSAL_V32_CANONICAL_INTAKE_READY!=="true")throw new ApiError("上传接入尚未验收",503);return Response.json(await submitReview(env.DB,p,a),{headers,status:201});}
  await requireTechnologyMinister(request);
+ if((env as unknown as Record<string,string>).SCHICKSAL_V32_CANONICAL_INTAKE_READY!=="true")throw new ApiError("馆藏可见性接入尚未验收",503);
  const result=p.action==="decision"?await reviewDecision(env.DB,p,a):p.action==="bind"?await assignSlot(env.DB,p,a):p.action==="display"?await displayBook(env.DB,p,a):null;
  if(!result)throw new ApiError("未知操作",400);return Response.json(result,{headers});
  }catch(e){return error(e)}}
