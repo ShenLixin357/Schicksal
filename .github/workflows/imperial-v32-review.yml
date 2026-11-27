@@ -1,0 +1,146 @@
+name: V3.2 isolated assembly and parallel acceptance
+on:
+  push:
+    branches: [feature/imperial-v32-review]
+    paths: [".github/workflows/imperial-v32-review.yml", "integration/imperial-v3/qa/**"]
+permissions:
+  contents: read
+concurrency:
+  group: imperial-v32-review
+  cancel-in-progress: false
+jobs:
+  assemble:
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    outputs:
+      candidate: ${{ steps.integrate.outputs.candidate }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/imperial-v32-review
+          fetch-depth: 0
+      - name: Exact source, original bundle and guarded assembly
+        id: integrate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor 29af9213d3dc0582862f8fd061a365f4bbd82e7c HEAD
+          git remote set-url origin https://github.com/ShenLixin357/Schicksal.git
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p "$RUNNER_TEMP/v32-report"
+          git status --short
+          set +e
+          bash integration/imperial-v3/integrate-v32-local.sh 2>&1 | tee "$RUNNER_TEMP/v32-report/assembly.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          # Preserve the exact assembled side even when a three-way merge stops.
+          if git show-ref --verify --quiet refs/heads/local/imperial-v3-intake; then
+            side=$(git rev-parse local/imperial-v3-intake)
+            remote=refs/heads/feature/imperial-v32-intake-assembled
+            existing=$(git ls-remote origin "$remote" | cut -f1)
+            if [ -z "$existing" ]; then
+              git push origin "$side:$remote"
+            elif [ "$existing" != "$side" ]; then
+              echo "Existing assembled branch preserved: $existing; new side $side"
+              git diff --stat "$existing" "$side" || true
+            fi
+            echo "Assembled side: $side" | tee "$RUNNER_TEMP/v32-report/assembled.txt"
+          fi
+          if [ "$result" != 0 ]; then
+            git status --short | tee "$RUNNER_TEMP/v32-report/status.txt"
+            git diff --name-only --diff-filter=U | tee "$RUNNER_TEMP/v32-report/conflicts.txt"
+            git diff --cc --no-ext-diff > "$RUNNER_TEMP/v32-report/conflicts.diff"
+            cat "$RUNNER_TEMP/v32-report/conflicts.diff"
+            exit "$result"
+          fi
+          git diff --cached --name-only | tee "$RUNNER_TEMP/v32-report/changes.txt"
+          python3 - <<'PY'
+          import subprocess
+          paths=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()
+          assert paths, 'No assembled changes'
+          assert not any(p.startswith(('.github/','drizzle/','wrangler','cloudflare-ui-preview/')) for p in paths), 'Unexpected migration or deployment changes'
+          PY
+          git commit -m 'Assemble V3.2 cumulative source without activation or deployment'
+          candidate=$(git rev-parse HEAD)
+          git fetch origin refs/heads/feature/imperial-v32-review
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          git push origin HEAD:refs/heads/feature/imperial-v32-review
+          echo "candidate=$candidate" >> "$GITHUB_OUTPUT"
+          echo "Candidate: $candidate" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v32-assembly-evidence
+          path: ${{ runner.temp }}/v32-report
+          if-no-files-found: warn
+          retention-days: 7
+  foundations:
+    name: V3 foundation and isolated SQLite
+    needs: assemble
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.assemble.outputs.candidate }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Existing foundation and proposal checks
+        run: |
+          set -euo pipefail
+          node --test integration/imperial-v3/foundation/*.test.mjs integration/imperial-v3/foundation/events/*.test.mjs
+          for f in integration/imperial-v3/foundation/*.test.py; do python3 "$f"; done
+  build:
+    name: Build exact candidate once
+    needs: assemble
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.assemble.outputs.candidate }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run validate:artifact
+      - name: Package verified build
+        run: |
+          mkdir -p "$RUNNER_TEMP/v32-build"
+          tar -cf "$RUNNER_TEMP/v32-build/dist.tar" dist
+          git rev-parse HEAD > "$RUNNER_TEMP/v32-build/candidate.sha"
+          cd "$RUNNER_TEMP/v32-build"
+          sha256sum dist.tar > dist.tar.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v32-built-worker
+          path: ${{ runner.temp }}/v32-build
+          retention-days: 2
+          compression-level: 0
+  regression:
+    name: Full regression and R5 contract
+    needs: assemble
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.assemble.outputs.candidate }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test tests/library-immersive-review.test.mjs
