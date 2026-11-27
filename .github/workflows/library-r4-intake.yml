@@ -2,7 +2,7 @@ name: Library R4 isolated integration and acceptance
 on:
   push:
     branches: ["intake/library-r4-20261127"]
-    paths: ["Schicksal_Library_Integration_Candidate_R4_2026-11-27*.zip", ".github/workflows/library-r4-intake.yml", "scripts/qa/library-r4-*.sh", "scripts/qa/library-r4-extra.py"]
+    paths: ["Schicksal_Library_Integration_Candidate_R4_2026-11-27*.zip", ".github/workflows/library-r4-intake.yml", "scripts/qa/library-r4-*.sh", "scripts/qa/library-r4-extra.py", "scripts/qa/library-r4-stabilize.py"]
 permissions:
   contents: read
 concurrency:
@@ -10,8 +10,9 @@ concurrency:
   cancel-in-progress: false # retain independent QA evidence from the running attempt
 env:
   R4_BASE: e31fe637aeb629bb0a2cf42223041f2c0755871a
-  CANDIDATE_SHA: ed8bdf3b02a802a49ba7b96b61485576c2609c15
-  SCHICKSAL_LOCAL_SHA: ed8bdf3b02a802a49ba7b96b61485576c2609c15
+  R4_ORIGINAL_CANDIDATE: ed8bdf3b02a802a49ba7b96b61485576c2609c15
+  CANDIDATE_SHA: e5452b4517435c25004d15299d060c8f149ed0c8
+  SCHICKSAL_LOCAL_SHA: e5452b4517435c25004d15299d060c8f149ed0c8
   R4_ZIP_SHA: 70686764664fd6f328717612437fe824319ab801a2380fe3bfb9045b7be7c646
 jobs:
   build:
@@ -30,7 +31,7 @@ jobs:
         with:
           path: site
           ref: ${{ env.CANDIDATE_SHA }}
-          fetch-depth: 2 # HEAD^ is required for exact R4 baseline verification
+          fetch-depth: 3 # verify original candidate, its pinned baseline and only the login hotfix
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -44,7 +45,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
-          test "$(git rev-parse HEAD^)" = "$R4_BASE"
+          test "$(git rev-parse HEAD^)" = "$R4_ORIGINAL_CANDIDATE"
+          test "$(git rev-parse HEAD^^)" = "$R4_BASE"
+          test "$(git diff --name-only "$R4_ORIGINAL_CANDIDATE" HEAD)" = "app/page.tsx"
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')" = "$R4_BASE"
           test "$(gh api "repos/$GITHUB_REPOSITORY/branches/feature%2Flibrary-integration-20261127" --jq '.commit.sha')" = "$CANDIDATE_SHA"
           python3 - <<'PY'
@@ -176,6 +179,7 @@ jobs:
           PKG="$RUNNER_TEMP/library-r4/library-candidate"
           REPORT="$RUNNER_TEMP/library-r4-report"
           if [ "$SUITE" = interaction ]; then
+            python intake/scripts/qa/library-r4-stabilize.py "$PKG/tests/browser-local.py"
             python -u "$PKG/tests/browser-local.py" --engine "$ENGINE" 2>&1 | tee "$REPORT/fixture-$ENGINE.log"
           else
             python -u intake/scripts/qa/library-r4-extra.py "$PKG" "$REPORT" "$ENGINE" 2>&1 | tee "$REPORT/debug-lifecycle-$ENGINE.log"
