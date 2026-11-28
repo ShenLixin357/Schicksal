@@ -54,22 +54,37 @@ jobs:
           cache: npm
       - name: Verify exact preview source commit
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Require successful exact-source V3.2 acceptance before preview
+      - name: Require the exact accepted V3.2 build
         if: github.ref_name == 'feature/imperial-v32-review'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          for i in $(seq 1 100); do
-            result=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/imperial-v32-review.yml/runs?head_sha=$GITHUB_SHA&per_page=10" --jq '.workflow_runs | map(select(.head_sha == "'$GITHUB_SHA'")) | first | if . == null then "missing" elif .status == "completed" then .conclusion else "pending" end')
-            case "$result" in
-              success) exit 0 ;;
-              failure|cancelled|timed_out|action_required|skipped|neutral|stale) echo "::error::Exact-source acceptance $result"; exit 1 ;;
+          ACCEPTED=d77cdd712230c5fd3380378883441267098ba09c
+          ACCEPTED_RUN=46154083129
+          git merge-base --is-ancestor "$ACCEPTED" "$GITHUB_SHA"
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/schicksal-ui-preview-deploy.yml|.github/workflows/imperial-v32-review.yml) ;;
+              *) echo "::error::Unaccepted source difference: $path"; exit 1 ;;
             esac
-            sleep 10
-          done
-          echo "::error::No successful exact-source acceptance"; exit 1
+          done < <(git diff --name-only "$ACCEPTED" "$GITHUB_SHA")
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ACCEPTED_RUN" > "$RUNNER_TEMP/v32-accepted-run.json"
+          node --input-type=module - "$RUNNER_TEMP/v32-accepted-run.json" "$ACCEPTED" <<'NODE'
+          import assert from "node:assert/strict";
+          import {readFileSync} from "node:fs";
+          const r=JSON.parse(readFileSync(process.argv[2],"utf8"));
+          assert.equal(r.head_sha,process.argv[3]);
+          assert.equal(r.head_branch,"feature/imperial-v32-review");
+          assert.equal(r.path,".github/workflows/imperial-v32-review.yml");
+          assert.equal(r.status,"completed");
+          assert.equal(r.conclusion,"success");
+          NODE
+          echo "SCHICKSAL_ACCEPTED_SHA=$ACCEPTED" >> "$GITHUB_ENV"
+          echo "SCHICKSAL_ACCEPTED_RUN=$ACCEPTED_RUN" >> "$GITHUB_ENV"
+          git checkout --detach "$ACCEPTED"
+          test "$(git rev-parse HEAD)" = "$ACCEPTED"
       - name: Verify preview-only authorization
         shell: bash
         run: |
@@ -89,12 +104,36 @@ jobs:
           }
           NODE
       - name: Install and build the real React website
+        if: github.ref_name != 'feature/imperial-v32-review'
         run: |
           npm ci
           npm run test:identity-architecture
           npm run test:mark-placements
           npm run build
           bash scripts/validate-artifact.sh
+      - name: Install pinned deploy dependencies (no rebuild)
+        if: github.ref_name == 'feature/imperial-v32-review'
+        run: npm ci
+      - uses: actions/download-artifact@v4
+        if: github.ref_name == 'feature/imperial-v32-review'
+        with:
+          name: v32-built-worker
+          path: ${{ runner.temp }}/v32-build
+          run-id: ${{ env.SCHICKSAL_ACCEPTED_RUN }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+      - name: Restore and verify accepted artifact
+        if: github.ref_name == 'feature/imperial-v32-review'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/v32-build"
+          sha256sum -c dist.tar.sha256
+          test "$(cat candidate.sha)" = "$SCHICKSAL_ACCEPTED_SHA"
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$SCHICKSAL_ACCEPTED_SHA"
+          tar -xf dist.tar -C "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE"
+          npm run validate:artifact
       - name: Full release-candidate regression before any remote changes
         if: github.ref_name == 'fix/parliament-history-transitions'
         run: npm test
@@ -174,7 +213,7 @@ jobs:
           const path = "work/ui-preview-dist/server/wrangler.json";
           const config = JSON.parse(readFileSync(path, "utf8"));
           // Runtime SHA must identify exactly the acceptance commit.
-          config.vars.SCHICKSAL_PREVIEW_COMMIT = process.env.GITHUB_SHA;
+          config.vars.SCHICKSAL_PREVIEW_COMMIT = process.env.SCHICKSAL_ACCEPTED_SHA || process.env.GITHUB_SHA;
           if (process.env.GITHUB_REF_NAME === "feature/imperial-v32-review") {
             Object.assign(config.vars,{SCHICKSAL_MINISTRY_V2:"1",SCHICKSAL_GUIDE_ENABLED:"true",SCHICKSAL_EXPLORATION_ENABLED:"true",SCHICKSAL_GUIDE_LIBRARY_READY:"true",SCHICKSAL_ACHIEVEMENTS_ENABLED:"true",SCHICKSAL_LIMITED_EXPLORATION_ENABLED:"true",SCHICKSAL_LIBRARY_V11_ENABLED:"true",SCHICKSAL_GALLERY_ENTRY_ENABLED:"true",SCHICKSAL_V3_STATUS_ENABLED:"true",SCHICKSAL_V32_REVIEW_ENABLED:"true",SCHICKSAL_V32_BOOK_REVIEW_READY:"true",SCHICKSAL_REVIEW_NOTICES_ENABLED:"true"});
           }
@@ -286,17 +325,22 @@ jobs:
           const version = await fetch(root + "/api/preview-version", {headers:{Cookie:cookie}, cache:"no-store"});
           if (!version.ok) throw new Error("Preview version endpoint returned HTTP " + version.status);
           const v = await version.json();
-          if (v.sourceSha !== process.env.GITHUB_SHA || v.preview !== true) {
+          if (v.sourceSha !== (process.env.SCHICKSAL_ACCEPTED_SHA || process.env.GITHUB_SHA) || v.preview !== true) {
             throw new Error("PREVIEW SHA MISMATCH: expected source commit was not deployed");
           }
           console.log("Exact preview SHA verified:", v.sourceSha);
           if (process.env.GITHUB_REF_NAME === "feature/imperial-v32-review") {
-            for (const path of ["/api/exploration","/api/site-guide?exploration=1"]) {
+            for (const path of ["/api/exploration","/api/site-guide?exploration=1","/api/site-capabilities","/api/achievements","/api/library/catalog","/api/library/submit","/api/review-notices"]) {
               const r=await fetch(root+path,{headers:{Cookie:cookie},cache:"no-store"});
               if(!r.ok)throw Error("Activated preview API "+path+" returned "+r.status);
               const data=await r.json();
               if(path.includes("exploration")&&!path.includes("site-guide")&&!data.basic)throw Error("Missing exploration progress");
               if(path.includes("site-guide")&&!Array.isArray(data.cards))throw Error("Missing guide catalog");
+              if(path==="/api/site-capabilities"&&(!data.dynamicLibrary||!data.galleryEntry||!data.bookSubmission))throw Error("Preview feature capabilities not active");
+              if(path==="/api/achievements"&&!Array.isArray(data.achievements))throw Error("Missing achievement list");
+              if(path==="/api/library/catalog"&&(!Array.isArray(data.books)||data.books.length<11||data.animations?.length!==11||!data.books.some(b=>b.id==="AVS"&&b.chapters?.length>=7)))throw Error("Incomplete seeded library");
+              if(path==="/api/library/submit"&&(data.enabled!==true||!Array.isArray(data.items)))throw Error("Book submission not ready");
+              if(path==="/api/review-notices"&&!Array.isArray(data.items))throw Error("Review notices not ready");
               console.log("Verified activated preview API: "+path);
             }
           }
@@ -397,10 +441,10 @@ jobs:
             echo "### Schicksal isolated UI preview deployment"
             echo '- Worker name: `schicksal-ui-preview`'
             echo '- Database: `schicksal-ui-preview-db` (separate from production)'
-            echo "- Version: $GITHUB_SHA"
-            echo "- Source: cumulative unmerged PR #9–23, with PR #4 foundations integrated by #12; production remains unchanged"
+            echo "- Accepted application version: ${SCHICKSAL_ACCEPTED_SHA:-$GITHUB_SHA}"
+            echo "- Source: accepted cumulative review candidate; production remains unchanged"
             echo "- Preview URL: https://schicksal-ui-preview.m17686100216.workers.dev"
-            echo "- Verified deployment SHA: $GITHUB_SHA"
+            echo "- Verified deployment SHA: ${SCHICKSAL_ACCEPTED_SHA:-$GITHUB_SHA}"
             echo "- Photo uploads require separately created preview R2; check R2 provisioning step output."
             echo "- Ministry direct login is set exclusively in the authenticated minister dashboard; no environment secret required."
             echo "- Accepted UX: personal long-hold toggles directly; minister dashboard replaces profile; dedicated login uses a term-bound D1 hash."

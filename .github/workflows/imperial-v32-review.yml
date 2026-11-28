@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
+    if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review' && !contains(github.event.head_commit.message, '[preview-deploy]')
     name: Build exact candidate once
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -41,6 +41,7 @@ jobs:
           retention-days: 2
           compression-level: 0
   business:
+    if: github.ref_name == 'feature/imperial-v32-review' && !contains(github.event.head_commit.message, '[preview-deploy]')
     name: New business / ${{ matrix.suite }}
     runs-on: ubuntu-24.04
     timeout-minutes: 12
@@ -73,6 +74,7 @@ jobs:
       - name: Run independent business suite
         run: ${{ matrix.command }}
   regression:
+    if: github.ref_name == 'feature/imperial-v32-review' && !contains(github.event.head_commit.message, '[preview-deploy]')
     name: Existing regression / ${{ matrix.group }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
