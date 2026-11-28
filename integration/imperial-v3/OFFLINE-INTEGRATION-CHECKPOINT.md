@@ -42,3 +42,6 @@ User decision: keep the repository private. Do not dispatch/re-run Actions or de
 
 ## Directory-book UI and final isolated activation candidate
 - Wired a text-book submission dialog into the crest catalog (not the room settings). Own rejected version retrieval and revision resubmission, minister review reading and independent author/actor records. Limited text format, no PDF/Word/HTML or custom material upload. Configured isolated local/preview seed + canonical review metadata install; a guard refuses to activate if any prior published book cannot be traced to exact static baseline or review. Book review flags are for the future exact-source acceptance/deploy, not a completed run. Gallery/digital intake remains disabled. New targeted Node test covers ownership, idempotence, historical visibility and stale term; real checkout tests pending.
+
+## Consolidated CI run authorization
+- User authorized Actions on 2026-11-28. One exact candidate push: parallel build, three independent business suites and three legacy regression shards; both browser engines depend only on the one validated artifact. All existing npm test scripts are included once; failures are collected within each shard. No preview deployment marker, production migration, or main merge. Failures must be investigated before preview publication.

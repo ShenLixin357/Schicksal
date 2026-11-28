@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: imperial-v32-review
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   build:
     if: github.repository == 'ShenLixin357/Schicksal' && github.ref_name == 'feature/imperial-v32-review'
@@ -41,9 +41,51 @@ jobs:
           retention-days: 2
           compression-level: 0
   business:
-    name: Canonical Gallery and book review SQLite integration
+    name: New business / ${{ matrix.suite }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: review-and-books
+            command: node --experimental-transform-types --test integration/imperial-v3/qa/review-store.test.mjs integration/imperial-v3/qa/book-submission.test.mjs
+          - suite: storage-and-gallery
+            command: node --experimental-transform-types --test integration/imperial-v3/qa/gallery-unified-submit.test.mjs integration/imperial-v3/qa/collection-backup.test.mjs tests/gallery-archive-plan.test.mjs tests/backup-restore.test.mjs
+          - suite: achievement-exploration-seed
+            command: bash -c 'r=0; for f in integration/imperial-v3/qa/{achievement-sql,limited-exploration,library-seed}.test.py; do python3 "$f" || r=1; done; exit "$r"'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        if: matrix.suite != 'achievement-exploration-seed'
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        if: matrix.suite == 'achievement-exploration-seed'
+        with:
+          python-version: '3.12'
+      - run: npm ci
+        if: matrix.suite != 'achievement-exploration-seed'
+      - name: Run independent business suite
+        run: ${{ matrix.command }}
+  regression:
+    name: Existing regression / ${{ matrix.group }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: suite-1
+            scripts: 'test:emblem-motion test:deployment test:parliament test:ice-fire test:vase test:architecture test:migration-authority test:game-room-return test:asset-audit test:mark-placements test:sidebar-visual-parity'
+          - group: suite-2
+            scripts: 'test:records test:photos test:minigames test:lounge test:messenger test:identity db:check test:lounge-api test:profile-crystal test:visual-interactions test:briefing'
+          - group: suite-3
+            scripts: 'test:migration test:privacy test:solitaire test:cello test:shell test:backup-restore test:isolation test:identity-architecture test:performance test:lounge-return test:library'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,11 +94,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --experimental-transform-types --test integration/imperial-v3/qa/review-store.test.mjs integration/imperial-v3/qa/gallery-unified-submit.test.mjs integration/imperial-v3/qa/collection-backup.test.mjs integration/imperial-v3/qa/book-submission.test.mjs tests/gallery-archive-plan.test.mjs
-      - run: |
-          python3 integration/imperial-v3/qa/achievement-sql.test.py
-          python3 integration/imperial-v3/qa/limited-exploration.test.py
-          python3 integration/imperial-v3/qa/library-seed.test.py
+          cache: npm
+      - run: npm ci
+      - name: Run every assigned existing regression
+        shell: bash
+        env:
+          SCRIPTS: ${{ matrix.scripts }}
+        run: |
+          set -uo pipefail
+          result=0
+          for script in $SCRIPTS; do
+            echo "::group::npm run $script"
+            npm run "$script" || result=1
+            echo "::endgroup::"
+          done
+          exit "$result"
   browser:
     name: Real local Worker / ${{ matrix.engine }}
     needs: build
