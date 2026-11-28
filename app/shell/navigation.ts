@@ -1,4 +1,3 @@
-import {LIBRARY_COLLECTIONS_ENABLED} from "../library/library-mode";
 /** Single source of truth for visible navigation labels, icons and muted subtitles. */
 /** Atlas code is retained for further design work, but visual art was not approved. */
 export const ATLAS_VISUAL_APPROVED = false;
@@ -24,7 +23,6 @@ export const PRIMARY_NAV: readonly PrimaryNavItem[] = [
 
 export const COLLECTION_NAV: readonly SubNavItem[] = [
   { id: "library", label: "魔法图书馆" },
-  ...(LIBRARY_COLLECTIONS_ENABLED ? [{id:"gallery" as const,label:"Gallery · 艺术馆藏"}] : []),
   // Visible navigation placeholder is approved; the unfinished Atlas ART is not.
   { id: "atlas", label: "天命图谱" },
   { id: "photos", label: "家庭影像馆" },

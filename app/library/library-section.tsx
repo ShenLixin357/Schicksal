@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-import {DYNAMIC_LIBRARY_ENABLED,LIBRARY_SEMANTIC_SEARCH_ENABLED} from "./library-mode";
+import {LIBRARY_SEMANTIC_SEARCH_ENABLED} from "./library-mode";
+import {loadRuntimeCapabilities} from "./runtime-capabilities";
 import {recordExploration} from "../guide/exploration";
 import {LibraryManagement} from "./library-management";
 type Mount = (host:HTMLElement, options?:{debug?:boolean;dynamic?:boolean;semanticSearch?:boolean;onOpenCollectionSearch?:()=>void;onOpenGuide?:()=>void;initialBookSearch?:boolean;onDiscover?:(id:string)=>Promise<boolean>;onError?:(error:unknown)=>void;onReady?:()=>void})=>()=>void;
@@ -13,7 +14,7 @@ export function LibrarySection({technology=false,onOpenGuide,onOpenCollectionSea
   const [attempt,setAttempt]=useState(0);
   useEffect(()=>{
     const controller=new AbortController();let dispose:(()=>void)|undefined;
-    let mounted=false,debug=false,checking=false;let generation=0;let interval:ReturnType<typeof setInterval>|undefined;
+    let mounted=false,debug=false,checking=false,dynamic=false;let generation=0;let interval:ReturnType<typeof setInterval>|undefined;
     let engine:{mountLibrary:Mount}|undefined;
     async function check(){
       if(!technology)return false;
@@ -26,9 +27,9 @@ export function LibrarySection({technology=false,onOpenGuide,onOpenCollectionSea
     }
     function mount(allowed:boolean){
       if(controller.signal.aborted||!host.current||!engine)return;
-      const current=++generation;onLoading?.();dispose?.();debug=allowed;setManagement(allowed&&DYNAMIC_LIBRARY_ENABLED);
+      const current=++generation;onLoading?.();dispose?.();debug=allowed;setManagement(allowed&&dynamic);
       const live=()=>!controller.signal.aborted&&current===generation;
-      dispose=engine.mountLibrary(host.current,{debug,dynamic:DYNAMIC_LIBRARY_ENABLED,semanticSearch:LIBRARY_SEMANTIC_SEARCH_ENABLED&&DYNAMIC_LIBRARY_ENABLED,onOpenCollectionSearch:()=>callbacks.current.onOpenCollectionSearch?.(),onOpenGuide:()=>callbacks.current.onOpenGuide?.(),initialBookSearch:initialSearch==="books",onDiscover:recordExploration,onReady:()=>{if(live())onReady?.();},onError:()=>{if(live()){setError(true);onFailure?.();}}});mounted=true;
+      dispose=engine.mountLibrary(host.current,{debug,dynamic:dynamic,semanticSearch:LIBRARY_SEMANTIC_SEARCH_ENABLED&&dynamic,onOpenCollectionSearch:()=>callbacks.current.onOpenCollectionSearch?.(),onOpenGuide:()=>callbacks.current.onOpenGuide?.(),initialBookSearch:initialSearch==="books",onDiscover:recordExploration,onReady:()=>{if(live())onReady?.();},onError:()=>{if(live()){setError(true);onFailure?.();}}});mounted=true;
     }
     async function recheck(){
       if(!mounted||!debug||checking||controller.signal.aborted)return;
@@ -36,7 +37,8 @@ export function LibrarySection({technology=false,onOpenGuide,onOpenCollectionSea
     }
     const visible=()=>{if(!document.hidden)void recheck();};
     const boot=async()=>{
-      const allowed=await check();
+      const [allowed,caps]=await Promise.all([check(),loadRuntimeCapabilities(controller.signal)]);
+      dynamic=caps.dynamicLibrary;
       const url="/library/library/catalog/mount.js";
       engine=await import(/* @vite-ignore */ url) as {mountLibrary:Mount};
       mount(allowed);

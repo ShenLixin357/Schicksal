@@ -5,7 +5,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { archiveMarkdownToHtml } from "./archive-markdown";
 import { PageHead } from "../shell/page-head";
 import chapterMetadata from "../library/archive-chapters.json";
-import {DYNAMIC_LIBRARY_ENABLED} from "../library/library-mode";
+import {loadRuntimeCapabilities} from "../library/runtime-capabilities";
 import {fetchPublishedArchive,type PublishedArchive} from "../library/published-archive";
 
 /** Book art, author emblem, copy and reading interactions are unchanged.
@@ -25,15 +25,17 @@ export function ArchivesSection({ authorMark, readerAuthorMark, authorMarkColor 
   const [published,setPublished]=useState<PublishedArchive|null>(null);
   const [catalogError,setCatalogError]=useState("");
   const [retry,setRetry]=useState(0);
-  useEffect(()=>{if(!DYNAMIC_LIBRARY_ENABLED)return;const controller=new AbortController();setCatalogError("");fetchPublishedArchive(controller.signal).then(x=>{if(!controller.signal.aborted){setPublished(x);setChapterIndex(0);setBookOpen(false);}}).catch(e=>{if(!controller.signal.aborted)setCatalogError(String(e));});return()=>controller.abort();},[retry]);
-  const chapters:ArchiveChapter[]=DYNAMIC_LIBRARY_ENABLED?(published?.chapters??[]):ARCHIVE_BOOK_CHAPTERS;
+  const [dynamic,setDynamic]=useState<boolean|null>(null);
+  useEffect(()=>{const controller=new AbortController();setCatalogError("");setDynamic(null);setPublished(null);setBookOpen(false);setChapterIndex(0);
+   loadRuntimeCapabilities(controller.signal).then(async caps=>{if(controller.signal.aborted)return;if(caps.dynamicLibrary){const x=await fetchPublishedArchive(controller.signal);if(!controller.signal.aborted){setPublished(x);setDynamic(true)}}else setDynamic(false)}).catch(e=>{if(!controller.signal.aborted)setCatalogError(String(e));});return()=>controller.abort();},[retry]);
+  const chapters:ArchiveChapter[]=dynamic?(published?.chapters??[]):ARCHIVE_BOOK_CHAPTERS;
   const chapter=chapters[chapterIndex];
   const title=published?.title??"如何从零建立一个国家";
   const records = [["R–001","第一帝国复辟公投记录","RATIFIED · 15 AUG 2026"],["A–001","宪法草案 1.0","FOUNDING DOCUMENT"],["A–002","代号与职务原始记录","CITIZEN RECORD"]];
 
   useEffect(() => {
     if (!bookOpen || !chapter) return;
-    if (DYNAMIC_LIBRARY_ENABLED) { setChapterText(chapter.markdown??""); setLoadedSource(chapter.source); setLoading(false);setArchiveStatus("");return; }
+    if (dynamic) { setChapterText(chapter.markdown??""); setLoadedSource(chapter.source); setLoading(false);setArchiveStatus("");return; }
     let active = true; const controller = new AbortController();
     setLoading(true); setArchiveStatus("");
     fetch(chapter.source, { signal: controller.signal })
@@ -51,7 +53,7 @@ export function ArchivesSection({ authorMark, readerAuthorMark, authorMarkColor 
   const openChapter = (index: number) => { selectChapter(index); setBookOpen(true); };
   const chapterHtml = archiveMarkdownToHtml(chapterText);
 
-  if(DYNAMIC_LIBRARY_ENABLED&&!published)return <section role="status">{catalogError||"正在读取正式国家书…"}{catalogError&&<button onClick={()=>setRetry(x=>x+1)}>重试</button>}</section>;
+  if(dynamic===null||(dynamic&&!published))return <section role="status">{catalogError||"正在读取正式国家书…"}{catalogError&&<button onClick={()=>setRetry(x=>x+1)}>重试</button>}</section>;
   return <>
     <PageHead eyebrow="National Archives" title="国家档案馆" copy="这里保存的不只是结论，而是我们怎样一步步把一个童年共同体写成国家。" />
     <section className="archive-book-gallery">

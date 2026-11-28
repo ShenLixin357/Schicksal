@@ -176,7 +176,7 @@ jobs:
           // Runtime SHA must identify exactly the acceptance commit.
           config.vars.SCHICKSAL_PREVIEW_COMMIT = process.env.GITHUB_SHA;
           if (process.env.GITHUB_REF_NAME === "feature/imperial-v32-review") {
-            Object.assign(config.vars,{SCHICKSAL_MINISTRY_V2:"1",SCHICKSAL_GUIDE_ENABLED:"true",SCHICKSAL_EXPLORATION_ENABLED:"true",SCHICKSAL_GUIDE_LIBRARY_READY:"true",SCHICKSAL_ACHIEVEMENTS_ENABLED:"true",SCHICKSAL_LIMITED_EXPLORATION_ENABLED:"true"});
+            Object.assign(config.vars,{SCHICKSAL_MINISTRY_V2:"1",SCHICKSAL_GUIDE_ENABLED:"true",SCHICKSAL_EXPLORATION_ENABLED:"true",SCHICKSAL_GUIDE_LIBRARY_READY:"true",SCHICKSAL_ACHIEVEMENTS_ENABLED:"true",SCHICKSAL_LIMITED_EXPLORATION_ENABLED:"true",SCHICKSAL_LIBRARY_V11_ENABLED:"true",SCHICKSAL_GALLERY_ENTRY_ENABLED:"true",SCHICKSAL_V3_STATUS_ENABLED:"true"});
           }
           if (process.env.SCHICKSAL_PREVIEW_R2_READY === "true") config.r2_buckets = [{ binding: "BUCKET", bucket_name: "schicksal-ui-preview-photos" }];
           if (!/^[a-f0-9]{40}$/i.test(config.vars.SCHICKSAL_PREVIEW_COMMIT)) throw Error("Invalid preview SHA");
@@ -206,6 +206,8 @@ jobs:
           npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --file integration/imperial-v3/qa/preview-guide-exploration.sql
           npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --file integration/imperial-v3/qa/preview-limited-exploration.sql
           npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --file integration/imperial-v3/qa/preview-review-notices.sql
+          python3 integration/imperial-v3/qa/prepare-library-seed.py --output "$RUNNER_TEMP/v32-library-seed.sql"
+          npx wrangler d1 execute DB --remote --config work/ui-preview-dist/server/wrangler.json --file "$RUNNER_TEMP/v32-library-seed.sql"
       - name: Inspect preview-only D1 schema used by briefing (no member data)
         shell: bash
         run: |

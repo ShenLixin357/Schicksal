@@ -45,7 +45,7 @@ import { PageHead } from "./shell/page-head";
 import { HonorsPage, MarketPage } from "./points/points-pages";
 import { CalendarPage } from "./festivals/festival-page";
 import { SelfProfilePage } from "./profile/profile-page";
-import { GuidePanel } from "./guide/guide-panel"; import { useGuideState } from "./guide/use-guide-state"; import { ExplorationVisit } from "./guide/exploration"; import { IMPERIAL_GUIDE_ENABLED, LIBRARY_COLLECTIONS_ENABLED } from "./library/library-mode"; import type { GuideTarget } from "../server/guide/registry"; import { TechnologyMinistryPortal } from "./technology/technology-ministry"; import { MinistryFeatureGate, ProfileSupplement } from "./technology/v2/runtime";
+import { GuidePanel } from "./guide/guide-panel"; import { useGuideState } from "./guide/use-guide-state"; import { ExplorationVisit } from "./guide/exploration"; import { IMPERIAL_GUIDE_ENABLED } from "./library/library-mode"; import {usePreviewGallery} from "./library/runtime-capabilities"; import type { GuideTarget } from "../server/guide/registry"; import { TechnologyMinistryPortal } from "./technology/technology-ministry"; import { MinistryFeatureGate, ProfileSupplement } from "./technology/v2/runtime";
 
 import { LoungePassage, type LoungePassageDirection } from "./transitions/lounge-passage";
 import { PASSAGE_SKIP_LABEL } from "./transitions/passage-gate";
@@ -318,6 +318,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
   const [portalError, setPortalError] = useState(false);
   const portalReturnSection = useRef<Section>("home");
   const [loungeSeatingUnlocked, setLoungeSeatingUnlocked] = useState(false);
+  const galleryEntry=usePreviewGallery(citizen.id+":"+accountMode);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const {collapsed:effectiveSidebarCollapsed,toggle:toggleLibrarySidebar}=useLibrarySidebar(section==="library",sidebarCollapsed);
   // Mandatory post-login gate: the application shell is never rendered until
@@ -428,12 +429,12 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
   const openAtlasHandbook = () => { setAtlasHandbookOpen(true); setSection("archives"); };
   const viewedCitizen = CITIZENS.find(c=>c.id===viewedCitizenId && !c.locked) ?? citizen;
   const clubOpen = section === "club" && CLUB_MEMBER_IDS.has(citizen.id);
-  const guideNavigate=(target:GuideTarget)=>{ if(target==="lounge"){if(CLUB_MEMBER_IDS.has(citizen.id))enterLounge();return;} if(target==="technology"&&!(accountMode==="technology"&&isCurrentMinister))return; if(target==="profile"||target==="technology")setViewedCitizenId(citizen.id);if(target==="archives")setAtlasHandbookOpen(false);if(target==="parliament"){setParliamentDeepLink("");setParliamentFocus("all");}if(target==="collections"&&LIBRARY_COLLECTIONS_ENABLED){setSection("gallery");}else if(target==="books"||target==="collections"||target==="library"){setGuideVisit(v=>({target:target==="library"?undefined:target,serial:v.serial+1}));setSection("library");}else setSection(target==="technology"?"profile":target);document.querySelector(".system-main")?.scrollTo({top:0,behavior:"smooth"}); };
+  const guideNavigate=(target:GuideTarget)=>{ if(target==="lounge"){if(CLUB_MEMBER_IDS.has(citizen.id))enterLounge();return;} if(target==="technology"&&!(accountMode==="technology"&&isCurrentMinister))return; if(target==="profile"||target==="technology")setViewedCitizenId(citizen.id);if(target==="archives")setAtlasHandbookOpen(false);if(target==="parliament"){setParliamentDeepLink("");setParliamentFocus("all");}if(target==="collections"&&galleryEntry){setSection("gallery");}else if(target==="books"||target==="collections"||target==="library"){setGuideVisit(v=>({target:target==="library"?undefined:target,serial:v.serial+1}));setSection("library");}else setSection(target==="technology"?"profile":target);document.querySelector(".system-main")?.scrollTo({top:0,behavior:"smooth"}); };
   let content: ReactNode;
   switch (section) {
     case "messenger": content = <ShellPlaceholder kind="messenger" />; break;
-    case "library": content = <LibraryEntrance key={guideVisit.serial} component={LibrarySection} onOpenGuide={IMPERIAL_GUIDE_ENABLED?()=>setGuideOpen(true):undefined} onOpenCollectionSearch={()=>{if(LIBRARY_COLLECTIONS_ENABLED)setSection("gallery")}} initialSearch={guideVisit.target==="books"?"books":undefined} technology={accountMode === "technology" && isCurrentMinister} onExit={()=>setSection("home")}/>; break;
-    case "gallery": content = LIBRARY_COLLECTIONS_ENABLED ? <FeatureSuspense label="Gallery" onExit={()=>setSection("home")}><LibraryCollections minister={accountMode==="technology"&&isCurrentMinister}/></FeatureSuspense> : <HomeSection go={setSection}/>; break;
+    case "library": content = <LibraryEntrance key={guideVisit.serial} component={LibrarySection} onOpenGuide={IMPERIAL_GUIDE_ENABLED?()=>setGuideOpen(true):undefined} onOpenCollectionSearch={()=>{if(galleryEntry)setSection("gallery")}} initialSearch={guideVisit.target==="books"?"books":undefined} technology={accountMode === "technology" && isCurrentMinister} onExit={()=>setSection("home")}/>; break;
+    case "gallery": content = galleryEntry ? <FeatureSuspense label="Gallery" onExit={()=>setSection("home")}><LibraryCollections minister={accountMode==="technology"&&isCurrentMinister}/></FeatureSuspense> : <HomeSection go={setSection}/>; break;
     case "briefing": content = <BriefingDesk sharedMark={<Emblem compact />} canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)} canEnterGames={CLUB_MEMBER_IDS.has(citizen.id)} onNavigate={navigateFromBriefing} onOpenBriefing={() => setBriefingOpen(true)} tasks={briefingFeed.tasks} views={briefingFeed.views} onArchiveChange={briefingFeed.changeArchive} taskState={briefingFeed.status} news={briefingFeed.news} newsState={briefingFeed.status} />; break;
     case "atlas":
     case "citizens":
@@ -483,6 +484,7 @@ function System({ citizen, accountMode, authSource, offices, onAccountModeChange
       <ImperialSidebar
         activeSection={section}
         collapsed={effectiveSidebarCollapsed}
+        galleryEntry={galleryEntry}
         loungeOpen={clubOpen}
         canEnterLounge={CLUB_MEMBER_IDS.has(citizen.id)}
         sharedMark={<Emblem compact />}

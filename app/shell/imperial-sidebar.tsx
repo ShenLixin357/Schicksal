@@ -11,7 +11,7 @@ import { SidebarMenuGroup, SidebarNavCopy } from "./sidebar-menu-group";
 import {useMinistryRoster,withDisplay} from "../technology/v2/runtime";
 
 export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnterLounge, sharedMark,
-  presence, members, selfId, renderMemberMark, isTechnologyMode, onToggle, onLogo, onNavigate, onLogout, onSelfLongPress }: {
+  presence, members, selfId, renderMemberMark, isTechnologyMode, galleryEntry=false, onToggle, onLogo, onNavigate, onLogout, onSelfLongPress }: {
   activeSection: string;
   collapsed: boolean;
   loungeOpen: boolean;
@@ -22,6 +22,7 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
   selfId: string;
   renderMemberMark: (memberId: string) => ReactNode;
   isTechnologyMode?: boolean;
+  galleryEntry?: boolean;
   onToggle: () => void;
   onLogo: () => void;
   onNavigate: (id: SidebarDestination) => void;
@@ -60,7 +61,7 @@ export function ImperialSidebar({ activeSection, collapsed, loungeOpen, canEnter
       {navigationItems.map(item => item.id === "collection" || item.id === "honors"
         ? <SidebarMenuGroup key={item.id} item={item}
           menuId={item.id === "collection" ? "collection" : "points"}
-          items={item.id === "collection" ? COLLECTION_NAV : POINTS_NAV}
+          items={item.id === "collection" ? (galleryEntry?[COLLECTION_NAV[0],{id:"gallery",label:"Gallery · 艺术馆藏"},...COLLECTION_NAV.slice(1)]:COLLECTION_NAV) : POINTS_NAV}
           activeSection={activeSection} collapsed={collapsed}
           onExpandSidebar={onToggle} onNavigate={onNavigate}/>
         : <button type="button" key={item.id}

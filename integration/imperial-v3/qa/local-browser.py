@@ -39,7 +39,11 @@ with sync_playwright() as p:
         page.get_by_role('button',name='关闭向导').click()
         expect(page.locator('dialog.imperial-guide')).to_be_hidden()
         nav=page.locator('#imperial-navigation')
+        page.wait_for_function("""async () => { const r=await fetch('/api/site-capabilities',{cache:'no-store'}); if(!r.ok)return false;const x=await r.json();return x.dynamicLibrary&&x.galleryEntry; }""")
+        catalog=page.evaluate("""async () => { const r=await fetch('/api/library/catalog',{cache:'no-store'}); if(!r.ok)throw Error('Catalog '+r.status);const x=await r.json();return {books:x.books.length,animations:x.animations.length,chapters:x.books.find(b=>b.id==='AVS').chapters.length}; }""")
+        assert catalog=={'books':11,'animations':11,'chapters':7},catalog
         nav.locator('button[title="帝国馆藏"]').click()
+        expect(nav.get_by_role('button',name='Gallery · 艺术馆藏',exact=True)).to_be_visible(timeout=10000)
         nav.get_by_role('button',name='魔法图书馆',exact=True).click()
         expect(page.locator('.library-scene-content')).to_have_attribute('data-ready','true',timeout=90000)
         host=page.locator('.library-native-host')
@@ -80,6 +84,7 @@ with sync_playwright() as p:
         nav.locator('button[title="个人页"]').click()
         expect(page.locator('.profile-exploration-summary')).to_be_visible(timeout=20000)
         expect(page.locator('.profile-exploration-scores')).to_be_visible(timeout=20000)
+        expect(page.get_by_role('region',name='个人成就')).to_be_visible(timeout=15000)
         page.screenshot(path=str(report/'exploration-profile.png'))
         print('PASS guide, real first discovery, deduplicated candle discovery and profile progress')
         assert not errors,errors
