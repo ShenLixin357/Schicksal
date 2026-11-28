@@ -10,7 +10,7 @@ const hash = value => createHash("sha256").update(value).digest("hex");
 const identifier = name => { assert.match(name, /^[a-z][a-z0-9_]*$/); return `"${name}"`; };
 const tables = db => db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(row => row.name);
 const OMIT = ["member_sessions", "member_login_windows"];
-const knownObjectTables = new Set(["archive_photos", "emerald_music_assets"]);
+const knownObjectTables = new Set(["archive_photos", "emerald_music_assets","gallery_blobs","digital_blobs","digital_upload_parts"]);
 function objectKey(key) {
     assert.ok(typeof key === "string" && key.length <= 512 && /^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(key), "Invalid object key");
     assert.ok(key.split("/").every(part => part && part !== "." && part !== ".."), "Unsafe object path");
@@ -28,6 +28,28 @@ export function objectInventory(db) {
         objects.push(...db.prepare("SELECT id AS sourceId, object_key AS objectKey, size_bytes AS sizeBytes, mime_type AS mimeType, 'archive_photos' AS sourceTable FROM archive_photos").all());
     if (names.includes("emerald_music_assets"))
         objects.push(...db.prepare("SELECT a.id AS sourceId, a.object_key AS objectKey, a.size AS sizeBytes, a.mime AS mimeType, 'emerald_music_assets' AS sourceTable FROM emerald_music_assets a JOIN emerald_music_scores s ON s.id=a.score_id WHERE a.deleted_at IS NULL AND s.deleted_at IS NULL").all());
+    // Retain all ready originals, derivatives and historical/trash references.
+    // A pending object has an uncertain byte state; fail closed instead of issuing
+    // a misleading complete archive. Segment records are logical, not R2 keys.
+    const ready = (table) => {
+        assert.equal(db.prepare("SELECT COUNT(*) n FROM "+identifier(table)+" WHERE state<>'ready'").get().n,0,"Unreconciled pending bytes in "+table);
+    };
+    if (names.includes("gallery_blobs")) {
+        ready("gallery_blobs");
+        const rows=db.prepare("SELECT sha256 AS sourceId, storage_key AS objectKey, byte_size AS sizeBytes,mime AS mimeType,'gallery_blobs' AS sourceTable FROM gallery_blobs").all();
+        for(const r of rows){assert.match(r.sourceId,/^[a-f0-9]{64}$/);assert.equal(r.objectKey,"gallery/sha256/"+r.sourceId);}
+        objects.push(...rows);
+    }
+    if (names.includes("digital_blobs")) {
+        ready("digital_blobs");
+        const rows=db.prepare("SELECT sha256 AS sourceId,storage_key AS objectKey,bytes AS sizeBytes,'application/octet-stream' AS mimeType,'digital_blobs' AS sourceTable FROM digital_blobs").all();
+        for(const r of rows){assert.match(r.sourceId,/^[a-f0-9]{64}$/);if(r.objectKey.startsWith("digital/segments/")){assert.ok(names.includes("digital_upload_parts")&&names.includes("digital_uploads"),"Missing segment schema");continue;}assert.equal(r.objectKey,"digital/sha256/"+r.sourceId);objects.push(r);}
+    }
+    if(names.includes("digital_upload_parts")){
+        ready("digital_upload_parts");
+        const rows=db.prepare("SELECT sha256 AS sourceId, storage_key AS objectKey,MIN(bytes) AS sizeBytes,MAX(bytes) AS maxBytes,'application/octet-stream' AS mimeType,'digital_upload_parts' AS sourceTable FROM digital_upload_parts GROUP BY sha256,storage_key").all();
+        for(const {maxBytes,...r} of rows){assert.match(r.sourceId,/^[a-f0-9]{64}$/);assert.equal(r.objectKey,"digital/parts/sha256/"+r.sourceId);assert.equal(r.sizeBytes,maxBytes,"Conflicting shared part sizes");assert.ok(r.sizeBytes<=4*1024*1024,"Part limit exceeded");objects.push(r);}
+    }
     const seen = new Set();
     for (const object of objects) {
         objectKey(object.objectKey);
@@ -142,7 +164,8 @@ export async function captureBackup({ sql, output, sourceCommit, sourceDatabaseI
         const manifest = { version: 1, kind: "schicksal-backup", createdAt: new Date().toISOString(), sourceCommit, sourceDatabaseId,
             excludedTables: OMIT, counts: counts(db), database: { file: "database.sql", bytes: Buffer.byteLength(normalized), sha256: hash(normalized) }, objects: [] };
         for (const reference of references) {
-            const bytes = await objectBytes(await getObject(reference.objectKey), reference.sizeBytes);
+            const bytes = await objectBytes(await getObject(reference.objectKey,reference), reference.sizeBytes);
+            if(["gallery_blobs","digital_blobs","digital_upload_parts"].includes(reference.sourceTable))assert.equal(hash(bytes),reference.sourceId,"Canonical content checksum mismatch");
             await privateWrite(resolve(output, "objects", reference.objectKey), bytes);
             manifest.objects.push({ ...reference, sha256: hash(bytes) });
         }
@@ -155,6 +178,35 @@ export async function captureBackup({ sql, output, sourceCommit, sourceDatabaseI
         db.close();
     }
 }
+/** Reassemble each completed logical segment stream in order without loading
+ * the complete file into memory. Verify metadata, length and canonical whole hash. */
+async function verifySegments(db,directory){
+    if(!tables(db).includes("digital_blobs"))return;
+    const rows=db.prepare("SELECT sha256,bytes,storage_key FROM digital_blobs WHERE storage_key LIKE 'digital/segments/%'").all();
+    for(const r of rows){
+        const id=r.storage_key.slice("digital/segments/".length);
+        assert.match(id,/^[A-Za-z0-9][A-Za-z0-9_-]{0,119}$/);
+        const u=db.prepare("SELECT * FROM digital_uploads WHERE id=?").get(id);
+        assert.ok(u&&u.expected_sha===r.sha256&&u.total_bytes===r.bytes,"Segment manifest mismatch");
+        // A crash after immutable blob insertion but before final status update
+        // still has complete bytes; validate them rather than trusting status.
+        assert.ok(Number.isSafeInteger(u.part_bytes)&&u.part_bytes>0&&u.part_bytes<=4*1024*1024&&r.bytes<=256*1024*1024);
+        const parts=db.prepare("SELECT idx,bytes,sha256,storage_key,state FROM digital_upload_parts WHERE upload_id=? ORDER BY idx").all(id);
+        assert.equal(parts.length,Math.ceil(r.bytes/u.part_bytes),"Incomplete segment manifest");
+        const h=createHash("sha256");
+        let total=0;
+        for(const [i,p] of parts.entries()){
+            assert.equal(p.idx,i);assert.equal(p.state,"ready");
+            assert.equal(p.storage_key,"digital/parts/sha256/"+p.sha256);
+            assert.equal(p.bytes,Math.min(u.part_bytes,r.bytes-i*u.part_bytes));
+            const bytes=await checkedFile(directory,"objects/"+objectKey(p.storage_key));
+            assert.equal(bytes.length,p.bytes);assert.equal(hash(bytes),p.sha256);
+            h.update(bytes);total+=bytes.length;
+        }
+        assert.equal(total,r.bytes);assert.equal(h.digest("hex"),r.sha256,"Whole segmented content checksum mismatch");
+    }
+}
+
 export async function verifyBackup(directory) {
     return verifyPayload(directory, JSON.parse(await checkedFile(directory, "manifest.json")));
 }
@@ -178,7 +230,9 @@ async function verifyPayload(directory, manifest) {
             const bytes = await checkedFile(directory, `objects/${objectKey(object.objectKey)}`);
             assert.equal(bytes.byteLength, object.sizeBytes);
             assert.equal(hash(bytes), object.sha256, "Object checksum mismatch");
+            if(["gallery_blobs","digital_blobs","digital_upload_parts"].includes(object.sourceTable))assert.equal(hash(bytes),object.sourceId,"Canonical content checksum mismatch");
         }
+        await verifySegments(db,directory);
     }
     finally {
         db.close();
@@ -208,7 +262,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (command === "capture") {
         const input = await readPrivateJson();
         const manifest = await captureBackup({ sql: await readFile(input.sqlFile, "utf8"), output: resolve(directory), sourceCommit: input.sourceCommit, sourceDatabaseId: input.sourceDatabaseId,
-            getObject: key => getPhotoStorage(input.storage).get(key) });
+            getObject: async (key,reference) => {
+                if(["gallery_blobs","digital_blobs","digital_upload_parts"].includes(reference.sourceTable)){
+                    assert.ok(typeof input.collectionObjectDirectory==="string"&&input.collectionObjectDirectory,"Explicit private collection object export required");
+                    return {body:await checkedFile(input.collectionObjectDirectory,key)};
+                }
+                return getPhotoStorage(input.storage).get(key);
+            } });
         console.log(JSON.stringify({ tables: Object.keys(manifest.counts).length, objects: manifest.objects.length, verified: true }));
     }
     else if (command === "verify") {

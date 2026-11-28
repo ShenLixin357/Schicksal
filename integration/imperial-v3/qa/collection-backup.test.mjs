@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {captureBackup,verifyBackup,restoreLocal} from '../../../scripts/cloudflare/backup.mjs';
+const hash=b=>createHash('sha256').update(b).digest('hex');
+const a=Buffer.from('abc'),b=Buffer.from('def'),whole=Buffer.concat([a,b]),image=Buffer.from('image-original');
+const x=hash(a),y=hash(b),z=hash(whole),g=hash(image);
+const schema=`CREATE TABLE gallery_blobs(sha256 TEXT,storage_key TEXT,byte_size INTEGER,mime TEXT,state TEXT);
+CREATE TABLE digital_blobs(sha256 TEXT,storage_key TEXT,bytes INTEGER,state TEXT);
+CREATE TABLE digital_uploads(id TEXT,total_bytes INTEGER,part_bytes INTEGER,expected_sha TEXT);
+CREATE TABLE digital_upload_parts(upload_id TEXT,idx INTEGER,bytes INTEGER,sha256 TEXT,storage_key TEXT,state TEXT);
+INSERT INTO gallery_blobs VALUES('${g}','gallery/sha256/${g}',${image.length},'image/png','ready');
+INSERT INTO digital_blobs VALUES('${z}','digital/segments/task',6,'ready');
+INSERT INTO digital_uploads VALUES('task',6,3,'${z}');
+INSERT INTO digital_upload_parts VALUES('task',0,3,'${x}','digital/parts/sha256/${x}','ready'),('task',1,3,'${y}','digital/parts/sha256/${y}','ready'),('other',0,3,'${x}','digital/parts/sha256/${x}','ready');`;
+async function fixture(fn,sql=schema){const d=await mkdtemp(join(tmpdir(),'collection-backup-'));try{const objects=new Map([['gallery/sha256/'+g,image],['digital/parts/sha256/'+x,a],['digital/parts/sha256/'+y,b]]);await fn({sql,output:join(d,'backup'),sourceCommit:'a'.repeat(40),sourceDatabaseId:'11111111-2222-4333-8444-555555555555',getObject:async k=>objects.has(k)?{body:objects.get(k)}:null},d,objects)}finally{await rm(d,{recursive:true,force:true})}}
+test('canonical originals, shared part deduplication, whole hash and isolated restore',async()=>fixture(async(input,d)=>{const m=await captureBackup(input);assert.equal(m.objects.length,3);await verifyBackup(input.output);await restoreLocal(input.output,join(d,'restored'));assert.deepEqual(await readFile(join(d,'restored','objects','gallery/sha256/'+g)),image);}));
+test('reject corrupt bytes with correct length',async()=>fixture(async(input,d,objects)=>{objects.set('digital/parts/sha256/'+x,Buffer.from('bad'));await assert.rejects(captureBackup(input),/checksum/);await assert.rejects(readFile(join(input.output,'manifest.json')),/ENOENT/)}));
+test('pending object blocks completed manifest',async()=>fixture(async input=>{await assert.rejects(captureBackup(input),/pending/);await assert.rejects(readFile(join(input.output,'manifest.json')),/ENOENT/)},schema+"UPDATE gallery_blobs SET state='pending';"));
+test('logical stream order is verified independently of individual part hashes',async()=>fixture(async input=>{await assert.rejects(captureBackup(input),/Whole segmented content checksum/);},schema+"UPDATE digital_upload_parts SET idx=1-idx WHERE upload_id='task';"));

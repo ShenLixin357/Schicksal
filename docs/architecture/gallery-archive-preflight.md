@@ -1,0 +1,3 @@
+# Mixed-media preflight
+
+The Gallery entry now exposes a local-only batch inspection panel. It computes the existing incremental SHA-256, recognizes actual current endpoint size/extension limits, flags unsupported formats and exact in-batch duplicates, permits per-file project and category edits, and exports a private JSON plan. It intentionally does not write, parse ZIP entries, publish, compare cloud inventory or claim archival success. Word and images above 12 MiB and digital files above 256 MiB remain blocked by current service limits; UI must not promise the earlier proposed 2 GB limit. Browser visual acceptance and real mixed-file transfer remain pending. The plan is not a backup or a deletion clearance report.
