@@ -16,6 +16,7 @@ const ministerLive=live+" AND ?='technology'";
 const ministerArgs=a=>[...authArgs(a),a.mode];
 const authArgs=a=>[a.tokenHash,a.actor,a.now,a.mode,a.mode,a.now,a.term??null];
 export const galleryReady=c=>enabled(c)&&c.SCHICKSAL_V32_CANONICAL_INTAKE_READY==='true';
+export const bookReady=c=>enabled(c)&&c.SCHICKSAL_V32_BOOK_REVIEW_READY==='true';
 // Book/digital upload and read integration still pending: do not enable by config alone.
 export const fullReviewReady=(_config)=>false;
 const query=(db,q,args)=>db.prepare(q).bind(...args);

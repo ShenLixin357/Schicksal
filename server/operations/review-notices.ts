@@ -2,14 +2,14 @@ import {env} from 'cloudflare:workers';
 import {ApiError} from '../http.ts';
 import {requireMember,requireTechnologyMinister} from '../auth/member.ts';
 import {currentSession,cookieToken,digest} from '../../app/member-session.ts';
-import {enabled} from '../imperial-v3/review.mjs';
+import {enabled,bookReady,galleryReady} from '../imperial-v3/review.mjs';
 import {incumbentTerm} from '../search/settings.ts';
 const cfg=env as unknown as Record<string,unknown>;
 type Row={kind:string;entity:string;version:string;revision:number;state:string;at:number;reason:string;author:string;category:string;read_at:number|null};
 async function context(r:Request){
  const actor=await requireMember(r),session=await currentSession(r),token=cookieToken(r);
  if(!session||session.citizenId!==actor||!token)throw new ApiError('身份已变化',401);
- if(!enabled(env)||cfg.SCHICKSAL_V32_CANONICAL_INTAKE_READY!=='true'||cfg.SCHICKSAL_REVIEW_NOTICES_ENABLED!=='true')throw new ApiError('馆藏审核通知尚未开放',404);
+ if(!enabled(env)||(!bookReady(env)&&!galleryReady(env))||cfg.SCHICKSAL_REVIEW_NOTICES_ENABLED!=='true')throw new ApiError('馆藏审核通知尚未开放',404);
  const mode=session.accountMode,scope=mode==='technology'?(await requireTechnologyMinister(r),await incumbentTerm(actor)):'personal';
  return {actor,mode,scope,hash:await digest(token),now:Date.now()};
 }

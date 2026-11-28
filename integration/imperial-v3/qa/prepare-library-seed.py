@@ -43,7 +43,10 @@ def generate(root):
     proposal=(root/"integration/imperial-v3/support/library-v11-v14-increment/sql/library-v11.proposed.sql").read_text()
     import re
     proposal=re.sub(r"^CREATE (TABLE|INDEX|TRIGGER) (?!IF NOT EXISTS)",r"CREATE \1 IF NOT EXISTS ",proposal,flags=re.M)
-    out=[proposal,"CREATE TABLE IF NOT EXISTS imperial_preview_seed_chunks(seed TEXT NOT NULL,idx INTEGER NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(seed,idx));"]
+    out=[proposal,"CREATE TABLE IF NOT EXISTS imperial_preview_seed_chunks(seed TEXT NOT NULL,idx INTEGER NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(seed,idx));",
+         "CREATE TABLE IF NOT EXISTS imperial_legacy_book_versions(book TEXT PRIMARY KEY,revision TEXT NOT NULL UNIQUE REFERENCES library_revisions(revision),owner TEXT NOT NULL);",
+         "CREATE TRIGGER IF NOT EXISTS imperial_legacy_book_no_update BEFORE UPDATE ON imperial_legacy_book_versions BEGIN SELECT RAISE(ABORT,'immutable approved static baseline'); END;",
+         "CREATE TRIGGER IF NOT EXISTS imperial_legacy_book_no_delete BEFORE DELETE ON imperial_legacy_book_versions BEGIN SELECT RAISE(ABORT,'immutable approved static baseline'); END;"]
     for kind,id,actor,payload in records:
         body=json.dumps(payload,ensure_ascii=False,separators=(",",":"))
         assert len(body.encode("utf-8"))<1500000, "Seed payload too large"
@@ -53,6 +56,8 @@ def generate(root):
             out.append(f"INSERT INTO imperial_preview_seed_chunks VALUES({quote(revision)},{i},CAST(X'{b.hex()}' AS TEXT));")
         # Never overwrite or resurrect an existing published head.
         out.append(f"INSERT INTO library_revisions(revision,kind,entity_id,state,base_revision,actor,created_at,payload) SELECT {quote(revision)},{quote(kind)},{quote(id)},'published',NULL,{quote(actor)},'2026-11-27T00:00:00Z',(SELECT group_concat(payload,'') FROM (SELECT payload FROM imperial_preview_seed_chunks WHERE seed={quote(revision)} ORDER BY idx)) WHERE NOT EXISTS(SELECT 1 FROM library_revisions WHERE kind={quote(kind)} AND entity_id={quote(id)});")
+        if kind=="book":
+            out.append(f"INSERT INTO imperial_legacy_book_versions(book,revision,owner) SELECT {quote(id)},{quote(revision)},{quote(actor)} FROM library_revisions WHERE revision={quote(revision)} AND entity_id={quote(id)} AND kind='book' AND state='published' AND payload=(SELECT group_concat(payload,'') FROM (SELECT payload FROM imperial_preview_seed_chunks WHERE seed={quote(revision)} ORDER BY idx)) ON CONFLICT(book) DO NOTHING;")
         out.append(f"DELETE FROM imperial_preview_seed_chunks WHERE seed={quote(revision)};")
     return "\n".join(out)+"\n"
 if __name__=="__main__":

@@ -2,7 +2,7 @@ import {env} from "cloudflare:workers";
 import {currentSession,cookieToken,digest} from "../../../member-session.ts";
 import {requireMember,requireTechnologyMinister} from "../../../../server/auth/member.ts";
 import {ApiError,readJson} from "../../../../server/http.ts";
-import {enabled,reviewList,reviewDecision,submitReview,assignSlot,displayBook,galleryReady,fullReviewReady} from "../../../../server/imperial-v3/review.mjs";
+import {enabled,reviewList,reviewDecision,submitReview,assignSlot,displayBook,galleryReady,bookReady,fullReviewReady} from "../../../../server/imperial-v3/review.mjs";
 const headers={"Cache-Control":"private,no-store","Vary":"Cookie"};
 async function authority(request:Request){
  const actor=await requireMember(request),session=await currentSession(request),token=cookieToken(request);
@@ -24,7 +24,7 @@ export async function POST(request:Request){try{gate();if(request.headers.get("o
  // Do not expose this switch until public visibility and owner upload adapters are installed.
  if(p.action==="submit"){if(!fullReviewReady(env)||p.kind==="gallery")throw new ApiError("请通过对应的安全上传入口提交",503);return Response.json(await submitReview(env.DB,p,a),{headers,status:201});}
  await requireTechnologyMinister(request);
- if(!galleryReady(env)||(p.action!=="decision"||p.kind!=="gallery")&&!fullReviewReady(env))throw new ApiError("该类馆藏可见性接入尚未验收",503);
+ if(!(p.action==="decision"&&((p.kind==="gallery"&&galleryReady(env))||(p.kind==="book"&&bookReady(env))))&&!fullReviewReady(env))throw new ApiError("该类馆藏可见性接入尚未验收",503);
  const result=p.action==="decision"?await reviewDecision(env.DB,p,a):p.action==="bind"?await assignSlot(env.DB,p,a):p.action==="display"?await displayBook(env.DB,p,a):null;
  if(!result)throw new ApiError("未知操作",400);return Response.json(result,{headers});
  }catch(e){return error(e)}}
