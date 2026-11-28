@@ -19,7 +19,10 @@ def generate(root):
     return "\n".join([idem((proposals/(name+".proposed.sql")).read_text()) for name in ("gallery-v12","digital-v13","digital-v13-large")]+[
         "DROP TRIGGER IF EXISTS imperial_review_initial;",
         "DROP VIEW IF EXISTS imperial_visible_library_revisions;",
-        idem(raw)])
+        idem(raw),
+        "CREATE TABLE IF NOT EXISTS imperial_preview_review_guard(ok INTEGER CHECK(ok=1));",
+        "INSERT INTO imperial_preview_review_guard SELECT CASE WHEN (SELECT COUNT(*) FROM imperial_legacy_book_versions)=11 AND NOT EXISTS(SELECT 1 FROM library_revisions v WHERE v.kind='book' AND v.state='published' AND NOT EXISTS(SELECT 1 FROM imperial_legacy_book_versions l WHERE l.book=v.entity_id AND l.revision=v.revision) AND NOT EXISTS(SELECT 1 FROM imperial_review_items i WHERE i.kind='book' AND i.entity=v.entity_id AND i.version=v.revision)) THEN 1 ELSE 0 END;",
+        "DELETE FROM imperial_preview_review_guard;"])
 if __name__=="__main__":
     p=argparse.ArgumentParser();p.add_argument("--root",type=Path,default=Path(__file__).resolve().parents[3]);p.add_argument("--output",type=Path,required=True);a=p.parse_args()
     with a.output.open("x",encoding="utf-8") as f:f.write(generate(a.root))

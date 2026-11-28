@@ -52,7 +52,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --experimental-transform-types --test integration/imperial-v3/qa/review-store.test.mjs integration/imperial-v3/qa/gallery-unified-submit.test.mjs integration/imperial-v3/qa/collection-backup.test.mjs tests/gallery-archive-plan.test.mjs
+      - run: node --experimental-transform-types --test integration/imperial-v3/qa/review-store.test.mjs integration/imperial-v3/qa/gallery-unified-submit.test.mjs integration/imperial-v3/qa/collection-backup.test.mjs integration/imperial-v3/qa/book-submission.test.mjs tests/gallery-archive-plan.test.mjs
       - run: |
           python3 integration/imperial-v3/qa/achievement-sql.test.py
           python3 integration/imperial-v3/qa/limited-exploration.test.py

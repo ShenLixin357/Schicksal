@@ -8,7 +8,7 @@ import {createSceneFullscreen} from './fullscreen.js';
 import {createBookSearch} from './semantic-search.js';
 import {loadPublishedCatalog,bookPresentation,saveAnimationDraft} from './dynamic-catalog.js';
 
-export function mountLibrary(host,{debug=false,dynamic=false,semanticSearch=false,onOpenCollectionSearch=()=>{},onOpenGuide,initialBookSearch=false,onDiscover,onError=()=>{},onReady=()=>{}}={}){
+export function mountLibrary(host,{debug=false,dynamic=false,semanticSearch=false,onOpenCollectionSearch=()=>{},onOpenGuide,onOpenBookSubmission,initialBookSearch=false,onDiscover,onError=()=>{},onReady=()=>{}}={}){
 const reports=new Map();const discover=id=>{if(!onDiscover)return;const last=reports.get(id);if(last===Infinity||(last!==undefined&&Date.now()-last<10000))return;reports.set(id,Date.now());Promise.resolve(onDiscover(id)).then(ok=>{if(ok)reports.set(id,Infinity);}).catch(()=>{});};
 const root=host.shadowRoot??host.attachShadow({mode:'open'});
 root.innerHTML=template;
@@ -257,6 +257,7 @@ function rotate(dx,dy){
 const smartSearch=semanticSearch&&dynamic?createBookSearch({dialog:summon,query,results,title:byId('result-title'),count:byId('result-count'),documents:()=>documents,selection,renderLocal:renderResults,openCollections:onOpenCollectionSearch,openGuide:onOpenGuide,bindSelectionClick,signal:abort.signal}):null;
 crest.addEventListener('click',showCatalog);
 byId('close-catalog').addEventListener('click',()=>summon.close());
+if(dynamic&&onOpenBookSubmission){const submit=element('button','投稿目录书','direct');submit.type='button';submit.id='submit-directory-book';on(submit,'click',()=>{selection.cancel();summon.close();onOpenBookSubmission();});byId('result-title').parentElement.append(submit);}
 summon.addEventListener('close',()=>selection.cancel());
 query.addEventListener('input',event=>{
   selection.cancel();

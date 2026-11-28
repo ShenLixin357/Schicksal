@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 import {readFileSync,writeFileSync} from "node:fs";
 const built=JSON.parse(readFileSync("dist/server/wrangler.json","utf8"));
 assert.match(process.env.SCHICKSAL_LOCAL_SHA,/^[0-9a-f]{40}$/);
-const config={name:"schicksal-v32-local",main:"index.js",compatibility_date:built.compatibility_date,compatibility_flags:built.compatibility_flags,no_bundle:true,...(built.rules?{rules:built.rules}:{}),assets:{directory:"../client",binding:"ASSETS",run_worker_first:true},vars:{SCHICKSAL_HOSTING:"cloudflare",SUPABASE_STORAGE_BUCKET:"v32-disabled",SCHICKSAL_PREVIEW_COMMIT:process.env.SCHICKSAL_LOCAL_SHA,SCHICKSAL_MINISTRY_V2:"1",SCHICKSAL_GUIDE_ENABLED:"true",SCHICKSAL_EXPLORATION_ENABLED:"true",SCHICKSAL_GUIDE_LIBRARY_READY:"true",SCHICKSAL_ACHIEVEMENTS_ENABLED:"true",SCHICKSAL_LIMITED_EXPLORATION_ENABLED:"true",SCHICKSAL_LIBRARY_V11_ENABLED:"true",SCHICKSAL_GALLERY_ENTRY_ENABLED:"true",SCHICKSAL_V3_STATUS_ENABLED:"true"},d1_databases:[{binding:"DB",database_name:"schicksal-v32-local-db",database_id:"00000000-0000-4000-8000-000000000004",migrations_dir:"../../drizzle"}]};
+const config={name:"schicksal-v32-local",main:"index.js",compatibility_date:built.compatibility_date,compatibility_flags:built.compatibility_flags,no_bundle:true,...(built.rules?{rules:built.rules}:{}),assets:{directory:"../client",binding:"ASSETS",run_worker_first:true},vars:{SCHICKSAL_HOSTING:"cloudflare",SUPABASE_STORAGE_BUCKET:"v32-disabled",SCHICKSAL_PREVIEW_COMMIT:process.env.SCHICKSAL_LOCAL_SHA,SCHICKSAL_MINISTRY_V2:"1",SCHICKSAL_GUIDE_ENABLED:"true",SCHICKSAL_EXPLORATION_ENABLED:"true",SCHICKSAL_GUIDE_LIBRARY_READY:"true",SCHICKSAL_ACHIEVEMENTS_ENABLED:"true",SCHICKSAL_LIMITED_EXPLORATION_ENABLED:"true",SCHICKSAL_LIBRARY_V11_ENABLED:"true",SCHICKSAL_GALLERY_ENTRY_ENABLED:"true",SCHICKSAL_V3_STATUS_ENABLED:"true",SCHICKSAL_V32_REVIEW_ENABLED:"true",SCHICKSAL_V32_BOOK_REVIEW_READY:"true",SCHICKSAL_REVIEW_NOTICES_ENABLED:"true"},d1_databases:[{binding:"DB",database_name:"schicksal-v32-local-db",database_id:"00000000-0000-4000-8000-000000000004",migrations_dir:"../../drizzle"}]};
 writeFileSync("dist/server/v32-local.wrangler.json",JSON.stringify(config,null,2));
 writeFileSync("dist/server/.dev.vars","SCHICKSAL_MEMBER_PASSWORDS='"+JSON.stringify({amberina:process.env.SCHICKSAL_TEST_PASSWORD})+"'\n",{mode:0o600});
 NODE
@@ -29,6 +29,8 @@ npx wrangler d1 execute DB --local --persist-to "$STATE" --config "$CONFIG" --fi
 npx wrangler d1 execute DB --local --persist-to "$STATE" --config "$CONFIG" --file integration/imperial-v3/qa/preview-review-notices.sql
 python3 integration/imperial-v3/qa/prepare-library-seed.py --output "$RUNNER_TEMP/v32-library-seed.sql"
 npx wrangler d1 execute DB --local --persist-to "$STATE" --config "$CONFIG" --file "$RUNNER_TEMP/v32-library-seed.sql"
+python3 integration/imperial-v3/qa/prepare-collection-review.py --output "$RUNNER_TEMP/v32-collection-review.sql"
+npx wrangler d1 execute DB --local --persist-to "$STATE" --config "$CONFIG" --file "$RUNNER_TEMP/v32-collection-review.sql"
 npx wrangler dev --local --ip 127.0.0.1 --port 8787 --persist-to "$STATE" --config "$CONFIG" >"$REPORT/worker.log" 2>&1 &
 PID=$!
 trap 'kill "$PID" 2>/dev/null || true; rm -f dist/server/.dev.vars' EXIT
